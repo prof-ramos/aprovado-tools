@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aprovado Tools — Painel de Estudos</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="panel-layout">
+    <!-- Header -->
+    <header class="panel-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M18 20V10M12 20V4M6 20v-6"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Aprovado Tools</h1>
+          <span class="brand-subtitle">Painel Lateral de Estudos</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-sync" class="btn-icon" title="Sincronizar dados">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+          </svg>
+        </button>
+        <button id="btn-open-full" class="btn-icon" title="Abrir Dashboard Completo">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Disconnected State -->
+    <div id="panel-disconnected" class="state-container hidden">
+      <div class="empty-icon">🔒</div>
+      <h2>Você não está conectado</h2>
+      <p>Faça login na sua conta do AprovadoApp para visualizar o acompanhamento de estudos em tempo real.</p>
+      <button id="btn-login" class="btn btn-primary btn-full">
+        <span>Fazer Login no AprovadoApp</span>
+      </button>
+    </div>
+
+    <!-- Loading State -->
+    <div id="panel-loading" class="state-container">
+      <div class="spinner"></div>
+      <p>Sincronizando métricas...</p>
+    </div>
+
+    <!-- Main Content -->
+    <main id="panel-main" class="panel-main hidden">
+      <!-- User Chip -->
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-details">
+          <span class="user-name" id="user-name">Carregando...</span>
+          <span class="user-status"><span class="status-dot"></span> Sincronizado</span>
+        </div>
+      </div>
+
+      <!-- Period Filter -->
+      <div class="filter-pills">
+        <button class="pill-btn active" data-period="all">Tudo</button>
+        <button class="pill-btn" data-period="30d">30 dias</button>
+        <button class="pill-btn" data-period="7d">7 dias</button>
+      </div>
+
+      <!-- KPI Grid -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-label">TEMPO TOTAL</span>
+          <span class="kpi-val" id="kpi-time">0h 0m</span>
+          <span class="kpi-sub" id="kpi-avg">0h/dia</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">SESSÕES</span>
+          <span class="kpi-val" id="kpi-sessions">0</span>
+          <span class="kpi-sub" id="kpi-days">0 dias</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">QUESTÕES</span>
+          <span class="kpi-val" id="kpi-questions">0</span>
+          <span class="kpi-sub" id="kpi-accuracy">0% acertos</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">SEQUÊNCIA</span>
+          <span class="kpi-val" id="kpi-streak">0d</span>
+          <span class="kpi-sub" id="kpi-longest">Recorde: 0d</span>
+        </div>
+      </div>
+
+      <!-- Study Cycle Card -->
+      <section id="section-ciclo" class="card-section hidden">
+        <div class="section-header">
+          <h2 class="section-title">🔄 Ciclo de Estudos</h2>
+          <span id="ciclo-pct" class="section-badge">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div id="ciclo-progress-bar" class="progress-bar-fill" style="width: 0%"></div>
+        </div>
+        <div id="ciclo-subjects-list" class="ciclo-subjects-list"></div>
+      </section>
+
+      <!-- Pending Reviews Card -->
+      <section id="section-reviews" class="card-section hidden">
+        <div class="section-header">
+          <h2 class="section-title">🔔 Revisões Pendentes</h2>
+          <span id="reviews-count-badge" class="section-badge danger">0</span>
+        </div>
+        <div id="reviews-list" class="reviews-list"></div>
+      </section>
+
+      <!-- Subject Time Distribution -->
+      <section class="card-section">
+        <div class="section-header">
+          <h2 class="section-title">📚 Horas por Matéria</h2>
+        </div>
+        <div id="subjects-bars" class="subjects-bars"></div>
+      </section>
+
+      <!-- Quick Export Box -->
+      <section class="card-section">
+        <div class="section-header">
+          <h2 class="section-title">⚡ Exportar Dados</h2>
+        </div>
+        <div class="export-actions">
+          <button id="btn-export-csv" class="btn btn-secondary btn-full">
+            <span>📄 Baixar CSV de Atividades</span>
+          </button>
+          <button id="btn-export-json" class="btn btn-secondary btn-full">
+            <span>💾 Backup Completo (JSON)</span>
+          </button>
+          <button id="btn-copy-md" class="btn btn-secondary btn-full">
+            <span id="copy-text">📋 Copiar Resumo em Markdown</span>
+          </button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="sidepanel.js"></script>
+</body>
+</html>

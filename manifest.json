@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "Aprovado Tools — Métricas & Exportação",
+  "version": "1.0.0",
+  "description": "Exporte e analise métricas completas de estudo, histórico de atividades, ciclo e revisões do AprovadoApp.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Aprovado Tools",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "permissions": [
+    "storage",
+    "cookies",
+    "sidePanel",
+    "contextMenus",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://aprovadoapp.com/*",
+    "https://*.aprovadoapp.com/*",
+    "https://aprovadoapp.com.br/*",
+    "https://*.aprovadoapp.com.br/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://aprovadoapp.com/*",
+        "https://*.aprovadoapp.com/*",
+        "https://aprovadoapp.com.br/*",
+        "https://*.aprovadoapp.com.br/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

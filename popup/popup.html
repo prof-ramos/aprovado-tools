@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aprovado Tools</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Top Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M18 20V10M12 20V4M6 20v-6"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Aprovado Tools</h1>
+          <span class="brand-subtitle">Métricas & Exportação</span>
+        </div>
+      </div>
+      <div id="auth-badge" class="auth-badge loading">
+        <span class="status-dot"></span>
+        <span id="auth-status-text">Conectando...</span>
+      </div>
+    </header>
+
+    <!-- Disconnected View -->
+    <div id="disconnected-state" class="state-container hidden">
+      <div class="empty-icon">🔒</div>
+      <h2>Você não está conectado</h2>
+      <p>Acesse o AprovadoApp e faça login para sincronizar e exportar suas métricas de estudo.</p>
+      <button id="btn-login-aprovado" class="btn btn-primary btn-full">
+        <span>Fazer Login no AprovadoApp</span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"></path>
+        </svg>
+      </button>
+      <button id="btn-retry-auth" class="btn btn-secondary btn-full mt-2">
+        <span>Verificar Conexão Novamente</span>
+      </button>
+    </div>
+
+    <!-- Loading View -->
+    <div id="loading-state" class="state-container">
+      <div class="spinner"></div>
+      <p>Carregando métricas de estudo...</p>
+    </div>
+
+    <!-- Connected Main View -->
+    <main id="connected-content" class="connected-content hidden">
+      <!-- User profile header -->
+      <div class="user-strip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info">
+          <div class="user-name" id="user-name">Estudante</div>
+          <div class="user-email" id="user-email">email@exemplo.com</div>
+        </div>
+        <button id="btn-refresh" class="btn-icon" title="Atualizar dados">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Quick Period Filter -->
+      <div class="filter-pills">
+        <button class="pill-btn active" data-period="all">Tudo</button>
+        <button class="pill-btn" data-period="30d">30 dias</button>
+        <button class="pill-btn" data-period="7d">7 dias</button>
+      </div>
+
+      <!-- KPI Grid -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-label">TEMPO TOTAL</span>
+          <span class="kpi-val" id="kpi-time">--</span>
+          <span class="kpi-sub" id="kpi-avg-day">-- / dia</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">SESSÕES</span>
+          <span class="kpi-val" id="kpi-sessions">--</span>
+          <span class="kpi-sub" id="kpi-days-count">-- dias ativos</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">QUESTÕES</span>
+          <span class="kpi-val" id="kpi-questions">--</span>
+          <span class="kpi-sub" id="kpi-accuracy">-- acertos</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">SEQUÊNCIA</span>
+          <span class="kpi-val" id="kpi-streak">--</span>
+          <span class="kpi-sub" id="kpi-longest-streak">Recorde: --</span>
+        </div>
+      </div>
+
+      <!-- Cycle Mini Progress -->
+      <div id="cycle-preview" class="cycle-preview hidden">
+        <div class="cycle-header">
+          <span>Ciclo de Estudos</span>
+          <span id="cycle-pct" class="cycle-pct">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div id="cycle-progress-fill" class="progress-bar-fill" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Main Open Buttons -->
+      <div class="action-buttons">
+        <button id="btn-open-dashboard" class="btn btn-primary btn-full">
+          <span>📊 Abrir Dashboard Completo</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"></path>
+          </svg>
+        </button>
+        <button id="btn-open-sidepanel" class="btn btn-secondary btn-full">
+          <span>📑 Abrir Painel Lateral</span>
+        </button>
+      </div>
+
+      <!-- Export Actions Accordion -->
+      <div class="export-box">
+        <div class="export-title">Exportações Rápidas</div>
+        <div class="export-grid">
+          <button id="btn-export-activities-csv" class="btn-export" title="Exportar todas as sessões para CSV (Excel)">
+            <span class="icon">📄</span>
+            <span>CSV Atividades</span>
+          </button>
+          <button id="btn-export-subjects-csv" class="btn-export" title="Exportar resumo de matérias para CSV">
+            <span class="icon">📚</span>
+            <span>CSV Matérias</span>
+          </button>
+          <button id="btn-export-backup-json" class="btn-export" title="Backup completo dos dados em formato JSON">
+            <span class="icon">💾</span>
+            <span>Backup JSON</span>
+          </button>
+          <button id="btn-copy-markdown" class="btn-export" title="Copiar resumo de métricas formatado para Notion/Obsidian">
+            <span class="icon">📋</span>
+            <span id="copy-btn-text">Copiar Markdown</span>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>Aprovado Tools v1.0 • Desenvolvido com carinho</span>
+    </footer>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
