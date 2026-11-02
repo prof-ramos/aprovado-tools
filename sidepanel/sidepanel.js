@@ -235,4 +235,8 @@ btnCopyMd.addEventListener('click', async () => {
   }, 2000);
 });
 
-document.addEventListener('DOMContentLoaded', () => loadData(false));
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => loadData(false));
+} else {
+  loadData(false);
+}

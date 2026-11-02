@@ -500,4 +500,8 @@ exportCopyMd.addEventListener('click', async () => {
   }, 2000);
 });
 
-document.addEventListener('DOMContentLoaded', init);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

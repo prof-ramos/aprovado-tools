@@ -28,7 +28,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 // Handle Context Menu clicks
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === 'aprovado_open_dashboard') {
-    await chrome.tabs.create({ url: 'dashboard/dashboard.html' });
+    await chrome.tabs.create({ url: chrome.runtime.getURL('dashboard/dashboard.html') });
   } else if (info.menuItemId === 'aprovado_open_sidepanel') {
     if (tab && tab.windowId) {
       await chrome.sidePanel.open({ windowId: tab.windowId });
@@ -41,7 +41,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       if (message.type === 'OPEN_DASHBOARD') {
-        const tab = await chrome.tabs.create({ url: 'dashboard/dashboard.html' });
+        const tab = await chrome.tabs.create({ url: chrome.runtime.getURL('dashboard/dashboard.html') });
         sendResponse({ success: true, tabId: tab.id });
       } else if (message.type === 'OPEN_SIDEPANEL') {
         const windowId = sender.tab ? sender.tab.windowId : (await chrome.windows.getLastFocused()).id;
