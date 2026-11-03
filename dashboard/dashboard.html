@@ -55,7 +55,7 @@
             </button>
             <button id="export-csv-subjects" class="dropdown-item">
               <div class="item-desc">
-                <strong>Resumo por disciplina (CSV)</strong>
+                <strong>Resumo por matéria (CSV)</strong>
                 <span>Horas e questões consolidadas</span>
               </div>
             </button>
@@ -117,7 +117,7 @@
       <div class="filter-group" data-overview-only>
         <label for="select-subject">Matéria:</label>
         <select id="select-subject" class="select-input">
-          <option value="all">Todas as disciplinas</option>
+          <option value="all">Todas as matérias</option>
         </select>
       </div>
 
@@ -210,7 +210,7 @@
           <div class="chart-card chart-large">
             <div class="card-title-bar">
               <div>
-                <h3>Distribuição por disciplina</h3>
+                <h3>Distribuição por matéria</h3>
                 <span class="card-caption">Tempo acumulado e rendimento</span>
               </div>
             </div>
@@ -218,12 +218,12 @@
               <table class="data-table" id="table-subjects-summary">
                 <thead>
                   <tr>
-                    <th>Disciplina</th>
+                    <th>Matéria</th>
                     <th>Horas</th>
                     <th>% Tempo</th>
                     <th>Sessões</th>
                     <th>Questões</th>
-                    <th>Aproveitamento</th>
+                    <th>Assertividade</th>
                   </tr>
                 </thead>
                 <tbody id="tbody-subjects-summary"></tbody>
@@ -426,10 +426,10 @@
           <div class="heatmap-legend">
             <span class="legend-text">Menos</span>
             <span class="legend-box level-0" title="0h"></span>
-            <span class="legend-box level-1" title="≤1.5h"></span>
-            <span class="legend-box level-2" title="≤3.5h"></span>
-            <span class="legend-box level-3" title="≤6.0h"></span>
-            <span class="legend-box level-4" title=">6.0h"></span>
+            <span class="legend-box level-1" title="até 1,5h"></span>
+            <span class="legend-box level-2" title="até 3,5h"></span>
+            <span class="legend-box level-3" title="até 6h"></span>
+            <span class="legend-box level-4" title="mais de 6h"></span>
             <span class="legend-text">Mais</span>
           </div>
 
@@ -441,7 +441,7 @@
           <div class="chart-card chart-large">
             <div class="card-title-bar">
               <div>
-                <h3>Distribuição circadiana (00h às 23h)</h3>
+                <h3>Estudo por hora do dia (00h às 23h)</h3>
                 <span class="card-caption">Volume em horas líquidas ao longo do dia</span>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { escapeHtml, sanitizeColor } from '../shared/ui.js';
 import { AprovadoApi } from '../shared/api.js';
 import { computeStudyMetrics, filterActivitiesByPeriod } from '../shared/analytics.js';
 import { AprovadoExport } from '../shared/export.js';
+import { formatNumber } from '../shared/format.js';
 
 let currentSnapshot = null;
 let currentPeriod = 'all';
@@ -114,14 +115,14 @@ function updateView() {
   // Render KPIs
   kpiTime.textContent = metrics.formattedTotalHours;
   kpiAvg.textContent = `${metrics.avgDailyDuration}/dia`;
-  kpiSessions.textContent = metrics.totalSessions;
+  kpiSessions.textContent = formatNumber(metrics.totalSessions, 0);
   kpiDays.textContent = `${metrics.distinctDaysCount} dias`;
 
   if (metrics.totalQuestions > 0) {
-    kpiQuestions.textContent = `${metrics.totalQuestions} qst`;
-    kpiAccuracy.textContent = `${metrics.overallAccuracy}% acertos`;
+    kpiQuestions.textContent = `${formatNumber(metrics.totalQuestions, 0)} questões`;
+    kpiAccuracy.textContent = `${formatNumber(Number(metrics.overallAccuracy), 1)}% de acertos`;
   } else {
-    kpiQuestions.textContent = '0 qst';
+    kpiQuestions.textContent = '0 questões';
     kpiAccuracy.textContent = '0% acertos';
   }
 
@@ -131,7 +132,7 @@ function updateView() {
   // Render Ciclo
   if (metrics.ciclo && metrics.ciclo.porcentagem !== undefined) {
     sectionCiclo.classList.remove('hidden');
-    cicloPct.textContent = `${metrics.ciclo.porcentagem}%`;
+    cicloPct.textContent = `${formatNumber(Number(metrics.ciclo.porcentagem), 1)}%`;
     cicloProgressBar.style.width = `${Math.min(100, Math.max(0, metrics.ciclo.porcentagem))}%`;
 
     cicloSubjectsList.innerHTML = '';
@@ -139,7 +140,7 @@ function updateView() {
     items.forEach(m => {
       const row = document.createElement('div');
       row.className = 'ciclo-item';
-      const mName = m.Nome || m.Materia?.Nome || 'Disciplina';
+      const mName = m.Nome || m.Materia?.Nome || 'Matéria';
       const mHrs = m.HorasExecutadasTexto || `${Math.floor((m.HorasExecutadas || 0) / 3600)}h`;
       row.innerHTML = `<span>${escapeHtml(mName)}</span><span style="color: var(--text-muted);">${escapeHtml(mHrs)}</span>`;
       cicloSubjectsList.appendChild(row);

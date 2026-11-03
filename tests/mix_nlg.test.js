@@ -62,7 +62,7 @@ describe('Methodological Mix & Rule-Based NLG Insights Test Suite', () => {
 
       assert.ok(rule1, 'Must trigger Baixa Resolução de Questões');
       assert.equal(rule1.severity, 'critical');
-      assert.match(rule1.text, /10\.0%/);
+      assert.match(rule1.text, /10,0%/);
     });
 
     it('triggers Rule 2 (warning) when theory exceeds 60%', () => {
@@ -77,7 +77,7 @@ describe('Methodological Mix & Rule-Based NLG Insights Test Suite', () => {
 
       assert.ok(rule2, 'Must trigger Excesso de Teoria Passiva');
       assert.equal(rule2.severity, 'warning');
-      assert.match(rule2.text, /70\.0%/);
+      assert.match(rule2.text, /70,0%/);
     });
 
     it('triggers Rule 3 (critical) when revision is below 10%', () => {
@@ -92,7 +92,7 @@ describe('Methodological Mix & Rule-Based NLG Insights Test Suite', () => {
 
       assert.ok(rule3, 'Must trigger Déficit de Revisão Espaçada');
       assert.equal(rule3.severity, 'critical');
-      assert.match(rule3.text, /5\.0%/);
+      assert.match(rule3.text, /5,0%/);
     });
 
     it('triggers Rule 4 (info) when questions > 70% and theory < 15%', () => {

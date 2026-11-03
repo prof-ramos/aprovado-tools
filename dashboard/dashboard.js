@@ -4,11 +4,14 @@ import {
   filterActivitiesByPeriod,
   formatDurationMs,
   formatDurationHours,
+  parseDateString,
+  severityLabel,
   computeHistoricalPatterns,
   computeActivityHeatmap
 } from '../shared/analytics.js';
 import { AprovadoExport } from '../shared/export.js';
 import { escapeHtml, sanitizeColor } from '../shared/ui.js';
+import { formatNumber, formatValue } from '../shared/format.js';
 
 let fullSnapshot = null;
 let currentPeriod = 'all';
@@ -183,7 +186,7 @@ function renderUserHeader(user) {
 
 function populateFilterSelects(snapshot) {
   // Populate Subjects
-  selectSubject.innerHTML = '<option value="all">Todas as Disciplinas</option>';
+  selectSubject.innerHTML = '<option value="all">Todas as matérias</option>';
   (snapshot.materias || []).forEach(m => {
     const opt = document.createElement('option');
     opt.value = String(m.Id);
@@ -267,12 +270,12 @@ function renderKpiBanner(metrics) {
   dashTotalTime.textContent = metrics.formattedTotalDuration;
   dashTotalHoursDecimal.textContent = `${metrics.formattedTotalHours} líquidas`;
 
-  dashTotalSessions.textContent = metrics.totalSessions;
+  dashTotalSessions.textContent = formatNumber(metrics.totalSessions, 0);
   dashActiveDays.textContent = `${metrics.distinctDaysCount} dias com estudo`;
 
   if (metrics.totalQuestions > 0) {
-    dashQuestionsAccuracy.textContent = `${metrics.overallAccuracy}%`;
-    dashQuestionsCounts.textContent = `${metrics.totalCorrect} acertos de ${metrics.totalQuestions} questões`;
+    dashQuestionsAccuracy.textContent = `${formatNumber(Number(metrics.overallAccuracy), 1)}%`;
+    dashQuestionsCounts.textContent = `${formatNumber(metrics.totalCorrect, 0)} acertos de ${formatNumber(metrics.totalQuestions, 0)} questões`;
   } else {
     dashQuestionsAccuracy.textContent = '—';
     dashQuestionsCounts.textContent = 'Nenhum exercício registrado';
@@ -308,7 +311,7 @@ function renderDailyTimelineChart(dailyHistory) {
     const bar = document.createElement('div');
     bar.className = 'chart-bar';
     bar.style.height = `${heightPct}px`;
-    bar.title = `${item.date}: ${item.hours}h (${item.count} sessões${item.questions ? `, ${item.questions} questões` : ''})`;
+    bar.title = `${item.date}: ${formatValue(item.hours)}h (${item.count} sessões${item.questions ? `, ${item.questions} questões` : ''})`;
 
     const label = document.createElement('span');
     label.className = 'chart-bar-label';
@@ -331,18 +334,18 @@ function renderCicloCard(ciclo) {
     return;
   }
 
-  dashCicloPct.textContent = `${ciclo.porcentagem}%`;
+  dashCicloPct.textContent = `${formatNumber(Number(ciclo.porcentagem), 1)}%`;
   dashCicloFill.style.width = `${Math.min(100, Math.max(0, parseFloat(ciclo.porcentagem)))}%`;
 
   const execHrs = Math.floor((ciclo.executadas || 0) / 3600);
   const totalHrs = Math.floor((ciclo.totalHoras || 0) / 3600);
-  dashCicloHoursInfo.textContent = `${execHrs}h executadas de ${totalHrs}h previstas nesta rodada`;
+  dashCicloHoursInfo.textContent = `${formatValue(execHrs)}h executadas de ${formatValue(totalHrs)}h previstas nesta rodada`;
 
   dashCicloList.innerHTML = '';
   (ciclo.materias || []).slice(0, 5).forEach(m => {
     const row = document.createElement('div');
     row.className = 'ciclo-row';
-    const name = m.Nome || m.Materia?.Nome || 'Disciplina';
+    const name = m.Nome || m.Materia?.Nome || 'Matéria';
     const hrs = m.HorasExecutadasTexto || `${Math.floor((m.HorasExecutadas || 0) / 3600)}h`;
     row.innerHTML = `
       <span>${escapeHtml(name)}</span>
@@ -356,7 +359,7 @@ function renderSubjectsSummary(subjects) {
   tbodySubjectsSummary.innerHTML = '';
 
   if (!subjects || subjects.length === 0) {
-    tbodySubjectsSummary.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Nenhuma disciplina encontrada.</td></tr>';
+    tbodySubjectsSummary.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Nenhuma matéria encontrada.</td></tr>';
     return;
   }
 
@@ -366,7 +369,7 @@ function renderSubjectsSummary(subjects) {
     let accBadge = '<span style="color: var(--text-muted);">—</span>';
     if (s.questions > 0) {
       const cls = s.accuracy >= 80 ? 'accuracy-high' : (s.accuracy >= 65 ? 'accuracy-mid' : 'accuracy-low');
-      accBadge = `<span class="accuracy-badge ${cls}">${s.accuracy.toFixed(1)}%</span>`;
+      accBadge = `<span class="accuracy-badge ${cls}">${formatNumber(s.accuracy, 1)}%</span>`;
     }
 
     tr.innerHTML = `
@@ -377,7 +380,7 @@ function renderSubjectsSummary(subjects) {
         </div>
       </td>
       <td><strong>${s.formattedHours}</strong></td>
-      <td>${s.percentage.toFixed(1)}%</td>
+      <td>${formatNumber(s.percentage, 1)}%</td>
       <td>${s.sessionsCount}</td>
       <td>${s.questions > 0 ? `${s.questions} (${s.correct} acertos)` : '—'}</td>
       <td>${accBadge}</td>
@@ -395,7 +398,7 @@ function renderModalitiesAndShifts(metrics) {
     row.innerHTML = `
       <div class="type-info">
         <strong>${escapeHtml(t.name)}</strong>
-        <span style="color: var(--text-muted);">${t.formattedDuration} (${t.percentage.toFixed(1)}%)</span>
+        <span style="color: var(--text-muted);">${t.formattedDuration} (${formatNumber(t.percentage, 1)}%)</span>
       </div>
       <div class="progress-bar-bg" style="height: 5px;">
         <div class="progress-bar-fill" style="width: ${t.percentage}%;"></div>
@@ -411,7 +414,16 @@ function renderModalitiesAndShifts(metrics) {
   shiftNoite.textContent = metrics.periodDistribution.noite.formatted;
 }
 
-function renderActivitiesTable(activities) {
+/** Start time in ms, so the activity list can show the most recent sessions first. */
+function activityStartTime(activity) {
+  const date = parseDateString(activity.DataInicio);
+  if (!date) return 0;
+  const [hours = 0, minutes = 0] = String(activity.HoraInicio || '').split(':').map(Number);
+  return date.getTime() + ((hours || 0) * 60 + (minutes || 0)) * 60000;
+}
+
+function renderActivitiesTable(unsortedActivities) {
+  const activities = [...unsortedActivities].sort((a, b) => activityStartTime(b) - activityStartTime(a));
   activitiesCountCaption.textContent = `${activities.length} atividades no filtro atual`;
 
   const totalPages = Math.ceil(activities.length / PAGE_SIZE) || 1;
@@ -430,7 +442,7 @@ function renderActivitiesTable(activities) {
       const tr = document.createElement('tr');
       const durText = a.DuracaoTexto || formatDurationMs(a.Duracao);
       const questionsText = a.ExercicioQuantidade > 0
-        ? `${a.ExercicioAcerto}/${a.ExercicioQuantidade} (${((a.ExercicioAcerto / a.ExercicioQuantidade) * 100).toFixed(0)}%)`
+        ? `${a.ExercicioAcerto}/${a.ExercicioQuantidade} (${formatNumber(((a.ExercicioAcerto / a.ExercicioQuantidade) * 100), 0)}%)`
         : '—';
 
       tr.innerHTML = `
@@ -689,7 +701,7 @@ function renderExecutiveSummaryMetrics(historyData) {
     histTotalHours.textContent = formatDurationMs(totalMs);
   }
   if (histTotalHoursDecimal) {
-    histTotalHoursDecimal.textContent = `${historyData.totalCumulativeHours.toFixed(1)} horas líquidas`;
+    histTotalHoursDecimal.textContent = `${formatNumber(historyData.totalCumulativeHours, 1)} horas líquidas`;
   }
 
   if (histTotalSessions) {
@@ -702,7 +714,7 @@ function renderExecutiveSummaryMetrics(historyData) {
 
   if (histAccuracy) {
     histAccuracy.textContent = historyData.overallHistoricalAccuracy !== null
-      ? `${historyData.overallHistoricalAccuracy.toFixed(1)}%`
+      ? `${formatNumber(historyData.overallHistoricalAccuracy, 1)}%`
       : 'N/A';
   }
   if (histQuestionsDetail) {
@@ -714,7 +726,7 @@ function renderExecutiveSummaryMetrics(historyData) {
   }
   if (histPeakHours) {
     histPeakHours.textContent = historyData.peakYear
-      ? `${historyData.peakYear.hours.toFixed(1)}h no melhor ano`
+      ? `${formatNumber(historyData.peakYear.hours, 1)}h no melhor ano`
       : 'Sem registros';
   }
 }
@@ -745,7 +757,7 @@ function renderMultiannualCards(historyData) {
         </div>
         <span class="phase-badge ${phaseClass}" title="${escapeHtml(yearData.phaseDescription)}">${escapeHtml(yearData.phaseLabel)}</span>
       </div>
-      <div class="year-hours-main">${yearData.totalHours.toFixed(1)}h</div>
+      <div class="year-hours-main">${formatNumber(yearData.totalHours, 1)}h</div>
       <div class="year-duration-sub">${escapeHtml(yearData.formattedDuration)}</div>
       <div class="year-bar-track">
         <div class="year-bar-fill" style="width: ${barPercent.toFixed(1)}%"></div>
@@ -761,11 +773,11 @@ function renderMultiannualCards(historyData) {
         </div>
         <div class="year-meta-item">
           <span>Assertividade:</span>
-          <span class="year-meta-val">${yearData.accuracy !== null ? yearData.accuracy.toFixed(1) + '%' : 'N/A'}</span>
+          <span class="year-meta-val">${yearData.accuracy !== null ? formatNumber(yearData.accuracy, 1) + '%' : 'N/A'}</span>
         </div>
         <div class="year-meta-item">
           <span>Média diária:</span>
-          <span class="year-meta-val">${yearData.avgDailyHoursActive.toFixed(1)}h/dia</span>
+          <span class="year-meta-val">${formatNumber(yearData.avgDailyHoursActive, 1)}h/dia</span>
         </div>
       </div>
     `;
@@ -810,11 +822,11 @@ function renderHeatmap(activities, selectedYear) {
 
   const heatmapData = computeActivityHeatmap(activities, selectedYear);
 
-  if (kpiHours) kpiHours.textContent = `${heatmapData.totalYearHours.toFixed(1)}h (${heatmapData.formattedTotalHours})`;
+  if (kpiHours) kpiHours.textContent = `${formatNumber(heatmapData.totalYearHours, 1)}h (${heatmapData.formattedTotalHours})`;
   if (kpiDays) kpiDays.textContent = `${heatmapData.activeDaysCount} de ${heatmapData.totalDays} dias`;
   if (kpiPeakDay) {
     kpiPeakDay.textContent = heatmapData.maxDailyHours > 0
-      ? `${heatmapData.maxDailyHours.toFixed(1)}h (${formatDateBR(heatmapData.maxDailyDate)})`
+      ? `${formatNumber(heatmapData.maxDailyHours, 1)}h (${formatDateBR(heatmapData.maxDailyDate)})`
       : '0.0h';
   }
   if (kpiStreak) {
@@ -899,11 +911,11 @@ function renderHeatmap(activities, selectedYear) {
       const sessions = parseInt(cell.getAttribute('data-sessions') || '0', 10);
       const questions = parseInt(cell.getAttribute('data-questions') || '0', 10);
       const correct = parseInt(cell.getAttribute('data-correct') || '0', 10);
-      const acc = questions > 0 ? ((correct / questions) * 100).toFixed(1) + '%' : 'N/A';
+      const acc = questions > 0 ? formatNumber(((correct / questions) * 100), 1) + '%' : 'N/A';
 
       tooltip.innerHTML = `
         <div class="tooltip-title">${formatDateBR(date)}</div>
-        <div class="tooltip-row"><span>Duração:</span><strong>${duration} (${hours.toFixed(1)}h)</strong></div>
+        <div class="tooltip-row"><span>Duração:</span><strong>${duration} (${formatNumber(hours, 1)}h)</strong></div>
         <div class="tooltip-row"><span>Sessões:</span><strong>${sessions}</strong></div>
         <div class="tooltip-row"><span>Questões:</span><strong>${questions > 0 ? `${correct}/${questions} (${acc})` : 'Nenhuma'}</strong></div>
       `;
@@ -944,8 +956,8 @@ function renderCircadian(circadianData) {
       const isPeak = h.hour === circadianData.peakHour.hour;
       const heightPercent = Math.max(3, (h.hours / maxHours) * 100);
 
-      const accText = h.accuracy !== null ? `${h.accuracy.toFixed(1)}%` : 'N/A';
-      col.title = `${h.label}: ${h.hours.toFixed(1)}h (${h.percentage.toFixed(1)}%) • ${h.sessions} sessões • Assertividade: ${accText}`;
+      const accText = h.accuracy !== null ? `${formatNumber(h.accuracy, 1)}%` : 'N/A';
+      col.title = `${h.label}: ${formatNumber(h.hours, 1)}h (${formatNumber(h.percentage, 1)}%) • ${h.sessions} sessões • Assertividade: ${accText}`;
 
       col.innerHTML = `
         <div class="circadian-bar ${isPeak ? 'is-peak' : ''}" style="height: ${heightPercent.toFixed(1)}%"></div>
@@ -957,7 +969,7 @@ function renderCircadian(circadianData) {
 
   if (peakNote) {
     const peakLabel = circadianData.peakHour?.label || `${String(circadianData.peakHour?.hour ?? 0).padStart(2, '0')}h`;
-    peakNote.innerHTML = `Pico de estudo às <strong>${peakLabel}</strong> com <strong>${circadianData.peakHour.hours.toFixed(1)}h</strong> (${circadianData.peakHour.percentage.toFixed(1)}% do tempo total)`;
+    peakNote.innerHTML = `Pico de estudo às <strong>${peakLabel}</strong> com <strong>${formatNumber(circadianData.peakHour.hours, 1)}h</strong> (${formatNumber(circadianData.peakHour.percentage, 1)}% do tempo total)`;
   }
 
   // 2. 4 Daytime Shifts (sum strictly to 100%)
@@ -982,9 +994,9 @@ function renderCircadian(circadianData) {
           <span>${escapeHtml(s.name)}</span>
           ${isDominant ? '<span class="dominant-tag">Turno dominante</span>' : ''}
         </div>
-        <div class="shift-hours-val">${shiftData.hours.toFixed(1)}h</div>
+        <div class="shift-hours-val">${formatNumber(shiftData.hours, 1)}h</div>
         <div class="shift-card-footer">
-          <span class="shift-pct-pill">${shiftData.percentage.toFixed(1)}%</span>
+          <span class="shift-pct-pill">${formatNumber(shiftData.percentage, 1)}%</span>
           <span class="shift-sessions-val">${shiftData.sessions} sessões</span>
         </div>
       `;
@@ -1027,17 +1039,17 @@ function renderCircadian(circadianData) {
           <td><strong>${escapeHtml(day.dayName)}</strong></td>
           <td>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span>${day.hours.toFixed(1)}h</span>
+              <span>${formatNumber(day.hours, 1)}h</span>
               <div class="progress-bar-bg" style="width: 80px; height: 6px;">
                 <div class="progress-bar-fill" style="width: ${barWidth.toFixed(0)}%"></div>
               </div>
             </div>
           </td>
-          <td>${day.percentage.toFixed(1)}%</td>
+          <td>${formatNumber(day.percentage, 1)}%</td>
           <td>${day.sessions}</td>
           <td>${day.activeDaysCount}</td>
           <td>
-            <span title="Posição em consistência: ${day.consistencyRank}º">${day.consistencyScore.toFixed(0)}% (${day.consistencyRank}º)</span>
+            <span title="Posição em consistência: ${day.consistencyRank}º">${formatNumber(day.consistencyScore, 0)}% (${day.consistencyRank}º)</span>
           </td>
         </tr>
       `;
@@ -1059,9 +1071,9 @@ function renderQuadrants(quadrantsData) {
 
   if (cutoffInfo) {
     cutoffInfo.innerHTML = `
-      Corte de Tempo (Mediana): <strong>${quadrantsData.medianHours.toFixed(1)}h</strong> • 
-      Corte de Assertividade: <strong>${quadrantsData.accuracyCutoff.toFixed(1)}%</strong> • 
-      Disciplinas Classificadas: <strong>${quadrantsData.summary.totalSubjects}</strong> 
+      Corte de Tempo (Mediana): <strong>${formatNumber(quadrantsData.medianHours, 1)}h</strong> •
+      Corte de Assertividade: <strong>${formatNumber(quadrantsData.accuracyCutoff, 1)}%</strong> •
+      Matérias classificadas: <strong>${quadrantsData.summary.totalSubjects}</strong>
       (<strong>${quadrantsData.summary.strongCount}</strong> pontos fortes, 
       <strong>${quadrantsData.summary.bottlenecksCount}</strong> gargalos críticos)
     `;
@@ -1111,8 +1123,8 @@ function renderQuadrants(quadrantsData) {
       <line x1="${left}" y1="${cutoffY}" x2="${left + plotWidth}" y2="${cutoffY}" class="matrix-cutoff-line" />
 
       <!-- Cutoff Labels -->
-      <text x="${cutoffX + 4}" y="${top + 14}" fill="#f59e0b" font-size="9" font-weight="600">Mediana: ${quadrantsData.medianHours.toFixed(1)}h</text>
-      <text x="${left + 4}" y="${cutoffY - 4}" fill="#f59e0b" font-size="9" font-weight="600">Corte: ${quadrantsData.accuracyCutoff.toFixed(1)}%</text>
+      <text x="${cutoffX + 4}" y="${top + 14}" fill="#f59e0b" font-size="9" font-weight="600">Mediana: ${formatNumber(quadrantsData.medianHours, 1)}h</text>
+      <text x="${left + 4}" y="${cutoffY - 4}" fill="#f59e0b" font-size="9" font-weight="600">Corte: ${formatNumber(quadrantsData.accuracyCutoff, 1)}%</text>
 
       <!-- Axes -->
       <line x1="${left}" y1="${top + plotHeight}" x2="${left + plotWidth}" y2="${top + plotHeight}" stroke="#334155" stroke-width="1.5" />
@@ -1126,8 +1138,8 @@ function renderQuadrants(quadrantsData) {
 
       <!-- X-Axis Labels -->
       <text x="${left}" y="${top + plotHeight + 16}" text-anchor="middle" fill="#64748b" font-size="9">0h</text>
-      <text x="${left + (plotWidth * 0.5)}" y="${top + plotHeight + 16}" text-anchor="middle" fill="#64748b" font-size="9">${(maxHours * 0.5).toFixed(0)}h</text>
-      <text x="${left + plotWidth}" y="${top + plotHeight + 16}" text-anchor="middle" fill="#64748b" font-size="9">${maxHours}h</text>
+      <text x="${left + (plotWidth * 0.5)}" y="${top + plotHeight + 16}" text-anchor="middle" fill="#64748b" font-size="9">${formatNumber((maxHours * 0.5), 0)}h</text>
+      <text x="${left + plotWidth}" y="${top + plotHeight + 16}" text-anchor="middle" fill="#64748b" font-size="9">${formatValue(maxHours)}h</text>
       <text x="${left + (plotWidth * 0.5)}" y="${top + plotHeight + 32}" text-anchor="middle" fill="#94a3b8" font-size="10">Tempo Investido (Horas)</text>
 
       <!-- Plotted Subject Circles -->
@@ -1151,7 +1163,7 @@ function renderQuadrants(quadrantsData) {
         data-questions="${s.questions}"
         data-correct="${s.correct}"
       >
-        <title>${escapeHtml(s.name)}: ${s.totalHours}h | ${s.accuracy}% acertos</title>
+        <title>${escapeHtml(s.name)}: ${formatValue(s.totalHours)}h | ${formatValue(s.accuracy)}% acertos</title>
       </circle>
     `;
   });
@@ -1172,8 +1184,8 @@ function renderQuadrants(quadrantsData) {
 
         tooltip.innerHTML = `
           <div class="tooltip-title">${escapeHtml(name)}</div>
-          <div class="tooltip-row"><span>Tempo Total:</span><strong>${hours.toFixed(1)}h</strong></div>
-          <div class="tooltip-row"><span>Assertividade:</span><strong>${acc.toFixed(1)}%</strong></div>
+          <div class="tooltip-row"><span>Tempo Total:</span><strong>${formatNumber(hours, 1)}h</strong></div>
+          <div class="tooltip-row"><span>Assertividade:</span><strong>${formatNumber(acc, 1)}%</strong></div>
           <div class="tooltip-row"><span>Exercícios:</span><strong>${c} acertos de ${q}</strong></div>
         `;
         tooltip.classList.remove('hidden');
@@ -1213,7 +1225,7 @@ function renderQuadrants(quadrantsData) {
           <span class="quadrant-panel-sub">Alto tempo e baixa assertividade</span>
         </div>
         <div class="method-alert-box">
-          <strong>Alerta de método:</strong> Alto tempo investido com assertividade abaixo do corte (${quadrantsData.accuracyCutoff}%). Interrompa leituras passivas e utilize engenharia reversa com foco nos cadernos de erros.
+          <strong>Alerta de método:</strong> Alto tempo investido com assertividade abaixo do corte (${formatValue(quadrantsData.accuracyCutoff)}%). Interrompa leituras passivas e utilize engenharia reversa com foco nos cadernos de erros.
         </div>
         <div class="subject-pills-list">
           ${renderSubjectPills(gargalosCriticos)}
@@ -1249,8 +1261,8 @@ function renderQuadrants(quadrantsData) {
     if (semExercicios.length > 0) {
       semExerciciosContainer.classList.remove('hidden');
       semExerciciosContainer.innerHTML = `
-        <strong>Disciplinas sem exercícios registrados:</strong> 
-        ${semExercicios.map(s => `<strong>${escapeHtml(s.name)}</strong> (${s.totalHours.toFixed(1)}h)`).join(', ')}. 
+        <strong>Matérias sem exercícios registrados:</strong>
+        ${semExercicios.map(s => `<strong>${escapeHtml(s.name)}</strong> (${formatNumber(s.totalHours, 1)}h)`).join(', ')}.
         Resolva questões para calibrar o rendimento e posicionar na matriz.
       `;
     } else {
@@ -1261,7 +1273,7 @@ function renderQuadrants(quadrantsData) {
 
 function renderSubjectPills(subjects = []) {
   if (!subjects.length) {
-    return `<div style="font-size: 11px; color: var(--text-faint); padding: 4px 0;">Nenhuma disciplina neste quadrante.</div>`;
+    return `<div style="font-size: 11px; color: var(--text-faint); padding: 4px 0;">Nenhuma matéria neste quadrante.</div>`;
   }
   return subjects.map(s => `
     <div class="subject-pill">
@@ -1270,8 +1282,8 @@ function renderSubjectPills(subjects = []) {
         <span style="font-weight: 600;">${escapeHtml(s.name)}</span>
       </div>
       <div class="subject-pill-right">
-        <span>${s.totalHours.toFixed(1)}h</span>
-        <span class="accuracy-badge ${s.accuracy >= 80 ? 'accuracy-high' : (s.accuracy >= 65 ? 'accuracy-mid' : 'accuracy-low')}">${s.accuracy !== null ? s.accuracy.toFixed(1) + '%' : 'N/A'}</span>
+        <span>${formatNumber(s.totalHours, 1)}h</span>
+        <span class="accuracy-badge ${s.accuracy >= 80 ? 'accuracy-high' : (s.accuracy >= 65 ? 'accuracy-mid' : 'accuracy-low')}">${s.accuracy !== null ? formatNumber(s.accuracy, 1) + '%' : 'N/A'}</span>
       </div>
     </div>
   `).join('');
@@ -1289,17 +1301,17 @@ function renderMixAndInsights(mixData, insightsData) {
   if (mixBar) {
     const { teoria, questoes, revisao, outros } = mixData.proportions;
     mixBar.innerHTML = `
-      <div class="mix-segment mix-seg-teoria" style="width: ${teoria.percentage.toFixed(1)}%" title="Teoria: ${teoria.hours.toFixed(1)}h (${teoria.percentage.toFixed(1)}%)">
-        ${teoria.percentage >= 8 ? `${teoria.percentage.toFixed(0)}%` : ''}
+      <div class="mix-segment mix-seg-teoria" style="width: ${teoria.percentage.toFixed(1)}%" title="Teoria: ${formatNumber(teoria.hours, 1)}h (${formatNumber(teoria.percentage, 1)}%)">
+        ${teoria.percentage >= 8 ? `${formatNumber(teoria.percentage, 0)}%` : ''}
       </div>
-      <div class="mix-segment mix-seg-questoes" style="width: ${questoes.percentage.toFixed(1)}%" title="Questões: ${questoes.hours.toFixed(1)}h (${questoes.percentage.toFixed(1)}%)">
-        ${questoes.percentage >= 8 ? `${questoes.percentage.toFixed(0)}%` : ''}
+      <div class="mix-segment mix-seg-questoes" style="width: ${questoes.percentage.toFixed(1)}%" title="Questões: ${formatNumber(questoes.hours, 1)}h (${formatNumber(questoes.percentage, 1)}%)">
+        ${questoes.percentage >= 8 ? `${formatNumber(questoes.percentage, 0)}%` : ''}
       </div>
-      <div class="mix-segment mix-seg-revisao" style="width: ${revisao.percentage.toFixed(1)}%" title="Revisão: ${revisao.hours.toFixed(1)}h (${revisao.percentage.toFixed(1)}%)">
-        ${revisao.percentage >= 8 ? `${revisao.percentage.toFixed(0)}%` : ''}
+      <div class="mix-segment mix-seg-revisao" style="width: ${revisao.percentage.toFixed(1)}%" title="Revisão: ${formatNumber(revisao.hours, 1)}h (${formatNumber(revisao.percentage, 1)}%)">
+        ${revisao.percentage >= 8 ? `${formatNumber(revisao.percentage, 0)}%` : ''}
       </div>
-      <div class="mix-segment mix-seg-outros" style="width: ${outros.percentage.toFixed(1)}%" title="Outros: ${outros.hours.toFixed(1)}h (${outros.percentage.toFixed(1)}%)">
-        ${outros.percentage >= 8 ? `${outros.percentage.toFixed(0)}%` : ''}
+      <div class="mix-segment mix-seg-outros" style="width: ${outros.percentage.toFixed(1)}%" title="Outros: ${formatNumber(outros.hours, 1)}h (${formatNumber(outros.percentage, 1)}%)">
+        ${outros.percentage >= 8 ? `${formatNumber(outros.percentage, 0)}%` : ''}
       </div>
     `;
   }
@@ -1310,19 +1322,19 @@ function renderMixAndInsights(mixData, insightsData) {
     mixLegend.innerHTML = `
       <div class="mix-legend-item">
         <span class="mix-legend-dot" style="background-color: #3b82f6;"></span>
-        <span>Teoria: <strong>${teoria.percentage.toFixed(1)}%</strong> (${teoria.hours.toFixed(1)}h)</span>
+        <span>Teoria: <strong>${formatNumber(teoria.percentage, 1)}%</strong> (${formatNumber(teoria.hours, 1)}h)</span>
       </div>
       <div class="mix-legend-item">
         <span class="mix-legend-dot" style="background-color: #10b981;"></span>
-        <span>Questões: <strong>${questoes.percentage.toFixed(1)}%</strong> (${questoes.hours.toFixed(1)}h)</span>
+        <span>Questões: <strong>${formatNumber(questoes.percentage, 1)}%</strong> (${formatNumber(questoes.hours, 1)}h)</span>
       </div>
       <div class="mix-legend-item">
         <span class="mix-legend-dot" style="background-color: #f59e0b;"></span>
-        <span>Revisão: <strong>${revisao.percentage.toFixed(1)}%</strong> (${revisao.hours.toFixed(1)}h)</span>
+        <span>Revisão: <strong>${formatNumber(revisao.percentage, 1)}%</strong> (${formatNumber(revisao.hours, 1)}h)</span>
       </div>
       <div class="mix-legend-item">
         <span class="mix-legend-dot" style="background-color: #8b5cf6;"></span>
-        <span>Outros: <strong>${outros.percentage.toFixed(1)}%</strong> (${outros.hours.toFixed(1)}h)</span>
+        <span>Outros: <strong>${formatNumber(outros.percentage, 1)}%</strong> (${formatNumber(outros.hours, 1)}h)</span>
       </div>
     `;
   }
@@ -1336,7 +1348,7 @@ function renderMixAndInsights(mixData, insightsData) {
       card.innerHTML = `
         <div class="rec-card-header">
           <span class="rec-card-title">${escapeHtml(rec.title)}</span>
-          <span class="rec-badge badge-${rec.severity}">${escapeHtml(rec.severity)}</span>
+          <span class="rec-badge badge-${rec.severity}">${escapeHtml(severityLabel(rec.severity))}</span>
         </div>
         <div class="rec-card-text">${escapeHtml(rec.text)}</div>
       `;
@@ -1352,7 +1364,7 @@ function renderMixAndInsights(mixData, insightsData) {
         <div class="synthesis-body">${escapeHtml(insightsData.executiveSummary)}</div>
       </div>
       <div class="synthesis-section">
-        <div class="synthesis-heading">2. Padrão circadiano e cronotipo</div>
+        <div class="synthesis-heading">2. Seu horário de estudo</div>
         <div class="synthesis-body">${escapeHtml(insightsData.circadianInsights)}</div>
       </div>
       <div class="synthesis-section">
@@ -1398,7 +1410,7 @@ function formatMinutes(min) {
 }
 
 function formatAccuracy(value) {
-  return value === null || value === undefined ? '—' : `${Number(value).toFixed(1)}%`;
+  return value === null || value === undefined ? '—' : `${formatNumber(Number(value), 1)}%`;
 }
 
 function renderPeriodRanking(semesterData) {
@@ -1426,9 +1438,9 @@ function renderPeriodRanking(semesterData) {
 
   highlights.innerHTML = [
     card(`Melhor ${unit} no conjunto`, h.overallBest,
-      h.overallBest ? `${h.overallBest.totalHours}h · ${h.overallBest.consistency}% dos dias · ${formatAccuracy(h.overallBest.accuracy)}` : '', '—', 'is-best'),
-    card('Maior volume', h.bestByHours, h.bestByHours ? `${h.bestByHours.totalHours}h em ${h.bestByHours.sessions} sessões` : '', '—'),
-    card('Mais consistente', h.bestByConsistency, h.bestByConsistency ? `${h.bestByConsistency.consistency}% dos dias (${h.bestByConsistency.activeDays} dias)` : '', '—'),
+      h.overallBest ? `${formatValue(h.overallBest.totalHours)}h · ${formatValue(h.overallBest.consistency)}% dos dias · ${formatAccuracy(h.overallBest.accuracy)}` : '', '—', 'is-best'),
+    card('Maior volume', h.bestByHours, h.bestByHours ? `${formatValue(h.bestByHours.totalHours)}h em ${h.bestByHours.sessions} sessões` : '', '—'),
+    card('Mais consistente', h.bestByConsistency, h.bestByConsistency ? `${formatValue(h.bestByConsistency.consistency)}% dos dias (${h.bestByConsistency.activeDays} dias)` : '', '—'),
     card('Maior assertividade', h.bestByAccuracy, h.bestByAccuracy ? `${formatAccuracy(h.bestByAccuracy.accuracy)} em ${h.bestByAccuracy.totalQuestions} questões` : '',
       `Mínimo de ${semesterData.minQuestions} questões por período`)
   ].join('');
@@ -1440,13 +1452,13 @@ function renderPeriodRanking(semesterData) {
     return `
       <tr${p === h.overallBest ? ' class="is-best-row"' : ''}>
         <td><strong>${escapeHtml(p.label)}</strong>${p.isCurrent ? ' <span class="badge-tag">em andamento</span>' : ''}</td>
-        <td${mark(p === h.bestByHours)}>${p.totalHours.toFixed(1)}h</td>
+        <td${mark(p === h.bestByHours)}>${formatNumber(p.totalHours, 1)}h</td>
         <td>${p.sessions}</td>
         <td>${p.activeDays}</td>
-        <td${mark(p === h.bestByConsistency)}>${p.consistency.toFixed(1)}%</td>
+        <td${mark(p === h.bestByConsistency)}>${formatNumber(p.consistency, 1)}%</td>
         <td>${p.longestStreak} dias</td>
         <td${mark(p === h.bestByAccuracy)}${accLow ? ' title="Poucas questões: fora do ranking de assertividade"' : ''}>${formatAccuracy(p.accuracy)}${accLow ? '*' : ''}</td>
-        <td>${p.averageRank !== undefined ? `${p.averageRank.toFixed(1)}` : '—'}</td>
+        <td>${p.averageRank !== undefined ? `${formatNumber(p.averageRank, 1)}` : '—'}</td>
       </tr>`;
   }).join('');
 }
@@ -1462,7 +1474,7 @@ function renderEfficiencyNote(efficiency) {
     if (peak && peak.hour !== best.hour) {
       text += ` · Maior volume às <strong>${escapeHtml(peak.label)}</strong>`;
       if (efficiency.gapPoints !== null) {
-        text += ` (${formatAccuracy(peak.accuracy)}, ${efficiency.gapPoints > 0 ? '−' : '+'}${Math.abs(efficiency.gapPoints).toFixed(1)} p.p.)`;
+        text += ` (${formatAccuracy(peak.accuracy)}, ${efficiency.gapPoints > 0 ? '−' : '+'}${formatNumber(Math.abs(efficiency.gapPoints), 1)} p.p.)`;
       }
     } else if (peak) {
       text += ' · também é o horário de maior volume';
@@ -1492,7 +1504,7 @@ function renderHourWeekdayHeatmap(matrix) {
   if (top) {
     top.innerHTML = matrix.topSlots.length
       ? `<span class="heatmap-kpi-label">Horários mais frequentes:</span> ` + matrix.topSlots
-        .map((slot, i) => `<span class="slot-pill">${i + 1}º ${escapeHtml(slot.label)} · ${slot.hours.toFixed(1)}h</span>`).join('')
+        .map((slot, i) => `<span class="slot-pill">${i + 1}º ${escapeHtml(slot.label)} · ${formatNumber(slot.hours, 1)}h</span>`).join('')
       : '<span class="heatmap-kpi-label">Sem sessões registradas.</span>';
   }
 
@@ -1534,7 +1546,7 @@ function renderHourWeekdayHeatmap(matrix) {
 
       tooltip.innerHTML = `
         <div class="tooltip-title">${escapeHtml(dayName)}, ${String(hour).padStart(2, '0')}h</div>
-        <div class="tooltip-row"><span>Horas:</span><strong>${hours.toFixed(1)}h</strong></div>
+        <div class="tooltip-row"><span>Horas:</span><strong>${formatNumber(hours, 1)}h</strong></div>
         <div class="tooltip-row"><span>Sessões:</span><strong>${sessions}</strong></div>`;
       tooltip.classList.remove('hidden');
       tooltip.setAttribute('aria-hidden', 'false');
@@ -1583,7 +1595,7 @@ function renderSessionProfile(profile) {
       <div class="session-bucket-row${isIdeal ? ' is-ideal' : ''}">
         <span class="session-bucket-label">${escapeHtml(b.label)}</span>
         <div class="session-bucket-bar-bg"><div class="session-bucket-bar" style="width: ${width.toFixed(1)}%"></div></div>
-        <span class="session-bucket-meta">${b.sessions} (${b.percentage.toFixed(1)}%)</span>
+        <span class="session-bucket-meta">${b.sessions} (${formatNumber(b.percentage, 1)}%)</span>
         <span class="session-bucket-acc${b.reliable ? '' : ' is-faint'}" title="${b.questions} questões">${formatAccuracy(b.accuracy)}</span>
       </div>`;
   }).join('') + `<div class="session-bucket-footnote">Barras: número de sessões · Direita: assertividade (esmaecida abaixo de ${profile.minQuestions} questões)</div>`;

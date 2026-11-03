@@ -53,7 +53,7 @@ graph TD
 ## 2. Interações entre Componentes
 
 ### 2.1. Content Script (`content.js`)
-- **Papel:** Injeção não invasiva de botões na barra de navegação superior (`.navbar-nav`) e badge flutuante de acesso rápido.
+- **Papel:** Injeção não invasiva de botões na barra de navegação superior (`.navbar-nav`) e, apenas quando o site não tem essa barra, um único botão flutuante de acesso rápido.
 - **Comunicação:** Não manipula dados analíticos diretamente. Dispara mensagens `OPEN_DASHBOARD` via `chrome.runtime.sendMessage` para delegar ações ao Service Worker.
 
 ### 2.2. Service Worker (`background.js`)
@@ -70,6 +70,7 @@ graph TD
 ### 2.4. Núcleo de Domínio (`shared/`)
 - **`api.js`:** Encapsula requisições autenticadas para os endpoints `/service/*` do AprovadoApp. O cache local de 5 minutos só é reutilizado após consultar a identidade da sessão e comparar seu ID com `snapshot.user.Id`. Sem identidade confirmada não há fallback para dados anteriores. Durante uma sincronização completa, verifica novamente a conta antes de gravar, rejeitando uma troca detectada durante o carregamento. Falhas preservam o cache anterior, mas não o retornam como resultado dessa tentativa.
 - **`analytics.js`:** Biblioteca pura e determinística com zero dependências. Converte logs brutos em modelos analíticos ricos (histogramas, quartis, medianas e textos NLG).
+- **`format.js`:** Formatação de exibição em pt-BR (`1.234,5`, `74,3%`, `4.460,1h`). Exportações CSV e JSON mantêm formatos estáveis para máquina; o Markdown reaproveita alguns textos de exibição, como as horas totais.
 - **`export.js`:** Utilitário para geração de arquivos para download (CSV compatível com Excel via UTF-8 BOM, backup estruturado em JSON e relatórios em Markdown para Notion/Obsidian).
 
 ---

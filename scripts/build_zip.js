@@ -11,7 +11,7 @@ const inputs = [
   'manifest.json', 'background.js', 'content.js', 'content.css',
   ...[16, 32, 48, 128].map(size => `icons/icon-${size}.png`),
   ...['popup', 'sidepanel', 'dashboard'].flatMap(view => ['html', 'css', 'js'].map(ext => `${view}/${view}.${ext}`)),
-  ...['api', 'analytics', 'export', 'ui'].map(name => `shared/${name}.js`)
+  ...['api', 'analytics', 'export', 'format', 'ui'].map(name => `shared/${name}.js`)
 ];
 for (const input of inputs) {
   if (!existsSync(join(root, input))) throw new Error(`Arquivo de produção ausente: ${input}`);

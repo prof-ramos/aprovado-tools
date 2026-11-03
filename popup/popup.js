@@ -1,6 +1,7 @@
 import { AprovadoApi } from '../shared/api.js';
 import { computeStudyMetrics, filterActivitiesByPeriod } from '../shared/analytics.js';
 import { AprovadoExport } from '../shared/export.js';
+import { formatNumber } from '../shared/format.js';
 
 let currentSnapshot = null;
 let currentPeriod = 'all';
@@ -115,14 +116,14 @@ function updateMetricsDisplay() {
 
   kpiTime.textContent = metrics.formattedTotalHours;
   kpiAvgDay.textContent = `${metrics.avgDailyDuration}/dia`;
-  kpiSessions.textContent = metrics.totalSessions;
+  kpiSessions.textContent = formatNumber(metrics.totalSessions, 0);
   kpiDaysCount.textContent = `${metrics.distinctDaysCount} dias ativos`;
 
   if (metrics.totalQuestions > 0) {
-    kpiQuestions.textContent = `${metrics.totalQuestions} qst`;
-    kpiAccuracy.textContent = `${metrics.overallAccuracy}% acertos`;
+    kpiQuestions.textContent = `${formatNumber(metrics.totalQuestions, 0)} questões`;
+    kpiAccuracy.textContent = `${formatNumber(Number(metrics.overallAccuracy), 1)}% de acertos`;
   } else {
-    kpiQuestions.textContent = '0 qst';
+    kpiQuestions.textContent = '0 questões';
     kpiAccuracy.textContent = 'Sem exercícios';
   }
 
@@ -132,7 +133,7 @@ function updateMetricsDisplay() {
   // Cycle preview
   if (metrics.ciclo && metrics.ciclo.porcentagem !== undefined) {
     cyclePreview.classList.remove('hidden');
-    cyclePct.textContent = `${metrics.ciclo.porcentagem}%`;
+    cyclePct.textContent = `${formatNumber(Number(metrics.ciclo.porcentagem), 1)}%`;
     cycleProgressFill.style.width = `${Math.min(100, Math.max(0, metrics.ciclo.porcentagem))}%`;
   } else {
     cyclePreview.classList.add('hidden');

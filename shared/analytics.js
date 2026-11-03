@@ -2,6 +2,7 @@
  * Study Analytics Engine for Aprovado Tools
  * Processes raw activities and generates comprehensive learning metrics.
  */
+import { formatNumber, formatHours, formatValue } from './format.js';
 
 export function formatDurationMs(ms) {
   if (!ms || ms <= 0) return '0h 0m';
@@ -18,9 +19,13 @@ export function formatDurationMs(ms) {
 }
 
 export function formatDurationHours(ms) {
-  if (!ms || ms <= 0) return '0.0h';
-  const hours = (ms / (1000 * 60 * 60)).toFixed(1);
-  return `${hours}h`;
+  if (!ms || ms <= 0) return formatHours(0);
+  return formatHours(ms / (1000 * 60 * 60));
+}
+
+/** Portuguese label for a recommendation severity ('success' -> 'Ponto forte'). */
+export function severityLabel(severity) {
+  return { success: 'Ponto forte', info: 'Informação', warning: 'Atenção', critical: 'Prioridade' }[severity] || 'Informação';
 }
 
 export function parseDateString(str) {
@@ -953,7 +958,7 @@ export function computeYieldQuadrants(subjectsSummary = [], options = {}) {
     } else {
       item.quadrant = 'zonaRisco';
       item.quadrantLabel = 'Zona de Risco / Negligência';
-      item.recommendation = 'Baixo tempo e baixa assertividade. Disciplina vulnerável. Incluir com urgência no ciclo básico de estudos (teoria inicial + questões básicas).';
+      item.recommendation = 'Baixo tempo e baixa assertividade. Matéria vulnerável. Incluir com urgência no ciclo básico de estudos (teoria inicial + questões básicas).';
       quadrants.zonaRisco.push(item);
     }
   }
@@ -1026,7 +1031,7 @@ export function computeMethodologicalMix(activities = []) {
       recommendations.push({
         severity: 'critical',
         title: 'Baixa Resolução de Questões',
-        text: `Apenas ${pQuestions.toFixed(1)}% do seu tempo é dedicado a exercícios (mínimo recomendado: 40%). Aumente o treino prático para fixar pegadinhas de bancas.`
+        text: `Apenas ${formatNumber(pQuestions, 1)}% do seu tempo é dedicado a exercícios (mínimo recomendado: 40%). Aumente o treino prático para fixar pegadinhas de bancas.`
       });
     }
 
@@ -1034,7 +1039,7 @@ export function computeMethodologicalMix(activities = []) {
       recommendations.push({
         severity: 'warning',
         title: 'Excesso de Teoria Passiva',
-        text: `${pTheory.toFixed(1)}% do seu tempo está concentrado em teoria. Transite mais rapidamente para estudo ativo com questões intercaladas.`
+        text: `${formatNumber(pTheory, 1)}% do seu tempo está concentrado em teoria. Transite mais rapidamente para estudo ativo com questões intercaladas.`
       });
     }
 
@@ -1042,7 +1047,7 @@ export function computeMethodologicalMix(activities = []) {
       recommendations.push({
         severity: 'critical',
         title: 'Déficit de Revisão Espaçada',
-        text: `Apenas ${pReview.toFixed(1)}% de tempo em revisões. A curva do esquecimento causará perda substancial de retenção. Adote revisões periódicas (24h, 7d, 30d).`
+        text: `Apenas ${formatNumber(pReview, 1)}% de tempo em revisões. A curva do esquecimento causará perda substancial de retenção. Adote revisões periódicas (24h, 7d, 30d).`
       });
     }
 
@@ -1050,7 +1055,7 @@ export function computeMethodologicalMix(activities = []) {
       recommendations.push({
         severity: 'info',
         title: 'Risco de Platô por Falta de Base',
-        text: `Treino de questões muito elevado (${pQuestions.toFixed(1)}%) sem fundamentação teórica (${pTheory.toFixed(1)}%). Tópicos doutrinários e jurisprudenciais complexos exigem retorno pontual à teoria.`
+        text: `Treino de questões muito elevado (${formatNumber(pQuestions, 1)}%) sem fundamentação teórica (${formatNumber(pTheory, 1)}%). Tópicos doutrinários e jurisprudenciais complexos exigem retorno pontual à teoria.`
       });
     }
 
@@ -1058,7 +1063,7 @@ export function computeMethodologicalMix(activities = []) {
       recommendations.push({
         severity: 'success',
         title: 'Mix de Estudo Equilibrado',
-        text: `Excelente harmonia metodológica: Teoria (${pTheory.toFixed(1)}%), Questões (${pQuestions.toFixed(1)}%) e Revisão (${pReview.toFixed(1)}%) estão em faixas ótimas de aprendizagem.`
+        text: `Excelente harmonia metodológica: Teoria (${formatNumber(pTheory, 1)}%), Questões (${formatNumber(pQuestions, 1)}%) e Revisão (${formatNumber(pReview, 1)}%) estão em faixas ótimas de aprendizagem.`
       });
     }
   }
@@ -1084,10 +1089,10 @@ export function generateStudyInsights(metrics, patterns) {
   if (hist && hist.totalCumulativeHours > 0) {
     const currentYearData = hist.years?.find(y => y.isCurrentYear) || hist.years?.[hist.years.length - 1];
     const currentAccText = currentYearData?.accuracy !== null && currentYearData?.accuracy !== undefined
-      ? `com ${currentYearData.accuracy}% de assertividade`
+      ? `com ${formatValue(currentYearData.accuracy)}% de assertividade`
       : 'sem questões registradas';
-    const peakText = hist.peakYear ? ` Pico histórico em ${hist.peakYear.year} com ${hist.peakYear.hours}h.` : '';
-    executiveSummary = `No histórico multianual analisado (${hist.startYear}–${hist.endYear}), você registrou um acumulado de ${hist.totalCumulativeHours} horas líquidas distribuídas em ${hist.totalCumulativeSessions} sessões e ${hist.totalCumulativeQuestions} questões respondidas.${peakText} Em ${currentYearData ? currentYearData.year : 'atualmente'}, sua preparação encontra-se classificada como ${currentYearData ? currentYearData.phaseLabel : 'Indefinida'} (${currentYearData ? currentYearData.totalHours : 0}h realizadas ${currentAccText}).`;
+    const peakText = hist.peakYear ? ` Pico histórico em ${hist.peakYear.year} com ${formatValue(hist.peakYear.hours)}h.` : '';
+    executiveSummary = `No histórico multianual analisado (${hist.startYear}–${hist.endYear}), você registrou um acumulado de ${formatNumber(hist.totalCumulativeHours, 1)} horas líquidas distribuídas em ${formatNumber(hist.totalCumulativeSessions, 0)} sessões e ${formatNumber(hist.totalCumulativeQuestions, 0)} questões respondidas.${peakText} Em ${currentYearData ? currentYearData.year : 'atualmente'}, sua preparação encontra-se classificada como ${currentYearData ? currentYearData.phaseLabel : 'Indefinida'} (${formatValue(currentYearData ? currentYearData.totalHours : 0)}h realizadas ${currentAccText}).`;
   } else {
     executiveSummary = 'Nenhum histórico significativo de estudo registrado no período selecionado.';
   }
@@ -1105,7 +1110,7 @@ export function generateStudyInsights(metrics, patterns) {
     const domName = shiftNames[dom] || dom;
     const domPct = circ.shifts[dom]?.percentage || 0;
     const peakH = circ.peakHour?.hour !== undefined ? `${String(circ.peakHour.hour).padStart(2, '0')}h` : '10h';
-    circadianInsights = `Seu cronotipo de estudo concentra-se predominantemente no turno da ${domName} (${domPct}%), com pico horário às ${peakH}. Alinhe suas sessões de maior esforço cognitivo a esse intervalo de maior foco biológico.`;
+    circadianInsights = `Seu estudo se concentra predominantemente no turno da ${domName} (${formatValue(domPct)}%), com pico horário às ${peakH}. Alinhe suas sessões de maior esforço cognitivo a esse intervalo de maior foco biológico.`;
   } else {
     circadianInsights = 'Padrão circadiano não disponível.';
   }
@@ -1116,7 +1121,7 @@ export function generateStudyInsights(metrics, patterns) {
   if (Array.isArray(weekly) && weekly.length > 0) {
     const bestDay = weekly[0];
     const weakestDay = weekly[weekly.length - 1];
-    weeklyCadenceInsights = `${bestDay.dayName} lidera seu volume semanal com ${bestDay.hours}h acumuladas (${bestDay.percentage}% do tempo), enquanto ${weakestDay.dayName} registra a menor dedicação (${weakestDay.hours}h). Consistência de presença no melhor dia: ${bestDay.consistencyScore}%.`;
+    weeklyCadenceInsights = `${bestDay.dayName} lidera seu volume semanal com ${formatValue(bestDay.hours)}h acumuladas (${formatValue(bestDay.percentage)}% do tempo), enquanto ${weakestDay.dayName} registra a menor dedicação (${formatValue(weakestDay.hours)}h). Consistência de presença no melhor dia: ${formatValue(bestDay.consistencyScore)}%.`;
   } else {
     weeklyCadenceInsights = 'Dados de cadência semanal insuficientes.';
   }
@@ -1126,7 +1131,7 @@ export function generateStudyInsights(metrics, patterns) {
   const parts = [];
   if (quads?.pontosFortes?.length) {
     const names = quads.pontosFortes.map(s => s.name).slice(0, 3).join(', ');
-    parts.push(`${names} consolidam seus principais pontos fortes (${quads.pontosFortes.length} disciplina(s) com alto tempo e aproveitamento ≥${cutoff}%).`);
+    parts.push(`${names} consolidam seus principais pontos fortes (${quads.pontosFortes.length} matéria(s) com alto tempo e assertividade ≥${formatValue(cutoff)}%).`);
   }
   if (quads?.gargalosCriticos?.length) {
     const names = quads.gargalosCriticos.map(s => s.name).slice(0, 3).join(', ');
@@ -1142,20 +1147,20 @@ export function generateStudyInsights(metrics, patterns) {
   }
   if (quads?.semExercicios?.length) {
     const names = quads.semExercicios.map(s => s.name).slice(0, 3).join(', ');
-    parts.push(`Disciplinas sem exercícios: ${names} requerem resolução imediata de questões para calibragem.`);
+    parts.push(`Matérias sem exercícios: ${names} requerem resolução imediata de questões para calibragem.`);
   }
   quadrantInsights = parts.length > 0 ? parts.join(' ') : 'Sem matérias suficientes para análise de quadrantes.';
 
   // 5. Recomendações Metodológicas
-  const methodRecommendations = mixRecs.map(r => `[${r.severity.toUpperCase()}] ${r.title}: ${r.text}`);
+  const methodRecommendations = mixRecs.map(r => `${severityLabel(r.severity)}: ${r.title}. ${r.text}`);
 
   // 6. Tamanho de sessão
   const sess = patterns?.sessions;
   let sessionInsights = 'Sessões insuficientes para análise de duração.';
   if (sess && sess.totalSessions > 0) {
     const sessionParts = [`Sua sessão típica dura ${sess.medianMinutes} min (mediana); 10% das sessões passam de ${sess.p90Minutes} min.`];
-    if (sess.dominantBucket) sessionParts.push(`A faixa mais frequente é ${sess.dominantBucket.label} (${sess.dominantBucket.percentage}% das sessões).`);
-    if (sess.idealBucket) sessionParts.push(`Sessões de ${sess.idealBucket.label} têm a melhor assertividade (${sess.idealBucket.accuracy}%).`);
+    if (sess.dominantBucket) sessionParts.push(`A faixa mais frequente é ${sess.dominantBucket.label} (${formatValue(sess.dominantBucket.percentage)}% das sessões).`);
+    if (sess.idealBucket) sessionParts.push(`Sessões de ${sess.idealBucket.label} têm a melhor assertividade (${formatValue(sess.idealBucket.accuracy)}%).`);
     if (sess.trend && sess.trend.direction !== 'estavel') {
       sessionParts.push(`Desde ${sess.trend.fromYear}, suas sessões ficaram ${sess.trend.direction === 'mais_longas' ? 'mais longas' : 'mais curtas'} (${sess.trend.deltaMinutes > 0 ? '+' : ''}${sess.trend.deltaMinutes} min na mediana).`);
     }
@@ -1167,14 +1172,14 @@ export function generateStudyInsights(metrics, patterns) {
   const slots = patterns?.hourWeekday?.topSlots || [];
   let efficiencyInsights = 'Questões insuficientes para comparar assertividade por horário.';
   if (eff?.mostEfficientHour) {
-    const effParts = [`Sua melhor assertividade acontece às ${eff.mostEfficientHour.label} (${eff.mostEfficientHour.accuracy}%).`];
+    const effParts = [`Sua melhor assertividade acontece às ${eff.mostEfficientHour.label} (${formatValue(eff.mostEfficientHour.accuracy)}%).`];
     if (eff.volumePeakHour && eff.volumePeakHour.hour !== eff.mostEfficientHour.hour && eff.gapPoints !== null) {
       effParts.push(`Você estuda mais às ${eff.volumePeakHour.label}, onde acerta ${eff.gapPoints} p.p. a menos.`);
     }
     efficiencyInsights = effParts.join(' ');
   }
   if (eff?.mostEfficientShift) {
-    efficiencyInsights += ` Por turno, a ${eff.mostEfficientShift.label} lidera com ${eff.mostEfficientShift.accuracy}%.`;
+    efficiencyInsights += ` Por turno, a ${eff.mostEfficientShift.label} lidera com ${formatValue(eff.mostEfficientShift.accuracy)}%.`;
   }
   if (slots.length) {
     efficiencyInsights += ` Horários mais frequentes: ${slots.map(sl => sl.label).join('; ')}.`;
@@ -1185,9 +1190,9 @@ export function generateStudyInsights(metrics, patterns) {
   let periodInsights = 'Histórico insuficiente para comparar semestres.';
   if (sem?.semesterHighlights?.overallBest) {
     const h = sem.semesterHighlights;
-    const periodParts = [`Seu melhor semestre no conjunto foi ${h.overallBest.label} (${h.overallBest.totalHours}h, ${h.overallBest.consistency}% dos dias com estudo${h.overallBest.accuracy !== null ? `, ${h.overallBest.accuracy}% de acertos` : ''}).`];
-    if (h.bestByHours && h.bestByHours !== h.overallBest) periodParts.push(`Maior volume: ${h.bestByHours.label} (${h.bestByHours.totalHours}h).`);
-    if (h.bestByAccuracy && h.bestByAccuracy !== h.overallBest) periodParts.push(`Maior assertividade: ${h.bestByAccuracy.label} (${h.bestByAccuracy.accuracy}%).`);
+    const periodParts = [`Seu melhor semestre no conjunto foi ${h.overallBest.label} (${formatValue(h.overallBest.totalHours)}h, ${formatValue(h.overallBest.consistency)}% dos dias com estudo${h.overallBest.accuracy !== null ? `, ${formatValue(h.overallBest.accuracy)}% de acertos` : ''}).`];
+    if (h.bestByHours && h.bestByHours !== h.overallBest) periodParts.push(`Maior volume: ${h.bestByHours.label} (${formatValue(h.bestByHours.totalHours)}h).`);
+    if (h.bestByAccuracy && h.bestByAccuracy !== h.overallBest) periodParts.push(`Maior assertividade: ${h.bestByAccuracy.label} (${formatValue(h.bestByAccuracy.accuracy)}%).`);
     if (sem.yearHighlights?.overallBest) periodParts.push(`Melhor ano no conjunto: ${sem.yearHighlights.overallBest.label}.`);
     periodInsights = periodParts.join(' ');
   }
@@ -1199,7 +1204,7 @@ export function generateStudyInsights(metrics, patterns) {
     `### 1. Resumo Executivo`,
     executiveSummary,
     ``,
-    `### 2. Padrão Circadiano e Cronotipo`,
+    `### 2. Horário de estudo`,
     circadianInsights,
     ``,
     `### 3. Consistência e Cadência Semanal`,

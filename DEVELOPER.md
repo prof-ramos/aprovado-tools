@@ -51,7 +51,7 @@ npm test
 ### 1.6. Verificação do popup e do painel nativo
 
 1. Identifique o navegador, perfil, checkout e commit de teste. Confirme que a extensão local carregada em `chrome://extensions` aponta para esse checkout e que o login no AprovadoApp pertence ao mesmo perfil.
-2. Clique em **Recarregar** na extensão e, depois, recarregue completamente a página do AprovadoApp. Observe o novo documento carregado antes de contar os controles: nós da versão anterior podem permanecer até essa segunda recarga. O esperado é um botão **Exportar e métricas** no topo e um atalho flutuante distinto.
+2. Clique em **Recarregar** na extensão e, depois, recarregue completamente a página do AprovadoApp. Observe o novo documento carregado antes de contar os controles: nós da versão anterior podem permanecer até essa segunda recarga. O esperado é um único botão **Exportar e métricas**: no topo, quando o site tem barra de navegação, ou flutuante, quando não tem.
 3. Abra o popup pelo ícone **Aprovado Tools** da barra do navegador. `popup/popup.html` aberto em uma aba serve apenas para inspecionar conteúdo: os botões chamam `window.close()`, podendo fechar a aba e seu espaço de automação.
 4. Abra **Abrir painel lateral** no popup autenticado ou menu de contexto do ícone → **Abrir Painel Lateral de Estudos**. Confirme o painel encaixado junto à página e sua alça de redimensionamento. `sidepanel/sidepanel.html` em uma aba verifica somente a página.
 5. Sem login, confirme **Sessão desconectada**. Para o teste autenticado, use preenchimento seguro do gerenciador ou entrada direta pelo usuário; acione **Sincronizar** e observe a transição até **Sincronizado** com métricas. Confirme também que **Abrir dashboard completo** carrega o dashboard com os mesmos totais.

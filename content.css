@@ -57,6 +57,12 @@
   transition: background-color 120ms ease-out, border-color 120ms ease-out;
 }
 
+.aprovado-tools-floating-badge:focus-visible,
+.aprovado-tools-nav-btn:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
 .aprovado-tools-floating-badge:hover {
   background-color: #1a1a1e;
   border-color: rgba(255, 255, 255, 0.18);
