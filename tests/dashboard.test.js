@@ -295,6 +295,70 @@ describe('Dashboard rendering regressions', () => {
     assert.equal(cols[0].children[1].textContent, '01/24');
   });
 
+  it('shows the overall ranking as 1º, 2º and lets tied periods share the position', () => {
+    const page = dashboard('2026-09-15T12:00:00');
+    const period = (label, averageRank) => ({ label, averageRank, totalHours: 1, sessions: 1, activeDays: 1, consistency: 1,
+      longestStreak: 1, accuracy: null, totalQuestions: 0, isCurrent: false });
+    const list = [period('2024.1', 1), period('2024.2', 1), period('2025.1', 2.5), period('2025.2', 3)];
+    page.context.renderPeriodRanking({ semesters: list, years: [], minQuestions: 50,
+      semesterHighlights: { overallBest: null, bestByHours: null, bestByConsistency: null, bestByAccuracy: null },
+      yearHighlights: {} });
+    const cells = [...page.get('tbody-period-ranking').innerHTML.matchAll(/>(\d+)º<\/td>/g)].map(m => m[1]);
+    assert.deepEqual(cells.reverse(), ['1', '1', '3', '4']);
+    assert.match(page.get('tbody-period-ranking').innerHTML, /2025 · 1º sem\./);
+    assert.ok(!page.get('tbody-period-ranking').innerHTML.includes('2025.1'));
+  });
+
+  it('summarizes the history in three plain-language conclusions', () => {
+    const page = dashboard();
+    const history = { years: [{ year: 2019, activeDaysCount: 264, accuracy: 74.9 }], peakYear: { year: 2019, hours: 719 } };
+    const efficiency = { minQuestions: 50, mostEfficientHour: { hour: 21, label: '21h', accuracy: 78.8, questions: 1484 },
+      volumePeakHour: { hour: 6, label: '06h', accuracy: 75 } };
+    const q = quadrants(subject());
+    q.quadrants.gargalosCriticos = [subject({ name: 'Direito Administrativo', totalHours: 1163.1, accuracy: 56.2 }),
+      subject({ name: 'Outra', totalHours: 900, accuracy: 60 })];
+    page.context.renderHistoricalConclusions({ history, efficiency, quadrants: q });
+    const html = page.get('hist-conclusions-list').innerHTML;
+    assert.equal((html.match(/hist-conclusion"/g) || []).length, 3);
+    assert.match(html, /2019/);
+    assert.match(html, /719,0h líquidas em 264 dias com estudo, com 74,9% de assertividade/);
+    assert.match(html, /78,8% de assertividade em 1\.484 questões\. Você estuda mais às 06h/);
+    assert.match(html, /Direito Administrativo/);
+    assert.match(html, /56,2% de assertividade, abaixo do corte de 75%/);
+  });
+
+  it('keeps the conclusions useful with no data and falls back when there is no bottleneck', () => {
+    const page = dashboard();
+    page.context.renderHistoricalConclusions({ history: { years: [], peakYear: null }, efficiency: null, quadrants: null });
+    const html = page.get('hist-conclusions-list').innerHTML;
+    assert.match(html, /Sem registros/);
+    assert.match(html, /soma 50 questões ou mais/);
+    assert.match(html, /Nenhuma por enquanto/);
+  });
+
+  it('draws the matrix on the card with uniform quadrant labels, readable point names and one-line advice', () => {
+    const page = dashboard();
+    const close = ['Direito Constitucional e Administrativo Avançado', 'Língua Portuguesa'].map((name, i) =>
+      subject({ name, totalHours: 10 + i * 0.1, accuracy: 80 }));
+    const q = quadrants(close[0]);
+    q.quadrants.pontosFortes = close;
+    q.summary.strongCount = 2;
+    page.context.renderQuadrants(q);
+    const svg = page.get('quadrants-svg-container').innerHTML;
+    for (const label of ['Base sólida', 'Pontos fortes', 'Zona de risco', 'Gargalos críticos'])
+      assert.match(svg, new RegExp(`matrix-quadrant-label[^>]*>${label}<`));
+    assert.ok(!/BASE S|PONTOS FORTES|ZONA DE RISCO/.test(svg), 'quadrant labels share one casing');
+    assert.match(svg, /Direito Constituc…/);
+    assert.match(svg, /<title>Direito Constitucional e Administrativo Avançado<\/title>/);
+    const ys = [...svg.matchAll(/matrix-dot-label"><title>[^<]*<\/title>[^<]*/g)].length;
+    assert.equal(ys, 2);
+    const labelY = [...svg.matchAll(/<text x="[\d.]+" y="([\d.]+)"[^>]*class="matrix-dot-label"/g)].map(m => Number(m[1]));
+    assert.ok(Math.abs(labelY[0] - labelY[1]) >= 11, 'close points do not overprint their names');
+    const panels = page.get('quadrants-breakdown-container').innerHTML;
+    assert.equal((panels.match(/class="quadrant-reco"/g) || []).length, 4);
+    assert.ok(!panels.includes('engenharia reversa') && !panels.includes('method-alert-box'));
+  });
+
   it('ranking toggle clicks regroup data without changing the selected view or period', () => {
     const page = dashboard('2026-09-15T12:00:00');
     page.run(`fullSnapshot = { atividades: [
@@ -304,14 +368,14 @@ describe('Dashboard rendering regressions', () => {
     page.context.setupViewSwitch();
     page.context.setupPeriodRankingToggle();
     page.historical.dispatch('click');
-    assert.match(page.get('tbody-period-ranking').innerHTML, /2026\.2/);
+    assert.match(page.get('tbody-period-ranking').innerHTML, /2026 · 2º sem\./);
     page.granularity.year.dispatch('click');
     assert.match(page.get('tbody-period-ranking').innerHTML, /<strong>2026<\/strong>/);
     assert.equal(page.get('tab-overview').classList.contains('hidden'), true);
     assert.equal(page.run('currentPeriod'), 'all');
     assert.equal(page.granularity.year.getAttribute('aria-pressed'), 'true');
     page.granularity.semester.dispatch('click');
-    assert.match(page.get('tbody-period-ranking').innerHTML, /2026\.2/);
+    assert.match(page.get('tbody-period-ranking').innerHTML, /2026 · 2º sem\./);
     assert.equal(page.granularity.year.getAttribute('aria-pressed'), 'false');
   });
 
@@ -470,7 +534,7 @@ describe('Dashboard rendering regressions', () => {
       { ...activity(2), Inicio: '2026-08-04T09:00:00', ExercicioQuantidade: 60, ExercicioAcerto: 54 }
     ];
     page.context.renderHistoricalPatternsTab(activities, [activity().Materia]);
-    assert.match(page.get('tbody-period-ranking').innerHTML, /2026\.2/);
+    assert.match(page.get('tbody-period-ranking').innerHTML, /2026 · 2º sem\./);
     assert.match(page.get('tbody-period-ranking').innerHTML, /em andamento/);
     assert.match(page.get('hour-weekday-container').innerHTML, /hw-cell level-4/);
     assert.match(page.get('session-buckets-container').innerHTML, /1–1,5h/);

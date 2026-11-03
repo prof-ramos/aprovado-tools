@@ -15,6 +15,9 @@ Use sempre a forma da coluna "Use" ao criar ou alterar um texto.
 | Agrupamento de tipos de estudo | **modalidade**: Teoria, Questões, Revisão ou Outros | tipo de estudo, quando se fala do grupo |
 | Seções do dashboard | **Visão geral**, **Histórico**, **Atividades** | Análise histórica (como botão de período) |
 | Horário em que se estuda | **horário de estudo**, **estudo por hora do dia** | cronotipo, distribuição circadiana |
+| Semestre de um ano | **2019 · 1º sem.** | 2019.1 |
+| Posição de um período no conjunto | **ranking do semestre** (1º, 2º…) | posição geral, média de posição |
+| Fase de um ano de estudo | **alta intensidade**, **manutenção**, **hiato** | inatividade |
 | Gravidade de uma recomendação | **Ponto forte**, **Informação**, **Atenção**, **Prioridade** | success, warning, critical |
 
 ## Formatos de exibição

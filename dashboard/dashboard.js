@@ -7,6 +7,7 @@ import {
   parseDateString,
   timelineRange,
   buildTimelineSeries,
+  formatPeriodLabel,
   severityLabel,
   computeHistoricalPatterns,
   computeActivityHeatmap
@@ -755,6 +756,7 @@ function renderHistoricalPatternsTab(activities = [], materias = []) {
   cachedHistoricalPatterns = patterns;
 
   renderExecutiveSummaryMetrics(patterns.history);
+  renderHistoricalConclusions(patterns);
   renderPeriodRanking(patterns.semesters);
   renderMultiannualCards(patterns.history);
   setupHeatmapControls(activities, patterns.history);
@@ -764,6 +766,60 @@ function renderHistoricalPatternsTab(activities = [], materias = []) {
   renderSessionProfile(patterns.sessions);
   renderQuadrants(patterns.quadrants);
   renderMixAndInsights(patterns.mix, patterns.insights);
+}
+
+/** Three plain-language takeaways at the top of the historical analysis. */
+function renderHistoricalConclusions(patterns) {
+  const list = document.getElementById('hist-conclusions-list');
+  if (!list) return;
+  const history = patterns.history;
+  const efficiency = patterns.efficiency;
+  const quadrants = patterns.quadrants?.quadrants;
+  const items = [];
+
+  const peak = history?.peakYear;
+  const peakYear = peak ? history.years.find(y => y.year === peak.year) : null;
+  items.push({
+    title: 'Seu melhor ano',
+    headline: peak ? String(peak.year) : 'Sem registros',
+    text: peak
+      ? `Foram ${formatNumber(peak.hours, 1)}h líquidas${peakYear ? ` em ${formatNumber(peakYear.activeDaysCount, 0)} dias com estudo` : ''}${peakYear && peakYear.accuracy !== null ? `, com ${formatNumber(peakYear.accuracy, 1)}% de assertividade` : ''}.`
+      : 'Estude e sincronize para ver qual ano rendeu mais.'
+  });
+
+  const best = efficiency?.mostEfficientHour;
+  const volumePeak = efficiency?.volumePeakHour;
+  items.push({
+    title: 'Horário em que você mais acerta',
+    headline: best ? best.label : 'Ainda sem horário',
+    text: best
+      ? `${formatNumber(best.accuracy, 1)}% de assertividade em ${formatNumber(best.questions, 0)} questões${volumePeak && volumePeak.hour !== best.hour ? `. Você estuda mais às ${volumePeak.label}.` : '.'}`
+      : `A assertividade por horário aparece quando um horário soma ${formatNumber(efficiency?.minQuestions ?? 50, 0)} questões ou mais.`
+  });
+
+  const byAccuracy = (a, b) => a.accuracy - b.accuracy;
+  const bottleneck = quadrants ? [...quadrants.gargalosCriticos].sort(byAccuracy)[0] : null;
+  const risk = quadrants ? [...quadrants.zonaRisco].sort(byAccuracy)[0] : null;
+  const noExercises = quadrants ? [...quadrants.semExercicios].sort((a, b) => b.totalHours - a.totalHours)[0] : null;
+  const cutoff = patterns.quadrants ? formatNumber(patterns.quadrants.accuracyCutoff, 0) : '';
+  let attention;
+  if (bottleneck) {
+    attention = { headline: bottleneck.name, text: `${formatNumber(bottleneck.totalHours, 1)}h estudadas e ${formatNumber(bottleneck.accuracy, 1)}% de assertividade, abaixo do corte de ${cutoff}%. Vale trocar leitura por questões.` };
+  } else if (risk) {
+    attention = { headline: risk.name, text: `Pouco tempo (${formatNumber(risk.totalHours, 1)}h) e ${formatNumber(risk.accuracy, 1)}% de assertividade. Falta base.` };
+  } else if (noExercises) {
+    attention = { headline: noExercises.name, text: `${formatNumber(noExercises.totalHours, 1)}h estudadas e nenhuma questão registrada. Resolva questões para medir o rendimento.` };
+  } else {
+    attention = { headline: 'Nenhuma por enquanto', text: 'Nenhuma matéria combina muito tempo com assertividade baixa.' };
+  }
+  items.push({ title: 'Matéria que pede atenção', ...attention });
+
+  list.innerHTML = items.map(item => `
+    <div class="hist-conclusion">
+      <span class="hist-conclusion-title">${escapeHtml(item.title)}</span>
+      <strong class="hist-conclusion-headline" title="${escapeHtml(item.headline)}">${escapeHtml(item.headline)}</strong>
+      <span class="hist-conclusion-text">${escapeHtml(item.text)}</span>
+    </div>`).join('');
 }
 
 function renderExecutiveSummaryMetrics(historyData) {
@@ -838,13 +894,15 @@ function renderMultiannualCards(historyData) {
 
     const barPercent = Math.min(100, (yearData.totalHours / maxHours) * 100);
 
+    const phaseName = { ALTA_INTENSIDADE: 'Alta intensidade', MANUTENCAO: 'Manutenção', HIATO: 'Hiato' }[yearData.phase] || yearData.phaseLabel;
+
     card.innerHTML = `
       <div class="year-card-header">
         <div class="year-title-wrap">
           <span class="year-number">${yearData.year}</span>
-          ${yearData.isCurrentYear ? '<span class="current-year-tag">Em Andamento</span>' : ''}
+          ${yearData.isCurrentYear ? '<span class="current-year-tag">Em andamento</span>' : ''}
         </div>
-        <span class="phase-badge ${phaseClass}" title="${escapeHtml(yearData.phaseDescription)}">${escapeHtml(yearData.phaseLabel)}</span>
+        <span class="phase-badge ${phaseClass}" title="${escapeHtml(yearData.phaseDescription)}">${escapeHtml(phaseName)}</span>
       </div>
       <div class="year-hours-main">${formatNumber(yearData.totalHours, 1)}h</div>
       <div class="year-duration-sub">${escapeHtml(yearData.formattedDuration)}</div>
@@ -1160,11 +1218,10 @@ function renderQuadrants(quadrantsData) {
 
   if (cutoffInfo) {
     cutoffInfo.innerHTML = `
-      Corte de Tempo (Mediana): <strong>${formatNumber(quadrantsData.medianHours, 1)}h</strong> •
-      Corte de Assertividade: <strong>${formatNumber(quadrantsData.accuracyCutoff, 1)}%</strong> •
-      Matérias classificadas: <strong>${quadrantsData.summary.totalSubjects}</strong>
-      (<strong>${quadrantsData.summary.strongCount}</strong> pontos fortes, 
-      <strong>${quadrantsData.summary.bottlenecksCount}</strong> gargalos críticos)
+      Linhas de corte: <strong>${formatNumber(quadrantsData.medianHours, 1)}h</strong> (mediana de tempo) e
+      <strong>${formatNumber(quadrantsData.accuracyCutoff, 1)}%</strong> de assertividade ·
+      <strong>${quadrantsData.summary.totalSubjects}</strong> matérias classificadas
+      (<strong>${quadrantsData.summary.strongCount}</strong> pontos fortes, <strong>${quadrantsData.summary.bottlenecksCount}</strong> gargalos críticos)
     `;
   }
 
@@ -1173,12 +1230,12 @@ function renderQuadrants(quadrantsData) {
   const plottedSubjects = [...pontosFortes, ...gargalosCriticos, ...baseSolida, ...zonaRisco];
 
   // SVG Geometry
-  const svgWidth = 600;
-  const svgHeight = 360;
-  const left = 60;
-  const right = 30;
+  const svgWidth = 640;
+  const svgHeight = 380;
+  const left = 78;
+  const right = 36;
   const top = 30;
-  const bottom = 45;
+  const bottom = 50;
   const plotWidth = svgWidth - left - right;
   const plotHeight = svgHeight - top - bottom;
 
@@ -1187,52 +1244,61 @@ function renderQuadrants(quadrantsData) {
 
   const cutoffX = left + (quadrantsData.medianHours / maxHours) * plotWidth;
   const cutoffY = top + (1 - (quadrantsData.accuracyCutoff / 100)) * plotHeight;
+  const tick = '#8b9bb0';
 
   let svgHtml = `
-    <svg viewBox="0 0 ${svgWidth} ${svgHeight}" class="quadrant-svg" role="img" aria-label="Matriz de Rendimento: Tempo vs Assertividade">
-      <!-- Background Quadrant Tints -->
-      <!-- Base Sólida (Top-Left: low hours, high accuracy) -->
+    <svg viewBox="0 0 ${svgWidth} ${svgHeight}" class="quadrant-svg" role="img" aria-label="Matriz de rendimento: tempo investido por assertividade">
       <rect x="${left}" y="${top}" width="${cutoffX - left}" height="${cutoffY - top}" class="matrix-quadrant-bg q-solida" />
-      <text x="${left + 10}" y="${top + 20}" fill="#3b82f6" font-size="11" font-weight="700" opacity="0.6">BASE SÓLIDA</text>
-
-      <!-- Pontos Fortes (Top-Right: high hours, high accuracy) -->
       <rect x="${cutoffX}" y="${top}" width="${left + plotWidth - cutoffX}" height="${cutoffY - top}" class="matrix-quadrant-bg q-fortes" />
-      <text x="${left + plotWidth - 10}" y="${top + 20}" text-anchor="end" fill="#10b981" font-size="11" font-weight="700" opacity="0.6">PONTOS FORTES</text>
-
-      <!-- Zona de Risco (Bottom-Left: low hours, low accuracy) -->
       <rect x="${left}" y="${cutoffY}" width="${cutoffX - left}" height="${top + plotHeight - cutoffY}" class="matrix-quadrant-bg q-risco" />
-      <text x="${left + 10}" y="${top + plotHeight - 10}" fill="#f59e0b" font-size="11" font-weight="700" opacity="0.6">ZONA DE RISCO</text>
-
-      <!-- Gargalos Críticos (Bottom-Right: high hours, low accuracy) -->
       <rect x="${cutoffX}" y="${cutoffY}" width="${left + plotWidth - cutoffX}" height="${top + plotHeight - cutoffY}" class="matrix-quadrant-bg q-gargalos" />
-      <text x="${left + plotWidth - 10}" y="${top + plotHeight - 10}" text-anchor="end" fill="#f87171" font-size="11" font-weight="600" opacity="0.8">Gargalos críticos</text>
 
-      <!-- Cutoff Lines -->
+      <text x="${left + 10}" y="${top + 18}" class="matrix-quadrant-label ql-solida">Base sólida</text>
+      <text x="${left + plotWidth - 10}" y="${top + 18}" text-anchor="end" class="matrix-quadrant-label ql-fortes">Pontos fortes</text>
+      <text x="${left + 10}" y="${top + plotHeight - 10}" class="matrix-quadrant-label ql-risco">Zona de risco</text>
+      <text x="${left + plotWidth - 10}" y="${top + plotHeight - 10}" text-anchor="end" class="matrix-quadrant-label ql-gargalos">Gargalos críticos</text>
+
       <line x1="${cutoffX}" y1="${top}" x2="${cutoffX}" y2="${top + plotHeight}" class="matrix-cutoff-line" />
       <line x1="${left}" y1="${cutoffY}" x2="${left + plotWidth}" y2="${cutoffY}" class="matrix-cutoff-line" />
 
-      <!-- Cutoff Labels -->
-      <text x="${cutoffX + 4}" y="${top + 14}" fill="#f59e0b" font-size="9" font-weight="600">Mediana: ${formatNumber(quadrantsData.medianHours, 1)}h</text>
-      <text x="${left + 4}" y="${cutoffY - 4}" fill="#f59e0b" font-size="9" font-weight="600">Corte: ${formatNumber(quadrantsData.accuracyCutoff, 1)}%</text>
+      <text x="${cutoffX + 5}" y="${top + 34}" class="matrix-cutoff-label">Mediana ${formatNumber(quadrantsData.medianHours, 1)}h</text>
+      <text x="${left + plotWidth - 5}" y="${cutoffY - 5}" text-anchor="end" class="matrix-cutoff-label">Corte ${formatNumber(quadrantsData.accuracyCutoff, 1)}%</text>
 
-      <!-- Axes -->
       <line x1="${left}" y1="${top + plotHeight}" x2="${left + plotWidth}" y2="${top + plotHeight}" stroke="#334155" stroke-width="1.5" />
       <line x1="${left}" y1="${top}" x2="${left}" y2="${top + plotHeight}" stroke="#334155" stroke-width="1.5" />
 
-      <!-- Y-Axis Labels -->
-      <text x="${left - 8}" y="${top + 4}" text-anchor="end" fill="#64748b" font-size="9">100%</text>
-      <text x="${left - 8}" y="${top + (plotHeight * 0.5) + 4}" text-anchor="end" fill="#64748b" font-size="9">50%</text>
-      <text x="${left - 8}" y="${top + plotHeight + 3}" text-anchor="end" fill="#64748b" font-size="9">0%</text>
-      <text x="${left - 25}" y="${top + (plotHeight * 0.5)}" text-anchor="middle" fill="#94a3b8" font-size="10" transform="rotate(-90 ${left - 25} ${top + (plotHeight * 0.5)})">Assertividade (%)</text>
+      <text x="${left - 8}" y="${top + 4}" text-anchor="end" fill="${tick}" font-size="10">100%</text>
+      <text x="${left - 8}" y="${top + (plotHeight * 0.5) + 4}" text-anchor="end" fill="${tick}" font-size="10">50%</text>
+      <text x="${left - 8}" y="${top + plotHeight + 3}" text-anchor="end" fill="${tick}" font-size="10">0%</text>
+      <text x="16" y="${top + (plotHeight * 0.5)}" text-anchor="middle" fill="${tick}" font-size="11" transform="rotate(-90 16 ${top + (plotHeight * 0.5)})">Assertividade (%)</text>
 
-      <!-- X-Axis Labels -->
-      <text x="${left}" y="${top + plotHeight + 16}" text-anchor="middle" fill="#64748b" font-size="9">0h</text>
-      <text x="${left + (plotWidth * 0.5)}" y="${top + plotHeight + 16}" text-anchor="middle" fill="#64748b" font-size="9">${formatNumber((maxHours * 0.5), 0)}h</text>
-      <text x="${left + plotWidth}" y="${top + plotHeight + 16}" text-anchor="middle" fill="#64748b" font-size="9">${formatValue(maxHours)}h</text>
-      <text x="${left + (plotWidth * 0.5)}" y="${top + plotHeight + 32}" text-anchor="middle" fill="#94a3b8" font-size="10">Tempo Investido (Horas)</text>
-
-      <!-- Plotted Subject Circles -->
+      <text x="${left}" y="${top + plotHeight + 16}" text-anchor="middle" fill="${tick}" font-size="10">0h</text>
+      <text x="${left + (plotWidth * 0.5)}" y="${top + plotHeight + 16}" text-anchor="middle" fill="${tick}" font-size="10">${formatNumber((maxHours * 0.5), 0)}h</text>
+      <text x="${left + plotWidth}" y="${top + plotHeight + 16}" text-anchor="middle" fill="${tick}" font-size="10">${formatValue(maxHours)}h</text>
+      <text x="${left + (plotWidth * 0.5)}" y="${top + plotHeight + 36}" text-anchor="middle" fill="${tick}" font-size="11">Tempo investido (horas)</text>
   `;
+
+  // Point labels: name beside each dot, nudged down when two labels would overlap.
+  const placed = [];
+  const labelFor = s => (s.name.length > 18 ? `${s.name.slice(0, 17)}…` : s.name);
+  const points = plottedSubjects.map(s => ({
+    s,
+    cx: left + (s.totalHours / maxHours) * plotWidth,
+    cy: top + (1 - (s.accuracy / 100)) * plotHeight
+  })).sort((a, b) => a.cy - b.cy);
+  points.forEach(point => {
+    const text = labelFor(point.s);
+    const width = text.length * 5.6;
+    const flip = point.cx + 12 + width > left + plotWidth + right - 4;
+    const x1 = flip ? point.cx - 12 - width : point.cx + 12;
+    let y = point.cy + 3.5;
+    while (placed.some(o => Math.abs(o.y - y) < 11 && x1 < o.x2 && x1 + width > o.x1)) y += 11;
+    placed.push({ x1, x2: x1 + width, y });
+    point.label = { text, x: flip ? point.cx - 12 : point.cx + 12, y, anchor: flip ? 'end' : 'start' };
+  });
+
+  svgHtml += points.map(point => `
+      <text x="${point.label.x.toFixed(1)}" y="${point.label.y.toFixed(1)}" text-anchor="${point.label.anchor}" class="matrix-dot-label"><title>${escapeHtml(point.s.name)}</title>${escapeHtml(point.label.text)}</text>`).join('');
 
   plottedSubjects.forEach(s => {
     const cx = left + (s.totalHours / maxHours) * plotWidth;
@@ -1241,7 +1307,7 @@ function renderQuadrants(quadrantsData) {
       <circle
         cx="${cx.toFixed(1)}"
         cy="${cy.toFixed(1)}"
-        r="7"
+        r="6"
         fill="${sanitizeColor(s.color)}"
         stroke="#ffffff"
         stroke-width="1.5"
@@ -1302,6 +1368,7 @@ function renderQuadrants(quadrantsData) {
           <span class="quadrant-panel-title text-accent">Pontos fortes (${pontosFortes.length})</span>
           <span class="quadrant-panel-sub">Alto tempo e alta assertividade</span>
         </div>
+        <p class="quadrant-reco">Mantenha o ritmo e revise de vez em quando.</p>
         <div class="subject-pills-list">
           ${renderSubjectPills(pontosFortes)}
         </div>
@@ -1313,9 +1380,7 @@ function renderQuadrants(quadrantsData) {
           <span class="quadrant-panel-title text-danger">Gargalos críticos (${gargalosCriticos.length})</span>
           <span class="quadrant-panel-sub">Alto tempo e baixa assertividade</span>
         </div>
-        <div class="method-alert-box">
-          <strong>Alerta de método:</strong> Alto tempo investido com assertividade abaixo do corte (${formatValue(quadrantsData.accuracyCutoff)}%). Interrompa leituras passivas e utilize engenharia reversa com foco nos cadernos de erros.
-        </div>
+        <p class="quadrant-reco">Troque leitura por questões e revise os erros.</p>
         <div class="subject-pills-list">
           ${renderSubjectPills(gargalosCriticos)}
         </div>
@@ -1327,6 +1392,7 @@ function renderQuadrants(quadrantsData) {
           <span class="quadrant-panel-title text-blue">Base sólida (${baseSolida.length})</span>
           <span class="quadrant-panel-sub">Baixo tempo e alta assertividade</span>
         </div>
+        <p class="quadrant-reco">Bom rendimento com pouco tempo: amplie aos poucos.</p>
         <div class="subject-pills-list">
           ${renderSubjectPills(baseSolida)}
         </div>
@@ -1338,6 +1404,7 @@ function renderQuadrants(quadrantsData) {
           <span class="quadrant-panel-title text-warning">Zona de risco (${zonaRisco.length})</span>
           <span class="quadrant-panel-sub">Baixo tempo e baixa assertividade</span>
         </div>
+        <p class="quadrant-reco">Comece pela teoria básica e por questões fáceis.</p>
         <div class="subject-pills-list">
           ${renderSubjectPills(zonaRisco)}
         </div>
@@ -1521,7 +1588,7 @@ function renderPeriodRanking(semesterData) {
   const card = (title, period, value, detail, extraClass = '') => `
     <div class="period-highlight-card ${extraClass}">
       <span class="metric-title">${escapeHtml(title)}</span>
-      <div class="metric-value">${period ? escapeHtml(period.label) : '—'}</div>
+      <div class="metric-value">${period ? escapeHtml(formatPeriodLabel(period.label)) : '—'}</div>
       <div class="metric-footer">${period ? escapeHtml(value) : escapeHtml(detail)}</div>
     </div>`;
 
@@ -1534,20 +1601,25 @@ function renderPeriodRanking(semesterData) {
       `Mínimo de ${semesterData.minQuestions} questões por período`)
   ].join('');
 
+  // Overall position: lower average rank is better; ties share the position (1, 1, 3).
+  const overallPosition = new Map();
+  [...list].sort((a, b) => a.averageRank - b.averageRank).forEach((p, index, sorted) => {
+    overallPosition.set(p, index > 0 && p.averageRank === sorted[index - 1].averageRank ? overallPosition.get(sorted[index - 1]) : index + 1);
+  });
   const rows = [...list].reverse();
   tbody.innerHTML = rows.map(p => {
     const mark = (cond) => (cond ? ' class="is-best-cell"' : '');
     const accLow = p.accuracy !== null && p.totalQuestions < semesterData.minQuestions;
     return `
       <tr${p === h.overallBest ? ' class="is-best-row"' : ''}>
-        <td><strong>${escapeHtml(p.label)}</strong>${p.isCurrent ? ' <span class="badge-tag">em andamento</span>' : ''}</td>
+        <td><strong>${escapeHtml(isYear ? p.label : formatPeriodLabel(p.label))}</strong>${p.isCurrent ? ' <span class="badge-tag">em andamento</span>' : ''}</td>
         <td${mark(p === h.bestByHours)}>${formatNumber(p.totalHours, 1)}h</td>
         <td>${p.sessions}</td>
         <td>${p.activeDays}</td>
         <td${mark(p === h.bestByConsistency)}>${formatNumber(p.consistency, 1)}%</td>
         <td>${p.longestStreak} dias</td>
         <td${mark(p === h.bestByAccuracy)}${accLow ? ' title="Poucas questões: fora do ranking de assertividade"' : ''}>${formatAccuracy(p.accuracy)}${accLow ? '*' : ''}</td>
-        <td>${p.averageRank !== undefined ? `${formatNumber(p.averageRank, 1)}` : '—'}</td>
+        <td title="${p.averageRank !== undefined ? `Média das posições: ${formatNumber(p.averageRank, 2)}. Menor é melhor; empates dividem a posição.` : ''}">${p.averageRank !== undefined ? `${overallPosition.get(p)}º` : '—'}</td>
       </tr>`;
   }).join('');
 }
