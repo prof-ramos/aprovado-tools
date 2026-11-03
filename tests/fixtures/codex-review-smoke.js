@@ -1,4 +1,5 @@
 // Temporary fixture for checking automatic GitHub reviews; not production code.
 export function formatReviewSmokeLabel(label) {
-  return String(label ?? '').trim().replace(/\s+/g, ' ');
+  const normalized = String(label ?? '').trim().replace(/\s+/g, ' ');
+  return normalized;
 }
