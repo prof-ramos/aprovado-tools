@@ -17,7 +17,12 @@
         const btn = document.createElement('button');
         btn.id = 'aprovado-tools-injected-btn';
         btn.className = 'aprovado-tools-nav-btn';
-        btn.innerHTML = '📊 <span>Exportar & Métricas</span>';
+        btn.innerHTML = `
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 13.5h12M4 10.5v-3M8 10.5V4.5M12 10.5v-5"/>
+          </svg>
+          <span>Exportar e métricas</span>
+        `;
         btn.title = 'Abrir painel completo de métricas e exportação de estudos';
 
         btn.addEventListener('click', (e) => {

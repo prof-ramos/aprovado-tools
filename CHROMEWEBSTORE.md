@@ -75,6 +75,7 @@ Portuguese (Brazil)
 | Permission | Type | Justification |
 |---|---|---|
 | `storage` | permissions | Armazena preferências locais (tema, filtros recentes) e cache local de métricas para inicialização rápida. |
+| `unlimitedStorage` | permissions | Permite persistir snapshots completos do histórico multianual de estudos (10+ anos e milhares de atividades) localmente no navegador sem atingir a cota padrão de 5MB. |
 | `cookies` | permissions | Detecta a sessão ativa de login do usuário no AprovadoApp para permitir sincronização de dados sem solicitar senhas. |
 | `sidePanel` | permissions | Permite abrir o painel lateral com métricas e revisões enquanto o estudante navega e estuda em outras abas. |
 | `contextMenus` | permissions | Adiciona opções no menu de contexto do navegador para abrir rapidamente o painel de métricas. |

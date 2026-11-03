@@ -12,25 +12,24 @@
     <header class="panel-header">
       <div class="brand">
         <div class="brand-icon">
-          <svg viewBox="0 0 24 24">
-            <path d="M18 20V10M12 20V4M6 20v-6"></path>
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 13.5h12M4 10.5v-3M8 10.5V4.5M12 10.5v-5"/>
           </svg>
         </div>
         <div>
           <h1 class="brand-title">Aprovado Tools</h1>
-          <span class="brand-subtitle">Painel Lateral de Estudos</span>
+          <span class="brand-subtitle">Acompanhamento lateral</span>
         </div>
       </div>
       <div class="header-actions">
-        <button id="btn-sync" class="btn-icon" title="Sincronizar dados">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M23 4v6h-6M1 20v-6h6"></path>
-            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+        <button id="btn-sync" class="btn-icon" title="Sincronizar">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 8A6 6 0 1 1 8 2M14 2v6h-6"/>
           </svg>
         </button>
-        <button id="btn-open-full" class="btn-icon" title="Abrir Dashboard Completo">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"></path>
+        <button id="btn-open-full" class="btn-icon" title="Abrir dashboard completo">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 9v4H3V4h4M9 2h5v5M7 9l7-7"/>
           </svg>
         </button>
       </div>
@@ -38,11 +37,10 @@
 
     <!-- Disconnected State -->
     <div id="panel-disconnected" class="state-container hidden">
-      <div class="empty-icon">🔒</div>
-      <h2>Você não está conectado</h2>
-      <p>Faça login na sua conta do AprovadoApp para visualizar o acompanhamento de estudos em tempo real.</p>
+      <h2>Sessão desconectada</h2>
+      <p>Faça login na sua conta do AprovadoApp para visualizar o acompanhamento em tempo real.</p>
       <button id="btn-login" class="btn btn-primary btn-full">
-        <span>Fazer Login no AprovadoApp</span>
+        <span>Fazer login no AprovadoApp</span>
       </button>
     </div>
 
@@ -56,7 +54,7 @@
     <main id="panel-main" class="panel-main hidden">
       <!-- User Chip -->
       <div class="user-chip">
-        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-avatar" id="user-avatar">E</div>
         <div class="user-details">
           <span class="user-name" id="user-name">Carregando...</span>
           <span class="user-status"><span class="status-dot"></span> Sincronizado</span>
@@ -73,22 +71,22 @@
       <!-- KPI Grid -->
       <div class="kpi-grid">
         <div class="kpi-card">
-          <span class="kpi-label">TEMPO TOTAL</span>
+          <span class="kpi-label">Tempo total</span>
           <span class="kpi-val" id="kpi-time">0h 0m</span>
           <span class="kpi-sub" id="kpi-avg">0h/dia</span>
         </div>
         <div class="kpi-card">
-          <span class="kpi-label">SESSÕES</span>
+          <span class="kpi-label">Sessões</span>
           <span class="kpi-val" id="kpi-sessions">0</span>
           <span class="kpi-sub" id="kpi-days">0 dias</span>
         </div>
         <div class="kpi-card">
-          <span class="kpi-label">QUESTÕES</span>
+          <span class="kpi-label">Questões</span>
           <span class="kpi-val" id="kpi-questions">0</span>
           <span class="kpi-sub" id="kpi-accuracy">0% acertos</span>
         </div>
         <div class="kpi-card">
-          <span class="kpi-label">SEQUÊNCIA</span>
+          <span class="kpi-label">Sequência</span>
           <span class="kpi-val" id="kpi-streak">0d</span>
           <span class="kpi-sub" id="kpi-longest">Recorde: 0d</span>
         </div>
@@ -97,7 +95,7 @@
       <!-- Study Cycle Card -->
       <section id="section-ciclo" class="card-section hidden">
         <div class="section-header">
-          <h2 class="section-title">🔄 Ciclo de Estudos</h2>
+          <h2 class="section-title">Ciclo de estudos</h2>
           <span id="ciclo-pct" class="section-badge">0%</span>
         </div>
         <div class="progress-bar-bg">
@@ -109,7 +107,7 @@
       <!-- Pending Reviews Card -->
       <section id="section-reviews" class="card-section hidden">
         <div class="section-header">
-          <h2 class="section-title">🔔 Revisões Pendentes</h2>
+          <h2 class="section-title">Revisões pendentes</h2>
           <span id="reviews-count-badge" class="section-badge danger">0</span>
         </div>
         <div id="reviews-list" class="reviews-list"></div>
@@ -118,7 +116,7 @@
       <!-- Subject Time Distribution -->
       <section class="card-section">
         <div class="section-header">
-          <h2 class="section-title">📚 Horas por Matéria</h2>
+          <h2 class="section-title">Horas por matéria</h2>
         </div>
         <div id="subjects-bars" class="subjects-bars"></div>
       </section>
@@ -126,17 +124,17 @@
       <!-- Quick Export Box -->
       <section class="card-section">
         <div class="section-header">
-          <h2 class="section-title">⚡ Exportar Dados</h2>
+          <h2 class="section-title">Exportar dados</h2>
         </div>
         <div class="export-actions">
           <button id="btn-export-csv" class="btn btn-secondary btn-full">
-            <span>📄 Baixar CSV de Atividades</span>
+            <span>Baixar CSV de atividades</span>
           </button>
           <button id="btn-export-json" class="btn btn-secondary btn-full">
-            <span>💾 Backup Completo (JSON)</span>
+            <span>Backup completo (JSON)</span>
           </button>
           <button id="btn-copy-md" class="btn btn-secondary btn-full">
-            <span id="copy-text">📋 Copiar Resumo em Markdown</span>
+            <span id="copy-text">Copiar resumo em Markdown</span>
           </button>
         </div>
       </section>
