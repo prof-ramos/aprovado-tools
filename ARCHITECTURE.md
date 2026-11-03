@@ -63,12 +63,12 @@ graph TD
 ### 2.3. Vistas de Usuário (Popup, SidePanel e Dashboard)
 - **Popup (`popup/`):** Visão ultrarrápida (340px) exibindo tempo total, sessões, assertividade, progresso do ciclo e botões de exportação rápida.
 - **Side Panel (`sidepanel/`):** Painel lateral retrátil que acompanha a navegação do usuário em abas de estudo e leitura, exibindo revisões pendentes e distribuição de matérias.
-- **Dashboard (`dashboard/`):** Aplicação de página inteira dividida em duas abas principais:
-  1. *Visão Geral:* Filtros de data, busca com paginação, linha do tempo diária e tabela de matérias.
-  2. *Padrões Históricos de Estudo (2016 até o ano corrente):* Análise multianual, mapa anual de atividade (heatmap estilo GitHub), distribuição circadiana 24h com produtividade por turno, matriz 2x2 de rendimento e mix metodológico.
+- **Dashboard (`dashboard/`):** Aplicação de página inteira com duas visões controladas pelo seletor de período:
+  1. *Visão geral:* Filtros de data, matéria e modalidade, busca com paginação, linha do tempo diária e tabela de matérias.
+  2. *Análise histórica:* Usa todos os registros e oculta os filtros da visão geral. Inclui ranking de semestres/anos, grade dia × hora, eficiência por hora/turno, perfil de duração das sessões, mapa anual de atividade, análise multianual, matriz de rendimento e mix metodológico. Os indicadores multianuais usam 2016 até o ano corrente; o ranking inclui todos os anos presentes no histórico.
 
 ### 2.4. Núcleo de Domínio (`shared/`)
-- **`api.js`:** Encapsula requisições autenticadas para os endpoints `/service/*` do AprovadoApp (`Atividade/Listar`, `Materia/Listar`, `Acompanhamento/CicloEstudos`, `Revisao/ListarPendentes`). Gerencia cache local de 5 minutos com `chrome.storage.local`.
+- **`api.js`:** Encapsula requisições autenticadas para os endpoints `/service/*` do AprovadoApp. O cache local de 5 minutos só é reutilizado após consultar a identidade da sessão e comparar seu ID com `snapshot.user.Id`. Sem identidade confirmada não há fallback para dados anteriores. Durante uma sincronização completa, verifica novamente a conta antes de gravar, rejeitando uma troca detectada durante o carregamento. Falhas preservam o cache anterior, mas não o retornam como resultado dessa tentativa.
 - **`analytics.js`:** Biblioteca pura e determinística com zero dependências. Converte logs brutos em modelos analíticos ricos (histogramas, quartis, medianas e textos NLG).
 - **`export.js`:** Utilitário para geração de arquivos para download (CSV compatível com Excel via UTF-8 BOM, backup estruturado em JSON e relatórios em Markdown para Notion/Obsidian).
 
@@ -89,25 +89,31 @@ sequenceDiagram
 
     User->>UI: Abre o Dashboard / Clica no Popup
     UI->>API: fetchCompleteSnapshot(forceRefresh=false)
+    API->>Server: GET /service/Usuario/Obter
+    Server-->>API: Identidade da sessão ou erro de autenticação
     API->>Storage: get(['aprovado_data_snapshot', 'aprovado_last_sync'])
+    Storage-->>API: Snapshot e instante da sincronização
     
-    alt Cache Válido (< 5 min)
-        Storage-->>API: Retorna snapshot em cache
-        API-->>UI: Retorna dados instantâneos (0ms)
-    else Cache Expirado ou forceRefresh=true
-        API->>Server: GET /service/Usuario/Obter (Cookie da sessão)
-        Server-->>API: Dados do Usuário (ID, Nome, Email)
-        
+    alt Cache < 5 min e mesmo ID, sem forceRefresh
+        API-->>UI: Retorna listas em cache e perfil confirmado
+    else Cache expirado, sem dono, de outra conta ou forceRefresh
         par Paralelo (Promise.all)
             API->>Server: POST /service/Materia/Listar
             API->>Server: POST /service/Atividade/Listar
             API->>Server: POST /service/Acompanhamento/CicloEstudos
             API->>Server: POST /service/Revisao/ListarPendentes
+            API->>Server: POST /service/Revisao/ListarConcluidas
         end
         
         Server-->>API: Respostas JSON consolidadas
-        API->>Storage: set({ aprovado_data_snapshot, aprovado_last_sync })
-        API-->>UI: Retorna novo snapshot
+        API->>Server: GET /service/Usuario/Obter novamente
+        Server-->>API: Identidade ao concluir a leitura
+        alt Mesmo ID
+            API->>Storage: set(snapshot, instante e usuário)
+            API-->>UI: Retorna novo snapshot
+        else Conta mudou ou identidade indisponível
+            API-->>UI: Rejeita sem gravar nem retornar cache antigo
+        end
     end
 
     UI->>UI: computeStudyMetrics() & computeHistoricalPatterns()
@@ -118,21 +124,30 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    RawActivities["Array de Atividades (4.814 sessões)"]
+    RawActivities["Histórico de atividades"]
     
-    RawActivities --> MultiAnnual["computeMultiannualHistory: Agrega por ano civil (2016-2026) e classifica fases"]
+    RawActivities --> MultiAnnual["computeMultiannualHistory: Agrega de 2016 ao ano corrente e classifica fases"]
     RawActivities --> Heatmap["computeActivityHeatmap: Mapeia 53/54 semanas do ano alvo com quartis de intensidade"]
     RawActivities --> Circadian["computeCircadianDistribution: Buckets 00h-23h + Partição 4 turnos (100%) + Ranking semanal"]
     RawActivities --> Mix["computeMethodologicalMix: Decompõe Teoria vs Questões vs Revisão + Regras heurísticas"]
     
-    MultiAnnual --> Quadrants["computeYieldQuadrants: Calcula mediana de horas e corte de 75% em assertividade"]
+    RawActivities --> SubjectSummary["Resumo por matéria"]
+    SubjectSummary --> Quadrants["computeYieldQuadrants: Mediana de horas e corte de 75% em assertividade"]
+    RawActivities --> Semesters["computeSemesterRanking: Volume, consistência e assertividade com posições empatadas"]
+    RawActivities --> Sessions["computeSessionLengthProfile: Faixas, mediana, média, P90 e tendência"]
+    RawActivities --> HourWeekday["computeHourWeekdayMatrix: Grade 7 × 24"]
+    Circadian --> Efficiency["computeHourlyEfficiency: Hora e turno com amostra suficiente, independentemente"]
     
     MultiAnnual --> NLG["generateStudyInsights (Síntese NLG Determinística Baseada em Regras)"]
     Circadian --> NLG
     Quadrants --> NLG
     Mix --> NLG
+    Semesters --> NLG
+    Sessions --> NLG
+    HourWeekday --> NLG
+    Efficiency --> NLG
     
-    NLG --> OutputNarrative["Texto Estruturado em 5 Seções: Executivo, Circadiano, Cadência, Quadrantes e Recomendações"]
+    NLG --> OutputNarrative["Oito seções: Executivo, Circadiano, Cadência, Quadrantes, Recomendações, Sessões, Eficiência e Períodos"]
 ```
 
 ---
@@ -156,6 +171,6 @@ flowchart TD
 2. **CORS e Políticas de Cookies do Navegador**:
    - Para que as requisições com cookies funcionem em background, a extensão exige explicitamente `host_permissions` para `*://*.aprovadoapp.com/*` e `*://*.aprovadoapp.com.br/*` e a permissão `"cookies"`.
 3. **Ausência de Webhooks ou Eventos Push no AprovadoApp**:
-   - A API do AprovadoApp não emite notificações quando uma nova atividade é finalizada no aplicativo móvel. Por isso, adota-se uma estratégia de cache de 5 minutos com revalidação explícita via botão de sincronização.
+   - A extensão consulta a identidade antes de reutilizar listas em cache por até 5 minutos. O botão Sincronizar força a atualização das listas. Isso exige acesso ao serviço mesmo quando as listas ainda estão em cache; não há leitura offline de cache sem autenticação confirmada.
 4. **Volume de Histórico e Capacidade de Armazenamento**:
    - Usuários com mais de uma década de estudo acumulam megabytes de registros JSON. Para evitar a limitação da cota de 5 MB do `chrome.storage.local`, o manifesto inclui obrigatoriamente a permissão `"unlimitedStorage"`.

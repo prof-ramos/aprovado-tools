@@ -12,7 +12,7 @@ function element() {
   const classes = new Set();
   let html = '';
   return {
-    children: [], style: {}, value: '', textContent: '',
+    children: [], style: {}, dataset: {}, value: '', textContent: '',
     classList: { add: x => classes.add(x), remove: x => classes.delete(x), contains: x => classes.has(x),
       toggle: (x, on) => on ? classes.add(x) : classes.delete(x) },
     addEventListener(name, callback) {
@@ -39,15 +39,36 @@ function dashboard(now) {
     if (!elements.has(id)) elements.set(id, element());
     return elements.get(id);
   };
+  const periods = Object.fromEntries(['all', 'this_year', '90d', '30d', '7d', 'custom'].map(period => {
+    const button = element();
+    button.dataset.period = period;
+    return [period, button];
+  }));
+  const historical = element();
+  historical.dataset.view = 'historical';
+  const periodButtons = [...Object.values(periods), historical];
+  const granularity = Object.fromEntries(['semester', 'year'].map(value => {
+    const button = element();
+    button.dataset.granularity = value;
+    return [value, button];
+  }));
+  const overviewFilters = [element(), element()];
+  const filterBar = element();
+  filterBar.querySelectorAll = selector => selector === '[data-overview-only]' ? overviewFilters : [];
+  get('period-ranking-toggle').querySelectorAll = selector => selector === '.seg-btn' ? Object.values(granularity) : [];
   const context = vm.createContext({ ...analytics, ...ui, console, setTimeout, Date: Clock,
-    document: { readyState: 'loading', getElementById: get, querySelectorAll: () => [],
-      querySelector: () => null, createElement: element, addEventListener() {} },
+    document: { readyState: 'loading', getElementById: get,
+      querySelectorAll: selector => selector === '.filter-bar .seg-btn' ? periodButtons
+        : selector === '.seg-btn' ? [...periodButtons, ...Object.values(granularity)] : [],
+      querySelector: selector => selector === '.filter-bar' ? filterBar : null,
+      createElement: element, addEventListener() {} },
     window: { innerWidth: 1200, location: { search: '' } }
   });
   const source = readFileSync(new URL('../dashboard/dashboard.js', import.meta.url), 'utf8')
     .replace(/^import[\s\S]*?from ['"][^'"]+['"];\s*/gm, '');
   vm.runInContext(source, context);
-  return { get, context, run: source => vm.runInContext(source, context) };
+  return { get, context, periods, historical, granularity, overviewFilters,
+    run: source => vm.runInContext(source, context) };
 }
 
 const activity = (hours = 1) => ({ Inicio: '2026-06-01T12:00:00', Duracao: hours * 3600000,
@@ -65,6 +86,76 @@ function quadrants(s) {
 }
 
 describe('Dashboard rendering regressions', () => {
+  it('period clicks leave history, restore filters and apply custom dates', () => {
+    const page = dashboard();
+    const recentDate = new Date().toISOString();
+    page.context.navigationActivities = [
+      { Inicio: recentDate, Duracao: 3600000 },
+      { Inicio: '2020-12-01T12:00:00', DataInicio: '01/12/2020', Duracao: 3600000 }
+    ];
+    page.run('fullSnapshot = { atividades: navigationActivities, materias: [] }');
+    page.context.setupViewSwitch();
+    page.historical.dispatch('click');
+    assert.equal(page.get('tab-historical-patterns').classList.contains('hidden'), false);
+    assert.ok(page.overviewFilters.every(e => e.classList.contains('hidden')));
+    assert.equal(page.historical.getAttribute('aria-pressed'), 'true');
+
+    page.periods['30d'].dispatch('click');
+    assert.equal(page.get('tab-overview').classList.contains('hidden'), false);
+    assert.ok(page.overviewFilters.every(e => !e.classList.contains('hidden')));
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 1);
+    assert.equal(page.periods['30d'].classList.contains('active'), true);
+    assert.equal(page.historical.getAttribute('aria-pressed'), 'false');
+
+    page.historical.dispatch('click');
+    page.periods.custom.dispatch('click');
+    assert.equal(page.get('custom-date-container').classList.contains('hidden'), false);
+    page.get('input-date-start').value = '2020-12-01';
+    page.get('input-date-end').value = '2020-12-31';
+    page.get('btn-apply-custom-dates').dispatch('click');
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 1);
+    assert.equal(page.get('tbody-activities-list').children.length, 1);
+    assert.match(page.get('tbody-activities-list').children[0].innerHTML, /01\/12\/2020/);
+  });
+
+  it('ranking toggle clicks regroup data without changing the selected view or period', () => {
+    const page = dashboard('2026-09-15T12:00:00');
+    page.run(`fullSnapshot = { atividades: [
+      { Inicio: '2025-03-04T12:00:00', Duracao: 3600000 },
+      { Inicio: '2026-08-04T12:00:00', Duracao: 3600000 }
+    ], materias: [] }`);
+    page.context.setupPeriodRankingToggle();
+    page.historical.dispatch('click');
+    assert.match(page.get('tbody-period-ranking').innerHTML, /2026\.2/);
+    page.granularity.year.dispatch('click');
+    assert.match(page.get('tbody-period-ranking').innerHTML, /<strong>2026<\/strong>/);
+    assert.equal(page.get('tab-overview').classList.contains('hidden'), true);
+    assert.equal(page.run('currentPeriod'), 'all');
+    assert.equal(page.granularity.year.getAttribute('aria-pressed'), 'true');
+    page.granularity.semester.dispatch('click');
+    assert.match(page.get('tbody-period-ranking').innerHTML, /2026\.2/);
+    assert.equal(page.granularity.year.getAttribute('aria-pressed'), 'false');
+  });
+
+  it('subject and modality change events update the overview metrics', () => {
+    const page = dashboard();
+    page.run(`fullSnapshot = { atividades: [
+      { Inicio: '2026-06-01T12:00:00', Duracao: 3600000, Materia: { Id: 1 }, TipoEstudo: 'Leitura' },
+      { Inicio: '2026-06-02T12:00:00', Duracao: 3600000, Materia: { Id: 2 }, TipoEstudo: 'Doutrina' }
+    ], materias: [] }`);
+    const selectSubject = page.get('select-subject');
+    selectSubject.value = '2';
+    selectSubject.dispatch('change', { target: selectSubject });
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 1);
+    const selectType = page.get('select-type');
+    selectType.value = 'Leitura';
+    selectType.dispatch('change', { target: selectType });
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 0);
+    selectSubject.value = 'all';
+    selectSubject.dispatch('change', { target: selectSubject });
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 1);
+  });
+
   it('keeps decoded subject markup inert when a matrix tooltip opens', () => {
     const page = dashboard();
     const payload = '<img src=x onerror="globalThis.xss=1"> & "Nome"';
