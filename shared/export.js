@@ -16,13 +16,83 @@ function triggerBrowserDownload(blob, filename) {
   }, 150);
 }
 
-function escapeCsvField(val) {
+export function escapeCsvField(val) {
   if (val === null || val === undefined) return '';
   const str = String(val);
-  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+  if (/[;,"\r\n]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }
   return str;
+}
+
+export function buildActivitiesCSV(activities) {
+  const headers = [
+    'ID Atividade',
+    'Data',
+    'Hora Início',
+    'Matéria',
+    'Conteúdo',
+    'Tipo de Estudo',
+    'Duração (minutos)',
+    'Duração (horas)',
+    'Exercícios Feitos',
+    'Exercícios Acertos',
+    'Taxa de Acerto (%)',
+    'Anotações'
+  ];
+
+  const rows = activities.map(atv => {
+    const ms = atv.Duracao || 0;
+    const minutes = (ms / (1000 * 60)).toFixed(1);
+    const hours = (ms / (1000 * 60 * 60)).toFixed(2);
+    const questions = atv.ExercicioQuantidade || 0;
+    const correct = atv.ExercicioAcerto || 0;
+    const accuracy = questions > 0 ? ((correct / questions) * 100).toFixed(1) : '';
+
+    return [
+      atv.Id || '',
+      atv.DataInicio || '',
+      atv.HoraInicio || '',
+      atv.Materia?.Nome || '',
+      atv.Conteudo?.Nome || '',
+      atv.TipoEstudo || '',
+      minutes,
+      hours,
+      questions,
+      correct,
+      accuracy,
+      atv.Anotacoes || ''
+    ].map(escapeCsvField).join(';');
+  });
+
+  return '\uFEFF' + [headers.join(';'), ...rows].join('\r\n');
+}
+
+export function buildSubjectsSummaryCSV(subjects) {
+  const headers = [
+    'Matéria',
+    'Tempo Total Formatado',
+    'Tempo Total (Horas)',
+    'Total de Sessões',
+    '% do Tempo Total',
+    'Exercícios Feitos',
+    'Exercícios Acertos',
+    'Taxa de Acerto (%)',
+    'Quantidade de Conteúdos'
+  ];
+
+  const rows = subjects.map(s => [
+    s.name,
+    s.formattedDuration,
+    (s.durationMs / 3600000).toFixed(2),
+    s.sessionsCount,
+    s.percentage.toFixed(1) + '%',
+    s.questions,
+    s.correct,
+    s.accuracy.toFixed(1) + '%',
+    s.contents ? s.contents.length : 0
+  ].map(escapeCsvField).join(';'));
+  return '\uFEFF' + [headers.join(';'), ...rows].join('\r\n');
 }
 
 export const AprovadoExport = {
@@ -30,47 +100,7 @@ export const AprovadoExport = {
    * Exporta todas as atividades para CSV com suporte a acentuação no Excel
    */
   exportActivitiesCSV(activities, filename = 'aprovado_atividades.csv') {
-    const headers = [
-      'ID Atividade',
-      'Data',
-      'Hora Início',
-      'Matéria',
-      'Conteúdo',
-      'Tipo de Estudo',
-      'Duração (minutos)',
-      'Duração (horas)',
-      'Exercícios Feitos',
-      'Exercícios Acertos',
-      'Taxa de Acerto (%)',
-      'Anotações'
-    ];
-
-    const rows = activities.map(atv => {
-      const ms = atv.Duracao || 0;
-      const minutes = (ms / (1000 * 60)).toFixed(1);
-      const hours = (ms / (1000 * 60 * 60)).toFixed(2);
-      const questions = atv.ExercicioQuantidade || 0;
-      const correct = atv.ExercicioAcerto || 0;
-      const accuracy = questions > 0 ? ((correct / questions) * 100).toFixed(1) : '';
-
-      return [
-        atv.Id || '',
-        atv.DataInicio || '',
-        atv.HoraInicio || '',
-        atv.Materia?.Nome || '',
-        atv.Conteudo?.Nome || '',
-        atv.TipoEstudo || '',
-        minutes,
-        hours,
-        questions,
-        correct,
-        accuracy,
-        atv.Anotacoes || ''
-      ].map(escapeCsvField).join(';');
-    });
-
-    const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([buildActivitiesCSV(activities)], { type: 'text/csv;charset=utf-8;' });
     triggerBrowserDownload(blob, filename);
   },
 
@@ -78,31 +108,7 @@ export const AprovadoExport = {
    * Exporta resumo consolidado por matérias para CSV
    */
   exportSubjectsSummaryCSV(subjects, filename = 'aprovado_resumo_materias.csv') {
-    const headers = [
-      'Matéria',
-      'Tempo Total Formatado',
-      'Tempo Total (Horas)',
-      'Total de Sessões',
-      '% do Tempo Total',
-      'Exercícios Feitos',
-      'Exercícios Acertos',
-      'Taxa de Acerto (%)',
-      'Quantidade de Conteúdos'
-    ];
-
-    const rows = subjects.map(s => [
-      s.name,
-      s.formattedDuration,
-      (s.durationMs / 3600000).toFixed(2),
-      s.sessionsCount,
-      s.percentage.toFixed(1) + '%',
-      s.questions,
-      s.correct,
-      s.accuracy.toFixed(1) + '%',
-      s.contents ? s.contents.length : 0
-    ].map(escapeCsvField).join(';'));
-    const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([buildSubjectsSummaryCSV(subjects)], { type: 'text/csv;charset=utf-8;' });
     triggerBrowserDownload(blob, filename);
   },
 
