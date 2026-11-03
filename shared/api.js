@@ -171,17 +171,20 @@ export const AprovadoApi = {
    * Carrega um snapshot completo dos dados da conta com cache local
    */
   async fetchCompleteSnapshot(forceRefresh = false) {
-    if (!forceRefresh) {
-      const cached = await chrome.storage.local.get(['aprovado_data_snapshot', 'aprovado_last_sync']);
-      const isFresh = cached.aprovado_last_sync && (Date.now() - cached.aprovado_last_sync < 1000 * 60 * 5); // 5 min
-      if (isFresh && cached.aprovado_data_snapshot) {
-        return cached.aprovado_data_snapshot;
-      }
-    }
-
+    // A validade temporal não comprova que o cache pertence à sessão atual.
     const user = await this.getUser();
     if (!user || !user.Id) {
       throw new Error('Sessão expirada ou não autenticado.');
+    }
+
+    if (!forceRefresh) {
+      const cached = await chrome.storage.local.get(['aprovado_data_snapshot', 'aprovado_last_sync']);
+      const isFresh = cached.aprovado_last_sync && (Date.now() - cached.aprovado_last_sync < 1000 * 60 * 5); // 5 min
+      const snapshot = cached.aprovado_data_snapshot;
+      const belongsToUser = snapshot?.user?.Id && String(snapshot.user.Id) === String(user.Id);
+      if (isFresh && belongsToUser) {
+        return { ...snapshot, user };
+      }
     }
 
     // Matérias e atividades são essenciais: falhas propagam sem sobrescrever
@@ -194,8 +197,15 @@ export const AprovadoApi = {
       this.listCompletedReviews().catch(() => [])
     ]);
 
+    // A sessão pode mudar enquanto as listas são carregadas. Nesse caso,
+    // descarte esta leitura, sem sobrescrever o snapshot anterior.
+    const currentUser = await this.getUser();
+    if (!currentUser?.Id || String(currentUser.Id) !== String(user.Id)) {
+      throw new Error('A conta mudou durante a sincronização. Sincronize novamente.');
+    }
+
     const snapshot = {
-      user,
+      user: currentUser,
       materias,
       atividades,
       ciclo,
@@ -207,7 +217,7 @@ export const AprovadoApi = {
     await chrome.storage.local.set({
       aprovado_data_snapshot: snapshot,
       aprovado_last_sync: Date.now(),
-      aprovado_user: user
+      aprovado_user: currentUser
     });
 
     return snapshot;

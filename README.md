@@ -13,6 +13,10 @@
   - Sequência de dias consecutivos (*streak*) e recorde histórico.
   - Média diária de estudos e duração média por sessão.
   - Gráfico interativo de evolução cronológica diária.
+- **Análise Histórica**:
+  - Ranking de semestres e anos por volume, consistência e assertividade.
+  - Grade de dia × hora, eficiência por horário/turno e perfil de duração das sessões.
+  - Síntese determinística em oito seções, calculada localmente.
 - **Distribuição & Rendimento por Matéria**:
   - Horas dedicadas por disciplina com as cores originais cadastradas no AprovadoApp.
   - Taxa de acerto segmentada por disciplina e alertas de rendimento.
@@ -92,3 +96,4 @@ npm run build:zip
 
 - **100% Local**: Nenhum dado pessoal, histórico de estudo ou credencial é enviado para servidores de terceiros.
 - Todas as requisições ocorrem diretamente entre o navegador do usuário e o domínio oficial do `aprovadoapp.com`.
+- O cache só é reutilizado depois de confirmar a sessão atual e a conta à qual os dados pertencem.
