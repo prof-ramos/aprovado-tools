@@ -45,11 +45,15 @@ npm test
 
 ### 1.6. Verificação do popup e do painel nativo
 
-1. Recarregue a extensão local em `chrome://extensions` e abra uma página normal do AprovadoApp no mesmo perfil.
-2. Abra o popup pelo ícone **Aprovado Tools** da barra do navegador. `popup/popup.html` aberto em uma aba serve apenas para inspecionar seu conteúdo: seus botões chamam `window.close()`, fechando essa aba e, em automação, possivelmente o espaço que a contém.
-3. Para testar o painel nativo, use **Abrir painel lateral** no popup autenticado ou o menu de contexto do ícone → **Abrir Painel Lateral de Estudos**. Confirme o painel junto à página e sua alça de redimensionamento. Abrir `sidepanel/sidepanel.html` numa aba verifica somente a página.
-4. Confira a sessão no próprio perfil de teste. Sem login, o resultado esperado é **Sessão desconectada**; com login, acione **Sincronizar** e confirme **Sincronizado** e as métricas. Use preenchimento seguro do gerenciador ou entrada direta pelo usuário.
-5. Registre separadamente o que foi executado: navegador/perfil, commit recarregado, modo real/mock, superfície (aba/popup/painel nativo), ação e resultado observado. Liste filtros ou exportações que ficaram sem exercício. Publique apenas agregados; mantenha backups reais fora do Git.
+1. Identifique o navegador, perfil, checkout e commit de teste. Confirme que a extensão local carregada em `chrome://extensions` aponta para esse checkout e que o login no AprovadoApp pertence ao mesmo perfil.
+2. Clique em **Recarregar** na extensão e, depois, recarregue completamente a página do AprovadoApp. Observe o novo documento carregado antes de contar os controles: nós da versão anterior podem permanecer até essa segunda recarga. O esperado é um botão **Exportar e métricas** no topo e um atalho flutuante distinto.
+3. Abra o popup pelo ícone **Aprovado Tools** da barra do navegador. `popup/popup.html` aberto em uma aba serve apenas para inspecionar conteúdo: os botões chamam `window.close()`, podendo fechar a aba e seu espaço de automação.
+4. Abra **Abrir painel lateral** no popup autenticado ou menu de contexto do ícone → **Abrir Painel Lateral de Estudos**. Confirme o painel encaixado junto à página e sua alça de redimensionamento. `sidepanel/sidepanel.html` em uma aba verifica somente a página.
+5. Sem login, confirme **Sessão desconectada**. Para o teste autenticado, use preenchimento seguro do gerenciador ou entrada direta pelo usuário; acione **Sincronizar** e observe a transição até **Sincronizado** com métricas. Confirme também que **Abrir dashboard completo** carrega o dashboard com os mesmos totais.
+6. Após cada ação de automação, observe o estado atual antes de escolher a próxima ação; separe “clique enviado” de “resultado confirmado”. Se o Ego não expuser o popup/painel ou houver incompatibilidade concreta, use Computer Use na interface nativa do Chrome e repita o fluxo a partir do estado observado.
+7. Registre navegador/perfil, commit, modo real/mock, superfície (aba/popup/painel nativo), ação e resultado. Liste filtros e exportações sem exercício; publique apenas agregados e mantenha backups reais fora do Git. Encerre somente as abas abertas para o teste, preservando as pessoais.
+
+Ao encerrar uma entrega, use [Conclusão de tarefas](docs/conclusao-tarefas.md). Se uma tentativa de acesso falhar, siga [Diagnóstico de acesso](docs/diagnostico-acesso.md) antes de declarar bloqueio. Antes de delegar planos existentes, consulte [plans/README.md](plans/README.md).
 
 Para correções de controles injetados, valide a quantidade de botões depois de várias mutações da página e de reinjetar o script antes de os callbacks agendados terminarem. O teste deve executar o `content.js` real.
 
