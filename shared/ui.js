@@ -11,6 +11,6 @@ export function escapeHtml(value) {
 
 /** Aprovado subject colors are hex values, never CSS declarations or URLs. */
 export function sanitizeColor(value) {
-  return typeof value === 'string' && /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value)
-    ? value : '#3b82f6';
+  return typeof value === 'string' && /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value.trim())
+    ? value.trim() : '#3b82f6';
 }

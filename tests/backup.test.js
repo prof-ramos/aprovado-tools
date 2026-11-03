@@ -1,0 +1,13 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { snapshotFromBackup } from '../shared/backup.js';
+const fixture = JSON.parse(fs.readFileSync(new URL('./fixtures/multiannual_mock_2016_2026.json', import.meta.url), 'utf8'));
+const backup = { usuario: fixture.user, materias: fixture.materias, atividades: fixture.atividades, revisoes_pendentes: fixture.revisoesPendentes, revisoes_concluidas: fixture.revisoesConcluidas, gerado_em: '2026-01-01T00:00:00.000Z' };
+test('converte chaves do backup', () => { const s = snapshotFromBackup({ atividades: [], revisoes_pendentes: [{ Id: 1 }], gerado_em: backup.gerado_em }); assert.equal(s.revisoesPendentes.length, 1); assert.equal(s.syncedAt, backup.gerado_em); assert.equal(s.source, 'backup'); });
+test('aceita snapshot fixture', () => { const s = snapshotFromBackup(fixture); assert.equal(s.atividades.length, 3008); assert.equal(s.user.Id, 101); });
+test('ida e volta preserva dados', () => { const s = snapshotFromBackup(backup); for (const k of ['user', 'atividades', 'materias', 'revisoesPendentes']) assert.deepEqual(s[k], fixture[k]); });
+test('rejeita arquivos inválidos', () => { for (const x of [null, 42, {}, [], { atividades: 'x' }]) assert.throws(() => snapshotFromBackup(x), /backup inválido/); });
+test('descarta atividades que não são objetos', () => { assert.deepEqual(snapshotFromBackup({ usuario: null, atividades: [{ Id: 1 }, null, 'x', 3, []] }).atividades, [{ Id: 1 }]); });
+test('não modifica entrada', () => { const before = JSON.stringify(backup); snapshotFromBackup(backup); assert.equal(JSON.stringify(backup), before); });
+test('normaliza listas opcionais inválidas', () => { const s = snapshotFromBackup({ usuario: null, atividades: [], materias: 4 }); assert.deepEqual(s.materias, []); assert.deepEqual(s.revisoesConcluidas, []); });

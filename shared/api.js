@@ -184,10 +184,11 @@ export const AprovadoApi = {
       throw new Error('Sessão expirada ou não autenticado.');
     }
 
-    // Parallel fetch for speed
+    // Matérias e atividades são essenciais: falhas propagam sem sobrescrever
+    // o cache com snapshot vazio. Ciclo e revisões são opcionais.
     const [materias, atividades, ciclo, revisoesPendentes, revisoesConcluidas] = await Promise.all([
-      this.listSubjects().catch(() => []),
-      this.listActivities().catch(() => []),
+      this.listSubjects(),
+      this.listActivities(),
       this.getCycleProgress().catch(() => null),
       this.listPendingReviews().catch(() => []),
       this.listCompletedReviews().catch(() => [])

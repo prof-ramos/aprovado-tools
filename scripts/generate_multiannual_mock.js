@@ -430,7 +430,7 @@ export function generateMultiannualMock() {
 }
 
 // Execution if run directly
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url))) {
   console.log('Generating deterministic multiannual mock dataset (2016–2026)...');
   const snapshot = generateMultiannualMock();
 
