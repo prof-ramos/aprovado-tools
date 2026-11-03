@@ -2,6 +2,15 @@
 
 Gerados pela skill `improve` em 2026-11-03, contra o commit `bcf0ec0` (reconciliados com `c8b055e`) (branch `feat/study-history-patterns`). Execute na ordem abaixo, salvo quando as dependências indicarem outra coisa. Cada executor deve ler o plano inteiro antes de começar, respeitar as Condições de PARADA e atualizar a própria linha ao terminar.
 
+## Antes de delegar ou retomar um plano
+
+O coordenador reconcilia o plano uma vez antes de distribuir a execução:
+
+1. Confira `git status --short` e identifique o commit-base do plano e o `HEAD` atual. Compare o diff dos arquivos do escopo e os trechos de “Estado atual” com o código vivo. Resultado: mudanças pertinentes e alterações preexistentes identificadas; um diff fora do escopo, sozinho, não bloqueia a tarefa.
+2. Registre no próprio plano uma nota de reconciliação com os dois commits, o que já foi resolvido e os passos, arquivos e critérios ainda necessários. Preserve a referência original e os resultados históricos. Resultado: o executor recebe um plano aplicável ao código atual; divergências que mudem o objetivo ou invalidem um critério ficam explicitadas para resolução antes da execução dependente.
+3. Distribua escopos de escrita sem sobreposição; quando dois planos tocarem o mesmo arquivo, ordene-os ou atribua a integração a um único responsável. Resultado: cada executor conhece arquivos, dependências, verificações e responsável pelo índice.
+4. Ao receber o trabalho, confira o diff e execute as verificações pertinentes sobre o estado integrado antes de atualizar o status. Resultado: `DONE` aponta para evidências atuais, com limitações registradas no plano.
+
 ## Ordem de execução e status
 
 | Plano | Título | Prioridade | Esforço | Depende de | Issue | Status |
@@ -24,7 +33,7 @@ Valores de status: TODO | IN PROGRESS | DONE | BLOCKED (com motivo em uma linha)
 
 ## Verificação comum
 
-Não há linter, typechecker, CI nem dependências. A única verificação automatizada é `npm test` (runner nativo do Node, hoje com 89 testes passando, todos da aba "Padrões Históricos"). Cada plano acrescenta os próprios testes, o que cobre, de passagem, os módulos antes sem teste: `shared/export.js`, `shared/api.js`, `computeStudyMetrics` e `filterActivitiesByPeriod`.
+Na baseline `bcf0ec0`, a suíte tinha 89 testes de padrões históricos. O comando atual e a geração prévia do fixture estão em `package.json`; a matriz de CI está em [test.yml](../.github/workflows/test.yml) e executa a suíte em Node 18/22/24/26 e UTC/São Paulo. Não há dependências npm, linter ou typechecker configurados. A rodada concluída na PR #9 chegou a 159 testes, incluindo exportação, API, datas locais, backup e reinjeção dos controles.
 
 ## Achados registrados mas não planejados (não selecionados nesta rodada)
 
@@ -43,10 +52,10 @@ Não há linter, typechecker, CI nem dependências. A única verificação autom
 ## Notas de execução (2026-11-03)
 
 - Todos os planos DONE, em commits separados na branch `feat/study-history-patterns`; revisão independente aprovou todos. Foram acrescentados na revisão um teste de sequência com `Date` fixado (004) e a checagem da chave `user` no teste de ida e volta (006).
-- 003 foi adaptado ao código vivo: usa `escapeHtml`/`sanitizeColor` de `shared/ui.js` (sem `shared/html.js`). Verificação manual do render (Passo 7) não foi feita.
+- 003 foi adaptado ao código vivo: usa `escapeHtml`/`sanitizeColor` de `shared/ui.js` (sem `shared/html.js`). A validação posterior cobriu dashboard mock, página lateral e painel nativo autenticado no Chrome; detalhes e limites em [validação das issues](../docs/validacao-issues-2-7.md).
 - Correção fora dos planos: `scripts/generate_multiannual_mock.js` agora compara `realpath` ao detectar execução direta (o teste de CLI do gerador falhava no macOS, onde `tmpdir()` é symlink). Commit separado.
-- 004: a hipótese sobre o formato real de `Inicio` na API continua NÃO verificada (fixture só usa ISO com `Z`); conferir com backup real antes do lançamento.
-- 006: `shared/backup.js` é código ainda não ligado à UI (vai no ZIP, sem efeito).
+- 004: validação posterior em 4.814 atividades reais confirmou `Inicio` ISO local sem offset; o formato foi acrescentado aos testes. Ver [validação real do CLI](../docs/validacao-cli.md).
+- 006: `shared/backup.js` permanece sem integração à UI e é excluído do ZIP por `build:zip`.
 - Contagem real do fixture: 3.008 atividades (o plano citava 3.030).
 
 ## Resultados do spike (plano 006)
@@ -56,7 +65,7 @@ Não há linter, typechecker, CI nem dependências. A única verificação autom
 3. Persistência: não gravar em `chrome.storage.local`; snapshot importado só em memória, somente leitura.
 4. Tamanho: fixture real com 3.008 atividades, 1.693.392 bytes, leitura + parse de 7 a 17 ms. Limite inicial sugerido de 50 MB.
 5. Sincronizar: desabilitado enquanto se visualiza um backup.
-6. CLI `prof-ramos/aprovado`: formato não verificado; conferir exportador e amostra sanitizada.
+6. CLI `prof-ramos/aprovado`: o método real `exportar_backup_completo()` foi executado contra a API e o resultado convertido sem perda de listas, usuário, ciclo ou data. Foram preservadas 4.814 atividades, 84 matérias e 71 revisões concluídas; relatórios extras são ignorados pelo snapshot. O parser de argumentos do CLI não foi exercitado. Ver [evidências e limites](../docs/validacao-cli.md).
 7. Próximo plano: tocar `dashboard/dashboard.html/.js/.css` reutilizando `shared/backup.js`; esforço M (1–2 dias com QA).
 
 Detalhes completos em `006-spike-open-json-backup.md`.
