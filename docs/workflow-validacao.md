@@ -67,6 +67,11 @@ verificação funcional; dados e APIs reais não estão presentes na CI.
 | Controles injetados | Recarregue o site; confirme um botão no topo e um flutuante. Nos testes, execute `content.js` real com mutações e reinjeção antes do próximo animation frame. |
 | Exportações / CLI | Acione os formatos afetados e inspecione o arquivo baixado: formato, totais, codificação e intervalo. Use diretório privado temporário para dados reais e remova apenas os arquivos da tarefa. Para compatibilidade CLI, execute o método/comando real: leitura do código ou comparação de chaves é apenas evidência estrutural. |
 
+Ao ajustar dimensões do popup, confirme sua abertura nativa pela barra: o Chrome
+usa o conteúdo para definir a largura inicial. `max-width: 100vw` no `body` pode
+prender essa largura ao viewport inicial estreito, embora a prévia em aba pareça
+correta. Preserve a largura intrínseca e observe marca, botões e rolagem no popup.
+
 Observe ao menos uma captura visual das seções alteradas e confira legibilidade,
 cores e transbordamento. Verifique erros de execução quando a ferramenta permitir;
 registre explicitamente quando o console não foi observado. Registre apenas
