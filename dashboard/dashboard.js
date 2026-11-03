@@ -105,15 +105,10 @@ async function init() {
     } else {
       const auth = await AprovadoApi.checkAuth();
       if (!auth.isAuthenticated) {
-        try {
-          fullSnapshot = await loadMockSnapshot();
-        } catch {
-          showDisconnected();
-          return;
-        }
-      } else {
-        fullSnapshot = await AprovadoApi.fetchCompleteSnapshot();
+        showDisconnected();
+        return;
       }
+      fullSnapshot = await AprovadoApi.fetchCompleteSnapshot();
     }
 
     renderUserHeader(fullSnapshot.user);
@@ -121,17 +116,8 @@ async function init() {
     updateDashboard();
     renderHistoricalPatternsTab(fullSnapshot.atividades, fullSnapshot.materias);
   } catch (err) {
-    console.warn('Erro ao inicializar com AprovadoApi, acionando fallback mock:', err);
-    try {
-      fullSnapshot = await loadMockSnapshot();
-      renderUserHeader(fullSnapshot.user);
-      populateFilterSelects(fullSnapshot);
-      updateDashboard();
-      renderHistoricalPatternsTab(fullSnapshot.atividades, fullSnapshot.materias);
-    } catch (fallbackErr) {
-      console.error('Falha geral de inicialização:', fallbackErr);
-      showDisconnected();
-    }
+    console.error('Falha ao inicializar dashboard:', err);
+    showDisconnected();
   } finally {
     setLoading(false);
   }
