@@ -14,6 +14,8 @@
 
     if (navbar && !navbar.querySelector('#aprovado-tools-injected-btn')) {
       window.requestAnimationFrame(() => {
+        // SPA mutations and reinjection may queue multiple frames before paint.
+        if (document.getElementById('aprovado-tools-injected-btn')) return;
         const btn = document.createElement('button');
         btn.id = 'aprovado-tools-injected-btn';
         btn.className = 'aprovado-tools-nav-btn';
@@ -37,6 +39,7 @@
     // Also add a subtle floating badge if user is logged in (not on login page)
     if (!document.getElementById('aprovado-tools-floating-btn') && !window.location.pathname.toLowerCase().includes('login')) {
       window.requestAnimationFrame(() => {
+        if (document.getElementById('aprovado-tools-floating-btn')) return;
         const floatBtn = document.createElement('div');
         floatBtn.id = 'aprovado-tools-floating-btn';
         floatBtn.className = 'aprovado-tools-floating-badge';
