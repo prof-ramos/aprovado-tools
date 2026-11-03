@@ -63,14 +63,28 @@ Como a extensão está em desenvolvimento, você pode carregá-la no Google Chro
 
 ---
 
-## 🛠️ Arquitetura & Tecnologias
+## 🛠️ Arquitetura, Documentação & Tecnologias
 
 - **Manifest V3**: Construída segundo as diretrizes mais rigorosas do Google Chrome para extensões seguras e eficientes.
-- **Zero Bloat & Dependências Externas**: Código limpo em Vanilla JavaScript (ES Modules), CSS moderno e componentes nativos de renderização SVG.
-- **Integração com API do AprovadoApp**:
-  - Reversão e mapeamento baseados na documentação técnica do repositório [`prof-ramos/aprovado`](https://github.com/prof-ramos/aprovado).
-  - Autenticação transparente utilizando a sessão de cookies ativa (`credentials: 'include'`).
-  - Cache local inteligente (`chrome.storage.local`) para inicialização ultrarrápida.
+- **Zero Dependências de Produção**: Código limpo em Vanilla JavaScript (ES Modules), CSS moderno e componentes nativos de renderização SVG.
+- **100% Determinístico**: Cálculos, partições e diagnósticos executados localmente sem envio de dados para servidores ou modelos de IA.
+- **Documentação Técnica Completa**:
+  - 📘 [Guia do Desenvolvedor (`DEVELOPER.md`)](DEVELOPER.md) — Configuração, fluxo de trabalho, suíte de 89 testes e troubleshooting.
+  - 🏛️ [Arquitetura do Sistema (`ARCHITECTURE.md`)](ARCHITECTURE.md) — Diagramas Mermaid, fluxo de dados e decisões de design.
+  - 🔒 [Política de Privacidade (`PRIVACY.md`)](PRIVACY.md) — Política de privacidade pública e uso exclusivo no cliente.
+  - 🏪 [Guia da Chrome Web Store (`CHROMEWEBSTORE.md`)](CHROMEWEBSTORE.md) — Ficha da loja, justificativas de permissões e assets.
+
+---
+
+## 🧪 Testes e Empacotamento
+
+```bash
+# Executa a suíte de 89 testes automatizados (unitários, integração e estresse)
+npm test
+
+# Cria o arquivo ZIP limpo pronto para publicação na Chrome Web Store
+npm run build:zip
+```
 
 ---
 
