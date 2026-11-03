@@ -53,6 +53,7 @@ npm test
 Use Node.js compatível com `engines` em [package.json](package.json), preferindo uma versão com suporte ativo. Não é necessário executar `npm install`.
 
 ```sh
+npm run check:docs     # verifica os links e âncoras locais dos guias
 npm run generate:mock  # cria o histórico sintético para a prévia sem conta
 npm run build:zip      # gera dist/aprovado-tools-v<versão>.zip
 ```

@@ -47,13 +47,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const windowId = sender.tab ? sender.tab.windowId : (await chrome.windows.getLastFocused()).id;
         await chrome.sidePanel.open({ windowId });
         sendResponse({ success: true });
-      } else if (message.type === 'CHECK_LOGIN_STATUS') {
-        // Test if cookie exists
-        const cookie = await chrome.cookies.get({
-          url: 'https://aprovadoapp.com',
-          name: 'aprovado'
-        });
-        sendResponse({ hasCookie: Boolean(cookie && cookie.value) });
       } else {
         sendResponse({ error: 'Comando desconhecido' });
       }

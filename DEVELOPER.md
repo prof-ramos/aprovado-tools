@@ -125,7 +125,7 @@ Para gerar o pacote limpo para publicação na Chrome Web Store:
 ```bash
 npm run build:zip
 ```
-O nome é derivado de `manifest.json`: `dist/aprovado-tools-v<versão>.zip`. O comando inclui somente os arquivos e diretórios de execução enumerados em `package.json` e exclui `shared/backup.js`; testes, fixtures e documentação ficam fora do pacote. O script remove ZIPs anteriores em `dist/` antes de gerar o novo. Não guarde artefatos que precise preservar nessa pasta.
+O nome é derivado de `manifest.json`: `dist/aprovado-tools-v<versão>.zip`. O comando inclui somente os arquivos e diretórios de execução enumerados em `scripts/build_zip.js` e exclui `shared/backup.js`; testes, fixtures e documentação ficam fora do pacote. O script cria o ZIP em um diretório temporário e substitui somente o arquivo da versão atual depois do sucesso. Outros ZIPs ficam intactos e uma falha preserva o pacote anterior. `zip` e `unzip` devem estar disponíveis no ambiente.
 
 A geração do ZIP não publica a extensão. As releases do GitHub e uma futura submissão à loja são etapas separadas; veja [CHROMEWEBSTORE.md](CHROMEWEBSTORE.md).
 
@@ -196,3 +196,9 @@ No PowerShell, use `$env:TZ = 'America/Sao_Paulo'; npm test`. A matriz ajuda a d
 A prévia HTTP testa conteúdo e layout, sem autenticação, permissões ou superfícies nativas. O modo normal exige identidade online antes de ler cache, e o conversor de backups não tem integração à UI. Consulte [ARCHITECTURE.md](ARCHITECTURE.md) antes de alterar esses limites.
 
 Referências oficiais: [Side Panel](https://developer.chrome.com/docs/extensions/reference/api/sidePanel), [armazenamento local](https://developer.chrome.com/docs/extensions/reference/api/storage) e [cookies](https://developer.chrome.com/docs/extensions/reference/api/cookies).
+
+## 7. Checagem documental reproduzível
+
+Execute `npm run check:docs` para conferir arquivos e âncoras de todos os Markdown rastreados, inclusive históricos, sem rede ou dependências. Adicione arquivos novos ao Git antes da execução padrão; para testar arquivos ainda não rastreados, passe seus caminhos após `--`. Links de máquina ficam como caminhos em código. O parser cobre os padrões usados no repositório, sem implementar toda a especificação Markdown nem validar URLs externas.
+
+A CI executa essa checagem uma vez no job **Documentation**, além de `git diff --check HEAD^ HEAD`. Oito jobs continuam cobrindo a suíte nas combinações de Node e fuso. Erros de arquivo/âncora e whitespace são verificações mecânicas; a revisão humana ou por agente continua responsável por conferir se as promessas dos guias correspondem ao comportamento.

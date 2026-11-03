@@ -19,7 +19,10 @@ function element() {
       const handlers = listeners.get(name) || [];
       handlers.push(callback); listeners.set(name, handlers);
     },
-    dispatch(name, event = {}) { this[`on${name}`]?.(event); for (const fn of listeners.get(name) || []) fn(event); },
+    dispatch(name, event = {}) {
+      const results = [this[`on${name}`]?.(event), ...(listeners.get(name) || []).map(fn => fn(event))];
+      return Promise.all(results);
+    },
     setAttribute: (key, value) => attributes.set(key, String(value)),
     getAttribute: key => attributes.get(key),
     querySelectorAll: () => [],
@@ -29,7 +32,7 @@ function element() {
   };
 }
 
-function dashboard(now) {
+function dashboard(now, boundary = {}) {
   const Clock = now ? class extends Date {
     constructor(...args) { super(...(args.length ? args : [typeof now === 'object' ? now.value : now])); }
     static now() { return new Clock(typeof now === 'object' ? now.value : now).getTime(); }
@@ -57,6 +60,7 @@ function dashboard(now) {
   filterBar.querySelectorAll = selector => selector === '[data-overview-only]' ? overviewFilters : [];
   get('period-ranking-toggle').querySelectorAll = selector => selector === '.seg-btn' ? Object.values(granularity) : [];
   const context = vm.createContext({ ...analytics, ...ui, console, setTimeout, Date: Clock,
+    ...boundary,
     document: { readyState: 'loading', getElementById: get,
       querySelectorAll: selector => selector === '.filter-bar .seg-btn' ? periodButtons
         : selector === '.seg-btn' ? [...periodButtons, ...Object.values(granularity)] : [],
@@ -86,6 +90,67 @@ function quadrants(s) {
 }
 
 describe('Dashboard rendering regressions', () => {
+  it('clears loaded data after failed sync and prevents filters and exports from restoring it', async () => {
+    const downloads = [];
+    const page = dashboard(null, { console: { error() {} }, AprovadoExport: { exportActivitiesCSV: value => downloads.push(value),
+      exportFullBackupJSON: value => downloads.push(value) },
+      AprovadoApi: { fetchCompleteSnapshot: async () => { throw new Error('Session expired'); } } });
+    page.context.window.chrome = { storage: { local: {} } };
+    page.context.data = { user: { Nome: 'Synthetic User' }, atividades: [activity()], materias: [activity().Materia] };
+    page.run('fullSnapshot = data; renderUserHeader(data.user); updateDashboard(); renderHistoricalPatternsTab(data.atividades, data.materias)');
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 1);
+    await page.get('btn-sync-now').dispatch('click');
+    assert.equal(page.get('user-display-name').textContent, '');
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 0);
+    assert.equal(page.get('hist-total-hours-decimal').textContent, '0.0 horas líquidas');
+    await page.periods.all.dispatch('click');
+    await page.historical.dispatch('click');
+    assert.equal(page.get('tab-overview').classList.contains('hidden'), true);
+    assert.equal(page.get('tab-historical-patterns').classList.contains('hidden'), true);
+    await page.get('export-csv-activities').dispatch('click');
+    await page.get('export-json-backup').dispatch('click');
+    assert.equal(downloads.length, 0);
+    assert.equal(page.get('btn-export-dropdown').disabled, true);
+    page.context.AprovadoApi.fetchCompleteSnapshot = async () => page.context.data;
+    await page.get('btn-sync-now').dispatch('click');
+    assert.equal(page.get('user-display-name').textContent, 'Synthetic User');
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 1);
+    assert.equal(page.get('btn-export-dropdown').disabled, false);
+    await page.get('export-json-backup').dispatch('click');
+    assert.equal(downloads.length, 1);
+  });
+
+  it('preserves valid filter selections on refresh and resets selections missing in the new snapshot', () => {
+    const page = dashboard();
+    page.run(`fullSnapshot = { atividades: [
+      { Inicio: '2026-06-01T12:00:00', Duracao: 3600000, Materia: { Id: 1 }, TipoEstudo: 'Leitura' },
+      { Inicio: '2026-06-02T12:00:00', Duracao: 3600000, Materia: { Id: 2 }, TipoEstudo: 'Questões' }
+    ], materias: [{ Id: 1, Nome: 'A' }, { Id: 2, Nome: 'B' }] }`);
+    const subject = page.get('select-subject');
+    subject.value = '2'; subject.dispatch('change', { target: subject });
+    const type = page.get('select-type');
+    type.value = 'Questões'; type.dispatch('change', { target: type });
+    // Assigning select.innerHTML in a browser resets its selected option.
+    subject.value = 'all'; type.value = 'all';
+    page.run('populateFilterSelects(fullSnapshot); updateDashboard()');
+    assert.equal(subject.value, '2');
+    assert.equal(type.value, 'Questões');
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 1);
+    page.run(`fullSnapshot = { atividades: [{ Inicio: '2026-06-01T12:00:00', Duracao: 3600000,
+      Materia: { Id: 1 }, TipoEstudo: 'Leitura' }], materias: [{ Id: 1, Nome: 'A' }] };
+      populateFilterSelects(fullSnapshot); updateDashboard()`);
+    assert.equal(subject.value, 'all');
+    assert.equal(type.value, 'all');
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 1);
+  });
+
+  it('shows a retryable clipboard failure without rejecting the click handler', async () => {
+    const page = dashboard(null, { console: { error() {} }, setTimeout: () => {}, AprovadoExport: { copyReportToClipboard: async () => { throw new Error('Denied'); } } });
+    page.run('fullSnapshot = { atividades: [], materias: [] }');
+    await assert.doesNotReject(page.get('export-copy-md').dispatch('click'));
+    assert.match(page.get('copy-report-title').textContent, /Falha/);
+  });
+
   it('period clicks leave history, restore filters and apply custom dates', () => {
     const page = dashboard();
     const recentDate = new Date().toISOString();

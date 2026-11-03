@@ -18,7 +18,7 @@ O manifesto permite acesso HTTPS aos domínios `.com`, `.com.br` e seus subdomí
 
 O snapshot completo e os marcadores de sincronização ficam em `chrome.storage.local`, no perfil do navegador. A instalação também grava uma data e um marcador de tema; a interface atual não oferece preferências de tema ou filtros persistentes. A extensão não sincroniza esse armazenamento pelo Chrome Sync.
 
-Cinco minutos é o prazo de reutilização das listas, não um prazo de exclusão. O cache permanece até ser substituído ou removido. Falhas de sincronização preservam o cache; sair do AprovadoApp não o apaga nem revoga automaticamente dados já carregados nas interfaces. O dashboard pode continuar mostrando e exportando um snapshot anterior após uma falha. Feche as superfícies abertas ao encerrar o uso em perfil compartilhado.
+Cinco minutos é o prazo de reutilização das listas, não um prazo de exclusão. O cache permanece até ser substituído ou removido. Falhas de sincronização preservam o cache; sair do AprovadoApp não o apaga nem revoga automaticamente dados já carregados nas interfaces. Uma falha de carga ou sincronização limpa os dados em memória e os dados renderizados, bloqueando exportações até uma nova carga bem-sucedida. Não há detecção contínua de logout. Feche as superfícies abertas ao encerrar o uso em perfil compartilhado.
 
 Remover a extensão pelo gerenciador de extensões apaga seu armazenamento local. Arquivos CSV/JSON já baixados e conteúdo copiado para a área de transferência são independentes: apague-os ou substitua-os separadamente quando necessário. Exportações podem conter perfil e anotações pessoais.
 
@@ -28,10 +28,8 @@ Remover a extensão pelo gerenciador de extensões apaga seu armazenamento local
 |---|---|
 | `storage` | Snapshot, instante da sincronização, usuário e marcadores locais de instalação. |
 | `unlimitedStorage` | Amplia a capacidade para históricos extensos. |
-| `cookies` | Handler `CHECK_LOGIN_STATUS` consulta a presença do cookie `aprovado` em `.com` e devolve apenas um booleano. As telas usam a consulta de identidade à API para autenticar. |
 | `sidePanel` | Exibe o painel lateral. |
 | `contextMenus` | Adiciona atalhos de abertura ao menu de contexto. |
-| `tabs` | Consta no manifesto; o código cria abas e consulta a janela da aba ativa, sem ler seu título ou URL. Essa descrição não afirma que a permissão seja indispensável. |
 | Hosts HTTPS `.com`, `.com.br` e subdomínios | Permitem os atalhos nas páginas correspondentes e o acesso ao serviço; o destino efetivo da API é `.com`. |
 
 ### 5. Compartilhamento e contato
@@ -56,7 +54,7 @@ The manifest grants HTTPS access to `.com`, `.com.br`, and their subdomains and 
 
 The full snapshot and synchronization markers are stored in `chrome.storage.local` in the browser profile. Installation also writes a date and theme marker; the current UI does not offer persistent theme or filter preferences. The extension does not synchronize this storage through Chrome Sync.
 
-Five minutes is the list reuse window, not a deletion deadline. Cached data remains until replaced or removed. Synchronization failures preserve the cache. Logging out of AprovadoApp neither deletes it nor automatically revokes data already loaded in extension views. The dashboard may continue displaying and exporting a previous snapshot after a failed refresh. Close open extension views when ending use of a shared profile.
+Five minutes is the list reuse window, not a deletion deadline. Cached data remains until replaced or removed. Synchronization failures preserve the cache. Logging out of AprovadoApp neither deletes it nor automatically revokes data already loaded in extension views. A failed load or synchronization clears in-memory and rendered data and blocks exports until a successful load. There is no continuous logout detection. Close open extension views when ending use of a shared profile.
 
 Removing the extension through the extension manager clears its local storage. Downloaded CSV/JSON files and clipboard contents are independent; delete or replace them separately as needed. Exports may include profile information and personal notes.
 
@@ -66,10 +64,8 @@ Removing the extension through the extension manager clears its local storage. D
 |---|---|
 | `storage` | Snapshot, synchronization time, user, and local installation markers. |
 | `unlimitedStorage` | Additional capacity for extensive study histories. |
-| `cookies` | `CHECK_LOGIN_STATUS` checks whether the `aprovado` cookie exists on `.com` and returns a Boolean only. Views authenticate through the API identity request. |
 | `sidePanel` | Displays the side panel. |
 | `contextMenus` | Provides context-menu navigation shortcuts. |
-| `tabs` | Declared in the manifest; code creates tabs and queries the active tab's window, without reading its title or URL. This description does not establish that the permission is necessary. |
 | HTTPS `.com`, `.com.br`, and subdomains | Enable matching-page shortcuts and service access; the actual API destination is `.com`. |
 
 ### 5. Sharing and contact

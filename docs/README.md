@@ -24,6 +24,7 @@ Os recibos abaixo descrevem o commit, a data e o ambiente da execução registra
 - [PR #11](validacao-pr11.md): análise histórica, regressões e verificações de interface.
 - [Cache por conta](validacao-cache-por-conta.md): autenticação, troca de usuário e preservação em falhas.
 - [Ajustes visuais](validacao-ajustes-visuais.md) e [análise visual](analise-visual-20261103.md): ícones, espaçamentos, alinhamentos e responsividade.
+- [Pendências de runtime e validação](validacao-pendencias-20261103.md): recuperação após falhas, filtros, permissões, guardrail e pacote.
 - [Revisão da documentação](validacao-documentacao.md): links e conferência factual dos guias.
 - [Retrospectiva de 03/11/2026](retro-20261103.md): decisões e aprendizados da rodada.
 

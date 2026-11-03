@@ -140,12 +140,39 @@ function setLoading(isLoading) {
 }
 
 function showDisconnected() {
+  // Failed authentication/sync must not leave the previous account's view usable.
+  selectedSubjectId = 'all';
+  selectedStudyType = 'all';
+  activitiesSearchQuery = '';
+  inputSearchActivities.value = '';
+  currentPage = 1;
+  fullSnapshot = { atividades: [], materias: [] };
+  populateFilterSelects(fullSnapshot);
+  updateDashboard();
+  renderHistoricalPatternsTab([], []);
+  fullSnapshot = null;
+  cachedHistoricalPatterns = null;
+  cachedHistoricalActivities = null;
+  cachedHistoricalMaterias = null;
+  cachedHistoricalDate = null;
+  userAvatar.textContent = '';
+  userDisplayName.textContent = '';
+  btnExportDropdown.disabled = true;
+  exportMenu.classList.add('hidden');
+  const tooltip = document.getElementById('heatmap-tooltip');
+  if (tooltip) {
+    tooltip.innerHTML = '';
+    tooltip.classList.add('hidden');
+  }
+  setView(currentView);
   alertDisconnected.classList.remove('hidden');
   userStatusText.textContent = 'Desconectado';
   userStatusText.style.color = '#ef4444';
 }
 
 function renderUserHeader(user) {
+  btnExportDropdown.disabled = false;
+  setView(currentView);
   alertDisconnected.classList.add('hidden');
   if (!user) return;
   userAvatar.textContent = (user.Nome || 'E').charAt(0).toUpperCase();
@@ -177,6 +204,11 @@ function populateFilterSelects(snapshot) {
     opt.textContent = t;
     selectType.appendChild(opt);
   });
+
+  if (!(snapshot.materias || []).some(m => String(m.Id) === selectedSubjectId)) selectedSubjectId = 'all';
+  if (!typesSet.has(selectedStudyType)) selectedStudyType = 'all';
+  selectSubject.value = selectedSubjectId;
+  selectType.value = selectedStudyType;
 }
 
 function getFilteredActivities() {
@@ -517,6 +549,7 @@ document.addEventListener('click', () => {
 });
 
 exportCsvActivities.addEventListener('click', () => {
+  if (!fullSnapshot) return;
   const filtered = getFilteredActivities();
   AprovadoExport.exportActivitiesCSV(filtered);
 });
@@ -542,8 +575,13 @@ exportCopyMd.addEventListener('click', async () => {
     fullSnapshot.ciclo,
     fullSnapshot.revisoesPendentes
   );
-  await AprovadoExport.copyReportToClipboard(metrics, fullSnapshot.user);
-  copyReportTitle.textContent = 'Relatório Copiado! ✓';
+  try {
+    await AprovadoExport.copyReportToClipboard(metrics, fullSnapshot.user);
+    copyReportTitle.textContent = 'Relatório Copiado! ✓';
+  } catch (err) {
+    console.error('Falha ao copiar:', err);
+    copyReportTitle.textContent = 'Falha ao copiar. Tente novamente.';
+  }
   setTimeout(() => {
     copyReportTitle.textContent = 'Copiar Relatório (Markdown)';
   }, 2000);
@@ -559,9 +597,9 @@ function setView(view) {
   currentView = view === 'historical' ? 'historical' : 'overview';
   const isHistorical = currentView === 'historical';
 
-  document.getElementById('tab-overview')?.classList.toggle('hidden', isHistorical);
+  document.getElementById('tab-overview')?.classList.toggle('hidden', !fullSnapshot || isHistorical);
   document.getElementById('tab-overview')?.classList.toggle('active', !isHistorical);
-  document.getElementById('tab-historical-patterns')?.classList.toggle('hidden', !isHistorical);
+  document.getElementById('tab-historical-patterns')?.classList.toggle('hidden', !fullSnapshot || !isHistorical);
   document.getElementById('tab-historical-patterns')?.classList.toggle('active', isHistorical);
 
   segButtons.forEach(b => {
