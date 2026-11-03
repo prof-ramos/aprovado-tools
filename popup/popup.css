@@ -35,6 +35,13 @@ body {
   gap: 12px;
 }
 
+.connected-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
 /* Header */
 .header {
   display: flex;
@@ -198,6 +205,9 @@ body {
   color: var(--text-muted);
   cursor: pointer;
   padding: 4px;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -206,6 +216,16 @@ body {
 
 .btn-icon:hover {
   color: var(--text-main);
+}
+
+.btn-icon svg,
+.btn svg {
+  flex-shrink: 0;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* Filter Pills */

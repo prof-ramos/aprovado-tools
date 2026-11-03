@@ -98,6 +98,13 @@
           <button class="seg-btn" data-period="30d">30 dias</button>
           <button class="seg-btn" data-period="7d">7 dias</button>
           <button class="seg-btn" data-period="custom">Personalizado</button>
+          <span class="seg-divider" aria-hidden="true"></span>
+          <button class="seg-btn seg-btn-analysis" data-view="historical" aria-pressed="false" aria-controls="tab-historical-patterns" title="Padrões de todo o histórico: horários, sessões, semestres">
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 8.5h3l2-5 3 9 2-4h2"/>
+            </svg>
+            <span>Análise histórica</span>
+          </button>
         </div>
       </div>
 
@@ -109,37 +116,20 @@
         <button id="btn-apply-custom-dates" class="btn btn-secondary btn-sm">Filtrar</button>
       </div>
 
-      <div class="filter-group">
+      <div class="filter-group" data-overview-only>
         <label for="select-subject">Matéria:</label>
         <select id="select-subject" class="select-input">
           <option value="all">Todas as disciplinas</option>
         </select>
       </div>
 
-      <div class="filter-group">
+      <div class="filter-group" data-overview-only>
         <label for="select-type">Modalidade:</label>
         <select id="select-type" class="select-input">
           <option value="all">Todas as modalidades</option>
         </select>
       </div>
     </section>
-
-    <!-- Top-level Tab Navigation Bar -->
-    <nav class="dash-tabs-bar" role="tablist" aria-label="Navegação principal">
-      <button class="dash-tab-btn active" role="tab" aria-selected="true" aria-controls="tab-overview" data-tab="tab-overview" id="tab-btn-overview" tabindex="0">
-        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="2" width="12" height="12" rx="2"/>
-          <path d="M5 11V8M8 11V5M11 11V7"/>
-        </svg>
-        <span>Visão geral</span>
-      </button>
-      <button class="dash-tab-btn" role="tab" aria-selected="false" aria-controls="tab-historical-patterns" data-tab="tab-historical-patterns" id="tab-btn-historical-patterns" tabindex="-1">
-        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M2 8.5h3l2-5 3 9 2-4h2"/>
-        </svg>
-        <span id="historical-tab-label">Padrões históricos</span>
-      </button>
-    </nav>
 
     <!-- Main Dashboard Container -->
     <main class="dashboard-content">
@@ -150,7 +140,7 @@
       </div>
 
       <!-- Tab Pane 1: Visão Geral -->
-      <div id="tab-overview" class="dash-tab-pane active" role="tabpanel" aria-labelledby="tab-btn-overview">
+      <div id="tab-overview" class="dash-tab-pane active" role="region" aria-label="Visão geral do período">
         <!-- Executive KPIs Grid -->
         <section class="kpi-banner">
           <div class="metric-card">
@@ -324,7 +314,7 @@
       </div>
 
       <!-- Tab Pane 2: Padrões Históricos de Estudo -->
-      <div id="tab-historical-patterns" class="dash-tab-pane hidden" role="tabpanel" aria-labelledby="tab-btn-historical-patterns">
+      <div id="tab-historical-patterns" class="dash-tab-pane hidden" role="region" aria-label="Análise histórica">
         <!-- Multiannual KPIs -->
         <section class="kpi-banner hist-kpi-banner">
           <div class="metric-card">
@@ -355,6 +345,38 @@
             <span class="metric-title">Ano de pico</span>
             <div class="metric-value" id="hist-peak-year">----</div>
             <div class="metric-footer" id="hist-peak-hours">Recorde de dedicação</div>
+          </div>
+        </section>
+
+        <!-- Best Year & Semester -->
+        <section class="chart-card chart-full-width">
+          <div class="card-title-bar">
+            <div>
+              <h3>Melhor ano e semestre</h3>
+              <span class="card-caption">Volume, consistência (dias com estudo) e assertividade por período</span>
+            </div>
+            <div class="segmented-control seg-sm" id="period-ranking-toggle" role="group" aria-label="Agrupar por">
+              <button class="seg-btn active" data-granularity="semester" aria-pressed="true">Semestres</button>
+              <button class="seg-btn" data-granularity="year" aria-pressed="false">Anos</button>
+            </div>
+          </div>
+          <div id="period-highlights" class="period-highlights"></div>
+          <div class="table-container period-ranking-table-wrap">
+            <table class="data-table" id="table-period-ranking">
+              <thead>
+                <tr>
+                  <th>Período</th>
+                  <th>Horas</th>
+                  <th>Sessões</th>
+                  <th>Dias ativos</th>
+                  <th>Consistência</th>
+                  <th>Maior sequência</th>
+                  <th>Assertividade</th>
+                  <th>Posição geral</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-period-ranking"></tbody>
+            </table>
           </div>
         </section>
 
@@ -427,6 +449,7 @@
             </div>
             <div id="circadian-histogram-chart" class="circadian-histogram-container"></div>
             <div id="circadian-peak-note" class="circadian-peak-note"></div>
+            <div id="circadian-efficiency-note" class="circadian-peak-note"></div>
           </div>
 
           <div class="chart-card">
@@ -440,8 +463,22 @@
           </div>
         </div>
 
+        <!-- Hour × Weekday Heatmap -->
+        <section class="chart-card chart-full-width">
+          <div class="card-title-bar">
+            <div>
+              <h3>Quando você estuda: hora × dia da semana</h3>
+              <span class="card-caption">Horas líquidas acumuladas em cada combinação de dia e horário de início</span>
+            </div>
+          </div>
+          <div class="hour-weekday-layout">
+            <div id="hour-weekday-container" class="heatmap-svg-wrapper"></div>
+            <div id="hour-weekday-top" class="hour-weekday-top"></div>
+          </div>
+        </section>
+
         <!-- Weekday Ranking -->
-        <div class="chart-card chart-full-width mt-4">
+        <div class="chart-card chart-full-width">
           <div class="card-title-bar">
             <div>
               <h3>Cadência semanal por volume e consistência</h3>
@@ -451,8 +488,27 @@
           <div id="weekday-ranking-container" class="weekday-ranking-wrap"></div>
         </div>
 
+        <!-- Session Length Profile -->
+        <section class="chart-card chart-full-width">
+          <div class="card-title-bar">
+            <div>
+              <h3>Tamanho das sessões</h3>
+              <span class="card-caption">Duração típica e assertividade por faixa de duração</span>
+            </div>
+          </div>
+          <div id="session-kpis" class="heatmap-kpis-bar"></div>
+          <div class="session-profile-grid">
+            <div id="session-buckets-container" class="session-buckets"></div>
+            <div>
+              <h4 class="sub-heading">Mediana da sessão por ano</h4>
+              <div id="session-trend-container" class="session-trend"></div>
+            </div>
+          </div>
+          <div id="session-ideal-note" class="circadian-peak-note"></div>
+        </section>
+
         <!-- Yield Quadrant Matrix -->
-        <section class="chart-card chart-full-width mt-4">
+        <section class="chart-card chart-full-width">
           <div class="card-title-bar">
             <div>
               <h3>Matriz de rendimento (tempo investido vs. assertividade)</h3>
@@ -468,7 +524,7 @@
         </section>
 
         <!-- Methodological Mix & Insights -->
-        <div class="analytics-grid mt-4">
+        <div class="analytics-grid">
           <div class="chart-card">
             <div class="card-title-bar">
               <div>

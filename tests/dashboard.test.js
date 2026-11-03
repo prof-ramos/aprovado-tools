@@ -13,7 +13,7 @@ function element() {
   let html = '';
   return {
     children: [], style: {}, value: '', textContent: '',
-    classList: { add: x => classes.add(x), remove: x => classes.delete(x),
+    classList: { add: x => classes.add(x), remove: x => classes.delete(x), contains: x => classes.has(x),
       toggle: (x, on) => on ? classes.add(x) : classes.delete(x) },
     addEventListener(name, callback) {
       const handlers = listeners.get(name) || [];
@@ -128,7 +128,7 @@ describe('Dashboard rendering regressions', () => {
     const page = dashboard('2028-06-01T12:00:00');
     page.context.renderHistoricalPatternsTab([activity()], [activity().Materia]);
     assert.equal(page.get('heatmap-year-select').value, '2028');
-    assert.equal(page.get('historical-tab-label').textContent, 'Padrões históricos (2016 – 2028)');
+    assert.equal(page.get('historical-section-title').textContent, 'Histórico multianual e fases de estudo (2016 – 2028)');
     assert.ok(page.get('heatmap-kpi-days').textContent.endsWith('366 dias'));
   });
 
@@ -164,6 +164,50 @@ describe('Dashboard rendering regressions', () => {
     page.context.renderHistoricalPatternsTab([activity(2)], materias);
     assert.equal(select.value, '2024');
     assert.ok(page.get('heatmap-kpi-days').textContent.endsWith('366 dias'));
+  });
+
+  it('switches between the overview and the historical analysis view', () => {
+    const page = dashboard();
+    page.run(`fullSnapshot = { atividades: [], materias: [] }`);
+    page.context.setView('historical');
+    assert.equal(page.get('tab-overview').classList.contains('hidden'), true);
+    assert.equal(page.get('tab-historical-patterns').classList.contains('hidden'), false);
+    assert.equal(page.get('custom-date-container').classList.contains('hidden'), true);
+    assert.ok(page.run('cachedHistoricalPatterns'), 'Opening the view should compute the analysis');
+    page.context.setView('overview');
+    assert.equal(page.get('tab-overview').classList.contains('hidden'), false);
+    assert.equal(page.get('tab-historical-patterns').classList.contains('hidden'), true);
+  });
+
+  it('renders the new historical sections and toggles semester/year ranking', () => {
+    const page = dashboard('2026-09-15T12:00:00');
+    const activities = [
+      { ...activity(1), Inicio: '2025-03-04T20:00:00', ExercicioQuantidade: 60, ExercicioAcerto: 48 },
+      { ...activity(2), Inicio: '2026-08-04T09:00:00', ExercicioQuantidade: 60, ExercicioAcerto: 54 }
+    ];
+    page.context.renderHistoricalPatternsTab(activities, [activity().Materia]);
+    assert.match(page.get('tbody-period-ranking').innerHTML, /2026\.2/);
+    assert.match(page.get('tbody-period-ranking').innerHTML, /em andamento/);
+    assert.match(page.get('hour-weekday-container').innerHTML, /hw-cell level-4/);
+    assert.match(page.get('session-buckets-container').innerHTML, /1–1,5h/);
+    assert.match(page.get('circadian-efficiency-note').innerHTML, /09h/);
+    page.run(`currentPeriodGranularity = 'year'`);
+    page.context.renderPeriodRanking(page.run('cachedHistoricalPatterns.semesters'));
+    assert.match(page.get('tbody-period-ranking').innerHTML, /<strong>2025<\/strong>/);
+  });
+
+  it('shows a reliable shift even when individual hours lack enough questions', () => {
+    const page = dashboard();
+    const activities = [6, 7, 8, 9, 10].map(hour => ({
+      ...activity(), Inicio: `2026-06-01T${String(hour).padStart(2, '0')}:00:00`,
+      ExercicioQuantidade: 10, ExercicioAcerto: 9
+    }));
+    page.context.renderHistoricalPatternsTab(activities, [activity().Materia]);
+    const note = page.get('circadian-efficiency-note');
+    const text = note.innerHTML || note.textContent;
+    assert.match(text, /pelo menos 50 questões/);
+    assert.match(text, /Turno mais eficiente: <strong>Manhã<\/strong> \(90\.0%\)/);
+    assert.doesNotMatch(text, /Melhor assertividade às|Maior volume às|p\.p\./);
   });
 
   it('escapes subject text and colors in the overview as well as the matrix', () => {
