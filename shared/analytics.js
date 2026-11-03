@@ -745,7 +745,7 @@ export function computeCircadianDistribution(activities = []) {
   }
 
   // Hourly calculations & peak hour
-  let peakHour = { hour: 0, hours: 0, percentage: 0 };
+  let peakHour = { hour: 0, label: '00h', hours: 0, percentage: 0 };
   let maxHourMs = -1;
 
   for (let i = 0; i < 24; i++) {
@@ -756,7 +756,7 @@ export function computeCircadianDistribution(activities = []) {
 
     if (item.ms > maxHourMs) {
       maxHourMs = item.ms;
-      peakHour = { hour: item.hour, hours: item.hours, percentage: item.percentage };
+      peakHour = { hour: item.hour, label: item.label, hours: item.hours, percentage: item.percentage };
     }
   }
 

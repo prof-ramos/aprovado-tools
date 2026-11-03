@@ -900,7 +900,8 @@ function renderCircadian(circadianData) {
   }
 
   if (peakNote) {
-    peakNote.innerHTML = `Pico de estudo às <strong>${circadianData.peakHour.label}</strong> com <strong>${circadianData.peakHour.hours.toFixed(1)}h</strong> (${circadianData.peakHour.percentage.toFixed(1)}% do tempo total)`;
+    const peakLabel = circadianData.peakHour?.label || `${String(circadianData.peakHour?.hour ?? 0).padStart(2, '0')}h`;
+    peakNote.innerHTML = `Pico de estudo às <strong>${peakLabel}</strong> com <strong>${circadianData.peakHour.hours.toFixed(1)}h</strong> (${circadianData.peakHour.percentage.toFixed(1)}% do tempo total)`;
   }
 
   // 2. 4 Daytime Shifts (sum strictly to 100%)

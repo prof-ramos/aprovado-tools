@@ -41,6 +41,8 @@ describe('Circadian & Temporal Distribution Test Suite', () => {
 
       assert.ok(result.peakHour !== null);
       assert.ok(result.peakHour.hour >= 0 && result.peakHour.hour <= 23);
+      assert.ok(typeof result.peakHour.label === 'string' && result.peakHour.label.length > 0);
+      assert.equal(result.peakHour.label, `${String(result.peakHour.hour).padStart(2, '0')}h`);
       assert.ok(result.peakHour.hours > 0);
       assert.ok(result.peakHour.percentage > 0);
 
@@ -145,6 +147,7 @@ describe('Circadian & Temporal Distribution Test Suite', () => {
       }
 
       assert.equal(emptyResult.peakHour.hours, 0);
+      assert.equal(emptyResult.peakHour.label, '00h');
       assert.equal(emptyResult.peakHour.percentage, 0);
 
       assert.equal(emptyResult.shifts.madrugada.percentage, 0);

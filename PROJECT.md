@@ -137,7 +137,7 @@ export function computeCircadianDistribution(
     questions: number;
     accuracy: number | null;
   }>;
-  peakHour: { hour: number; hours: number; percentage: number };
+  peakHour: { hour: number; label: string; hours: number; percentage: number };
   shifts: {
     madrugada: { hours: number; percentage: number; sessions: number };
     manha: { hours: number; percentage: number; sessions: number };

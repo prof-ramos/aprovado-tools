@@ -231,6 +231,7 @@ describe('Adversarial Stress Test Suite: Historical Study Patterns Engine', () =
       assert.equal(patterns.heatmap.maxDailyDate, null);
 
       assert.equal(patterns.circadian.peakHour.hours, 0);
+      assert.equal(patterns.circadian.peakHour.label, '00h');
       assert.equal(patterns.circadian.dominantShift, 'manha');
       assert.equal(patterns.circadian.weekdayRanking.length, 7);
 
