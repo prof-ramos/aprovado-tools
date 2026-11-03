@@ -13,6 +13,10 @@ Use sempre a forma da coluna "Use" ao criar ou alterar um texto.
 | Tempo de estudo sem pausas | **horas líquidas** | horas efetivas |
 | Um registro de estudo | **sessão** (na tela) e **atividade** (na lista e nos arquivos) | — |
 | Horário em que se estuda | **horário de estudo**, **estudo por hora do dia** | cronotipo, distribuição circadiana |
+| Quando os dados foram sincronizados | **Atualizado há 3 min**, **Atualizado ontem**, **Atualizado em 20/10/2026** | sincronizado (sem horário) |
+| Ação de exportar | **Atividades (CSV)**, **Resumo por matéria (CSV)**, **Backup completo (JSON)**, **Copiar relatório (Markdown)** | CSV Atividades, Backup JSON, Copiar Markdown |
+| Sem registro de questões | **Nenhuma questão registrada ainda** | 0 questões, 0% acertos |
+| Ciclo sem horas | **Rodada nova: nada estudado desde o reinício do ciclo.** | 0,0% sem explicação |
 | Gravidade de uma recomendação | **Ponto forte**, **Informação**, **Atenção**, **Prioridade** | success, warning, critical |
 
 ## Formatos de exibição

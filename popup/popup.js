@@ -1,10 +1,12 @@
 import { AprovadoApi } from '../shared/api.js';
-import { computeStudyMetrics, filterActivitiesByPeriod } from '../shared/analytics.js';
+import { computeStudyMetrics, filterActivitiesByPeriod, isCycleNotStarted } from '../shared/analytics.js';
 import { AprovadoExport } from '../shared/export.js';
-import { formatNumber } from '../shared/format.js';
+import { formatNumber, formatSyncLabel, getSnapshotSyncedAt } from '../shared/format.js';
 
 let currentSnapshot = null;
 let currentPeriod = 'all';
+// Sync note appended to the "Atualizado há…" label while a refresh runs or after it fails.
+let syncNote = '';
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -29,6 +31,8 @@ const kpiLongestStreak = document.getElementById('kpi-longest-streak');
 const cyclePreview = document.getElementById('cycle-preview');
 const cyclePct = document.getElementById('cycle-pct');
 const cycleProgressFill = document.getElementById('cycle-progress-fill');
+const cycleEmptyNote = document.getElementById('cycle-empty-note');
+const syncStatus = document.getElementById('sync-status');
 
 const btnLogin = document.getElementById('btn-login-aprovado');
 const btnRetryAuth = document.getElementById('btn-retry-auth');
@@ -44,21 +48,38 @@ const copyBtnText = document.getElementById('copy-btn-text');
 
 const pillButtons = document.querySelectorAll('.pill-btn');
 
+function renderSyncStatus() {
+  const label = formatSyncLabel(getSnapshotSyncedAt(currentSnapshot));
+  syncStatus.textContent = syncNote ? `${label} · ${syncNote}` : label;
+}
+
 async function init() {
   setLoading(true);
+  let showedCache = false;
 
   try {
-    const auth = await AprovadoApi.checkAuth();
-    if (!auth.isAuthenticated) {
-      showDisconnected();
-      return;
-    }
-
-    currentSnapshot = await AprovadoApi.fetchCompleteSnapshot();
+    // The account is confirmed first; only then is its saved snapshot shown right away
+    // while the refresh runs in the background.
+    currentSnapshot = await AprovadoApi.loadSnapshotProgressive({
+      onCached: cached => {
+        showedCache = true;
+        currentSnapshot = cached;
+        syncNote = 'atualizando…';
+        renderConnected(cached);
+        setLoading(false);
+      }
+    });
+    syncNote = '';
     renderConnected(currentSnapshot);
   } catch (err) {
     console.error('Falha ao inicializar popup:', err);
-    showDisconnected();
+    if (showedCache && err.status !== 401) {
+      // Identity was confirmed and the saved data belongs to this account: keep it, say it is old.
+      syncNote = 'não foi possível atualizar';
+      renderSyncStatus();
+    } else {
+      showDisconnected();
+    }
   } finally {
     setLoading(false);
   }
@@ -76,6 +97,8 @@ function setLoading(isLoading) {
 
 function showDisconnected() {
   currentSnapshot = null;
+  syncNote = '';
+  syncStatus.textContent = '';
   for (const el of [userAvatar, userName, userEmail, kpiTime, kpiAvgDay, kpiSessions,
     kpiDaysCount, kpiQuestions, kpiAccuracy, kpiStreak, kpiLongestStreak, cyclePct]) {
     el.textContent = '';
@@ -100,6 +123,7 @@ function renderConnected(snapshot) {
   userName.textContent = `${user.Nome || ''} ${user.Sobrenome || ''}`.trim() || 'Estudante';
   userEmail.textContent = user.Email || '';
 
+  renderSyncStatus();
   updateMetricsDisplay();
 }
 
@@ -123,8 +147,8 @@ function updateMetricsDisplay() {
     kpiQuestions.textContent = `${formatNumber(metrics.totalQuestions, 0)} questões`;
     kpiAccuracy.textContent = `${formatNumber(Number(metrics.overallAccuracy), 1)}% de acertos`;
   } else {
-    kpiQuestions.textContent = '0 questões';
-    kpiAccuracy.textContent = 'Sem exercícios';
+    kpiQuestions.textContent = '—';
+    kpiAccuracy.textContent = 'Nenhuma questão registrada ainda';
   }
 
   kpiStreak.textContent = `${metrics.streak.current} dias`;
@@ -135,6 +159,8 @@ function updateMetricsDisplay() {
     cyclePreview.classList.remove('hidden');
     cyclePct.textContent = `${formatNumber(Number(metrics.ciclo.porcentagem), 1)}%`;
     cycleProgressFill.style.width = `${Math.min(100, Math.max(0, metrics.ciclo.porcentagem))}%`;
+    if (isCycleNotStarted(metrics.ciclo)) cycleEmptyNote.classList.remove('hidden');
+    else cycleEmptyNote.classList.add('hidden');
   } else {
     cyclePreview.classList.add('hidden');
   }
@@ -143,8 +169,12 @@ function updateMetricsDisplay() {
 // Event Listeners
 pillButtons.forEach(btn => {
   btn.addEventListener('click', () => {
-    pillButtons.forEach(b => b.classList.remove('active'));
+    pillButtons.forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-pressed', 'false');
+    });
     btn.classList.add('active');
+    btn.setAttribute('aria-pressed', 'true');
     currentPeriod = btn.dataset.period;
     updateMetricsDisplay();
   });
@@ -164,6 +194,7 @@ btnRefresh.addEventListener('click', async () => {
   setLoading(true);
   try {
     currentSnapshot = await AprovadoApi.fetchCompleteSnapshot(true);
+    syncNote = '';
     renderConnected(currentSnapshot);
   } catch (err) {
     console.error('Erro ao atualizar:', err);
@@ -219,14 +250,19 @@ btnCopyMarkdown.addEventListener('click', async () => {
   try {
     await AprovadoExport.copyReportToClipboard(metrics, currentSnapshot.user);
     copyBtnText.textContent = 'Copiado! ✓';
-    setTimeout(() => {
-      copyBtnText.textContent = 'Copiar Markdown';
-    }, 2000);
   } catch (err) {
     console.error('Falha ao copiar:', err);
     copyBtnText.textContent = 'Falha ao copiar. Tente novamente.';
   }
+  setTimeout(() => {
+    copyBtnText.textContent = 'Copiar relatório (Markdown)';
+  }, 2000);
 });
+
+// Keep "Atualizado há…" honest while the popup stays open.
+if (typeof setInterval === 'function') {
+  setInterval(() => { if (currentSnapshot) renderSyncStatus(); }, 30000);
+}
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
