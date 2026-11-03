@@ -28,6 +28,7 @@ Os recibos abaixo descrevem o commit, a data e o ambiente da execução registra
 - [Ajustes visuais](validacao-ajustes-visuais.md) e [análise visual](analise-visual-20261103.md): ícones, espaçamentos, alinhamentos e responsividade.
 - [Pendências de runtime e validação](validacao-pendencias-20261103.md): recuperação após falhas, filtros, permissões, guardrail e pacote.
 - [Guia da marca](validacao-guia-marca.md): conferência dos links e dos arquivos da marca.
+- [Troca de ícones](validacao-icones-a-grifado.md): ícones do manifesto e cabeçalhos das telas.
 - [Revisão da documentação](validacao-documentacao.md): links e conferência factual dos guias.
 - [Otimização de memória e delegação](validacao-memoria-delegacao.md): redução de listeners e teste de estresse de heap.
 - [Retrospectiva de 03/11/2026](retro-20261103.md): decisões e aprendizados da rodada.

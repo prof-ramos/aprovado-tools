@@ -11,7 +11,8 @@ Aprovado Tools é uma extensão não oficial para analisar e exportar o históri
 do AprovadoApp. A identidade deve apoiar a ideia de compreender os próprios
 padrões de estudo: horários, duração das sessões, constância e desempenho.
 
-O ícone atual, em `icons/`, apresenta três barras brancas sobre fundo verde.
+O ícone anterior, em `icons/`, apresentava três barras brancas sobre fundo verde.
+Ele foi substituído pelo A grifado (ver [Guia da marca](marca/README.md)).
 É simples e contrastante, mas sua representação de estatísticas pode ser
 confundida com outras ferramentas. Essa avaliação é uma hipótese de design;
 não houve teste de reconhecimento com usuários.
