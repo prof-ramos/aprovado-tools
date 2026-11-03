@@ -1,9 +1,9 @@
 # Direção para a identidade visual
 
-Registro de 3 de novembro de 2026. Status: proposta para exploração futura,
-sem identidade aprovada. O pedido foi limitado à documentação; os protótipos
-não foram produzidos, os ícones não foram substituídos e a branch de marketing
-não foi criada.
+Registro de 3 de novembro de 2026. Status: direção escolhida, ainda não
+aplicada à extensão. O registro original abaixo era uma proposta sem protótipos;
+a seção [Resultado da exploração](#resultado-da-exploração) descreve o que foi
+desenhado e escolhido depois. Os ícones de produção não foram substituídos.
 
 ## Produto e intenção
 
@@ -74,6 +74,28 @@ na versão fixada usada nesta conversa.
 
 Uma pequena rodada qualitativa pode revelar ambiguidades, mas não comprova
 estatisticamente preferência de mercado ou aumento de instalações.
+
+## Resultado da exploração
+
+Ainda em 3 de novembro de 2026, as três direções acima foram desenhadas e
+comparadas em 16, 32, 48 e 128 px e numa simulação da barra do navegador. O
+mantenedor as considerou corretas, mas sem personalidade: serviriam para
+qualquer ferramenta de dados. Em vez delas, foi escolhido o território
+**cultura de concurseiro**, com objetos do dia a dia de quem estuda para
+concurso.
+
+Nesse território foram desenhados três conceitos: o grifo de marca-texto, o
+gabarito com bolhas e o **A grifado**, um A cuja barra é uma passada de
+marca-texto. O A grifado foi escolhido. Ele mantém a ideia original de unir a
+inicial ao produto e troca as barras de dados pelo gesto de grifar a lei seca.
+
+O resultado está no [Guia da marca](marca/README.md): construção, cores,
+tipografia, assinaturas, regras de uso e as artes em SVG e PNG.
+
+Testes feitos nos desenhos: leitura em 16 px ampliada pixel a pixel, versões de
+uma cor e invertidas, contraste das cores e comparação com marcas de educação da
+biblioteca da skill de logo. Não houve teste de reconhecimento com usuários nem
+pesquisa de marca registrada.
 
 ## Limites e retomada
 
