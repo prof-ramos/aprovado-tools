@@ -33,6 +33,7 @@ Os recibos abaixo descrevem o commit, a data e o ambiente da execução registra
 - [UX etapa 1](validacao-ux-etapa-1.md): formatos pt-BR, termos, histórico recente primeiro e atalho único.
 - [UX etapa 2, navegação](validacao-ux-etapa-2.md): abas com endereço, filtros por seção, gráfico por período e modalidade única.
 - [UX etapa 3: Análise histórica](validacao-ux-etapa-3-historico.md): conclusões, blocos recolhíveis, matriz, ranking e contraste.
+- [UX etapa 3: popup e painel lateral](validacao-ux-etapa-3-popup-painel.md): sincronização, estados vazios e contraste.
 - [Revisão da documentação](validacao-documentacao.md): links e conferência factual dos guias.
 - [Otimização de memória e delegação](validacao-memoria-delegacao.md): redução de listeners e teste de estresse de heap.
 - [Retrospectiva de 03/11/2026](retro-20261103.md): decisões e aprendizados da rodada.

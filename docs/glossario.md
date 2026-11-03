@@ -18,6 +18,10 @@ Use sempre a forma da coluna "Use" ao criar ou alterar um texto.
 | Semestre de um ano | **2019 · 1º sem.** | 2019.1 |
 | Posição de um período no conjunto | **ranking do semestre** (1º, 2º…) | posição geral, média de posição |
 | Fase de um ano de estudo | **alta intensidade**, **manutenção**, **hiato** | inatividade |
+| Quando os dados foram sincronizados | **Atualizado há 3 min**, **Atualizado ontem**, **Atualizado em 20/10/2026** | sincronizado (sem horário) |
+| Ação de exportar | **Atividades (CSV)**, **Resumo por matéria (CSV)**, **Backup completo (JSON)**, **Copiar relatório (Markdown)** | CSV Atividades, Backup JSON, Copiar Markdown |
+| Sem registro de questões | **Nenhuma questão registrada ainda** | 0 questões, 0% acertos |
+| Ciclo sem horas | **Rodada nova: nada estudado desde o reinício do ciclo.** | 0,0% sem explicação |
 | Gravidade de uma recomendação | **Ponto forte**, **Informação**, **Atenção**, **Prioridade** | success, warning, critical |
 
 ## Formatos de exibição

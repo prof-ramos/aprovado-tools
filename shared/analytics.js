@@ -56,7 +56,9 @@ export function filterActivitiesByPeriod(activities, period, customStart = null,
   const now = new Date();
   let minDate = new Date();
 
-  if (period === '7d') {
+  if (period === 'today') {
+    // minDate is already "now"; it is normalized to 00:00 below.
+  } else if (period === '7d') {
     minDate.setDate(now.getDate() - 7);
   } else if (period === '30d') {
     minDate.setDate(now.getDate() - 30);
@@ -416,6 +418,13 @@ export function buildTimelineSeries(dailyHistory = [], range = {}) {
     }
   }
   return { granularity, buckets: buckets.map(b => ({ ...b, hours: Number((b.ms / 3600000).toFixed(2)) })) };
+}
+
+/** True when a study cycle exists but nothing was studied in it yet (a new round). */
+export function isCycleNotStarted(ciclo) {
+  if (!ciclo) return false;
+  const nothingDone = Number(ciclo.porcentagem || 0) === 0 && !(Number(ciclo.executadas) > 0);
+  return nothingDone && (ciclo.materias || []).every(m => !(Number(m.HorasExecutadas) > 0));
 }
 
 function calculateStreak(sortedDateKeys) {

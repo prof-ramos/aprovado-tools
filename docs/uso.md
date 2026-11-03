@@ -18,7 +18,7 @@ Atualizações manuais não são automáticas: substitua o conteúdo da mesma pa
 
 ## Conectar e sincronizar
 
-Faça login em [aprovadoapp.com](https://aprovadoapp.com) no mesmo perfil do Chrome usado pela extensão. Não há campo de senha na extensão. Em seguida, abra o popup e use a atualização dos dados; no dashboard, clique em **Sincronizar**.
+Faça login em [aprovadoapp.com](https://aprovadoapp.com) no mesmo perfil do Chrome usado pela extensão. Não há campo de senha na extensão. Em seguida, abra o popup e use **Atualizar**; no painel lateral, **Sincronizar**; no dashboard, **Sincronizar**. O popup e o painel mostram primeiro os dados salvos da sua conta, com o horário da última atualização ("Atualizado há 3 min"), e sincronizam em seguida. Sem sessão, eles pedem para entrar no AprovadoApp neste navegador.
 
 O cliente consulta `https://aprovadoapp.com/service`. Embora os atalhos também sejam injetados em páginas `.com.br` e subdomínios permitidos pelo manifesto, isso não comprova que uma sessão exclusiva desses outros domínios autentique a API `.com`.
 
@@ -62,10 +62,12 @@ Os indicadores multianuais abrangem 2016 até o ano corrente; o ranking de perí
 
 | Ação | Alcance |
 |---|---|
-| CSV atividades | Todas as atividades do recorte, incluindo a busca no dashboard, sem limitar à página da tabela. |
-| CSV matérias | Agregação por disciplina sobre o mesmo recorte; disponível no popup e no dashboard. |
-| Backup JSON | Snapshot completo, incluindo perfil, listas, ciclo e revisões; ignora os filtros. |
-| Copiar Markdown | Métricas do recorte e nome do usuário na área de transferência. |
+| Atividades (CSV) | Todas as atividades do recorte, incluindo a busca no dashboard, sem limitar à página da tabela. |
+| Resumo por matéria (CSV) | Agregação por matéria sobre o mesmo recorte; disponível no popup, no painel lateral e no dashboard. |
+| Backup completo (JSON) | Snapshot completo, incluindo perfil, listas, ciclo e revisões; ignora os filtros. |
+| Copiar relatório (Markdown) | Métricas do recorte e nome do usuário na área de transferência. |
+
+Os quatro nomes são os mesmos no popup, no painel lateral e no dashboard.
 
 O CSV usa `;`, UTF-8 com BOM e quebras de linha CRLF. Se a planilha não separar as colunas, importe o arquivo selecionando o separador e a codificação. O exportador preserva o texto das células, inclusive prefixos interpretáveis como fórmulas por planilhas.
 
