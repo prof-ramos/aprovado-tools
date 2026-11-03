@@ -33,7 +33,7 @@ function element() {
   };
 }
 
-function dashboard(now, boundary = {}) {
+function dashboard(now, boundary = {}, options = {}) {
   const Clock = now ? class extends Date {
     constructor(...args) { super(...(args.length ? args : [typeof now === 'object' ? now.value : now])); }
     static now() { return new Clock(typeof now === 'object' ? now.value : now).getTime(); }
@@ -48,9 +48,13 @@ function dashboard(now, boundary = {}) {
     button.dataset.period = period;
     return [period, button];
   }));
-  const historical = element();
-  historical.dataset.view = 'historical';
-  const periodButtons = [...Object.values(periods), historical];
+  const tabs = Object.fromEntries(['overview', 'historical', 'activities'].map(view => {
+    const tab = element();
+    tab.dataset.view = view;
+    return [view, tab];
+  }));
+  const historical = tabs.historical;
+  const periodButtons = Object.values(periods);
   const granularity = Object.fromEntries(['semester', 'year'].map(value => {
     const button = element();
     button.dataset.granularity = value;
@@ -58,21 +62,25 @@ function dashboard(now, boundary = {}) {
   }));
   const overviewFilters = [element(), element()];
   const filterBar = element();
-  filterBar.querySelectorAll = selector => selector === '[data-overview-only]' ? overviewFilters : [];
+  filterBar.querySelectorAll = selector => selector === '[data-filter-scope]' ? overviewFilters : [];
+  const hashListeners = [];
+  const location = { search: '', hash: options.hash || '' };
   get('period-ranking-toggle').querySelectorAll = selector => selector === '.seg-btn' ? Object.values(granularity) : [];
   const context = vm.createContext({ ...analytics, ...ui, ...format, console, setTimeout, Date: Clock,
     ...boundary,
     document: { readyState: 'loading', getElementById: get,
       querySelectorAll: selector => selector === '.filter-bar .seg-btn' ? periodButtons
+        : selector === '.view-tab' ? Object.values(tabs)
         : selector === '.seg-btn' ? [...periodButtons, ...Object.values(granularity)] : [],
       querySelector: selector => selector === '.filter-bar' ? filterBar : null,
       createElement: element, addEventListener() {} },
-    window: { innerWidth: 1200, location: { search: '' } }
+    window: { innerWidth: 1200, location, addEventListener: (name, callback) => { if (name === 'hashchange') hashListeners.push(callback); } }
   });
   const source = readFileSync(new URL('../dashboard/dashboard.js', import.meta.url), 'utf8')
     .replace(/^import[\s\S]*?from ['"][^'"]+['"];\s*/gm, '');
   vm.runInContext(source, context);
-  return { get, context, periods, historical, granularity, overviewFilters,
+  return { get, context, periods, historical, tabs, location, granularity, overviewFilters,
+    setHash: hash => { location.hash = hash; hashListeners.forEach(callback => callback()); },
     run: source => vm.runInContext(source, context) };
 }
 
@@ -152,7 +160,7 @@ describe('Dashboard rendering regressions', () => {
     assert.match(page.get('copy-report-title').textContent, /Falha/);
   });
 
-  it('period clicks leave history, restore filters and apply custom dates', () => {
+  it('tabs switch sections, disable filters in the history and keep the address in sync', () => {
     const page = dashboard();
     const recentDate = new Date().toISOString();
     page.context.navigationActivities = [
@@ -161,19 +169,54 @@ describe('Dashboard rendering regressions', () => {
     ];
     page.run('fullSnapshot = { atividades: navigationActivities, materias: [] }');
     page.context.setupViewSwitch();
-    page.historical.dispatch('click');
-    assert.equal(page.get('tab-historical-patterns').classList.contains('hidden'), false);
-    assert.ok(page.overviewFilters.every(e => e.classList.contains('hidden')));
-    assert.equal(page.historical.getAttribute('aria-pressed'), 'true');
+    const paneHidden = id => page.get(id).classList.contains('hidden');
+    const controls = () => [page.get('select-subject'), page.get('select-type'), page.get('input-date-start'),
+      page.get('input-date-end'), page.get('btn-apply-custom-dates'), ...Object.values(page.periods)];
 
+    // Starts on the overview with the filters enabled.
+    assert.equal(paneHidden('tab-overview'), false);
+    assert.equal(page.tabs.overview.getAttribute('aria-selected'), 'true');
+    assert.equal(page.get('filter-note').classList.contains('hidden'), true);
+
+    page.tabs.historical.dispatch('click');
+    assert.equal(paneHidden('tab-historical-patterns'), false);
+    assert.equal(paneHidden('tab-overview'), true);
+    assert.equal(paneHidden('tab-activities'), true);
+    assert.equal(page.location.hash, '#historico');
+    assert.equal(page.tabs.historical.getAttribute('aria-selected'), 'true');
+    assert.equal(page.tabs.historical.getAttribute('aria-current'), 'page');
+    assert.equal(page.tabs.overview.getAttribute('aria-selected'), 'false');
+    assert.equal(page.tabs.overview.getAttribute('aria-current'), 'false');
+    assert.ok(page.overviewFilters.every(e => e.classList.contains('is-disabled')), 'filter groups are dimmed, not hidden');
+    assert.ok(controls().every(c => c.disabled === true), 'filter controls are disabled');
+    assert.equal(page.get('filter-note').classList.contains('hidden'), false);
+
+    page.tabs.activities.dispatch('click');
+    assert.equal(paneHidden('tab-activities'), false);
+    assert.equal(paneHidden('tab-historical-patterns'), true);
+    assert.equal(page.location.hash, '#atividades');
+    assert.ok(page.overviewFilters.every(e => !e.classList.contains('is-disabled')));
+    assert.ok(controls().every(c => c.disabled === false));
+    assert.equal(page.get('filter-note').classList.contains('hidden'), true);
+
+    page.tabs.overview.dispatch('click');
+    assert.equal(paneHidden('tab-overview'), false);
+    assert.equal(page.location.hash, '#visao-geral');
     page.periods['30d'].dispatch('click');
-    assert.equal(page.get('tab-overview').classList.contains('hidden'), false);
-    assert.ok(page.overviewFilters.every(e => !e.classList.contains('hidden')));
     assert.equal(Number(page.get('dash-total-sessions').textContent), 1);
     assert.equal(page.periods['30d'].classList.contains('active'), true);
-    assert.equal(page.historical.getAttribute('aria-pressed'), 'false');
 
-    page.historical.dispatch('click');
+    // Back/Forward and shared links change only the address.
+    page.setHash('#historico');
+    assert.equal(paneHidden('tab-historical-patterns'), false);
+    assert.equal(page.tabs.historical.getAttribute('aria-selected'), 'true');
+    page.setHash('#atividades');
+    assert.equal(paneHidden('tab-activities'), false);
+    page.setHash('#qualquer-coisa');
+    assert.equal(paneHidden('tab-overview'), false);
+    page.setHash('');
+    assert.equal(paneHidden('tab-overview'), false);
+
     page.periods.custom.dispatch('click');
     assert.equal(page.get('custom-date-container').classList.contains('hidden'), false);
     page.get('input-date-start').value = '2020-12-01';
@@ -182,16 +225,74 @@ describe('Dashboard rendering regressions', () => {
     assert.equal(Number(page.get('dash-total-sessions').textContent), 1);
     assert.equal(page.get('tbody-activities-list').children.length, 1);
     assert.match(page.get('tbody-activities-list').children[0].innerHTML, /01\/12\/2020/);
+    page.tabs.historical.dispatch('click');
+    assert.equal(page.get('custom-date-container').classList.contains('hidden'), false, 'custom dates stay visible, disabled');
   });
 
-  it('lists the most recent activities first, even when the snapshot arrives oldest first', () => {
-    const page = dashboard('2026-09-15T12:00:00');
-    const row = (date, time) => ({ ...activity(), DataInicio: date, HoraInicio: time });
-    page.run(`fullSnapshot = { atividades: ${JSON.stringify([
-      row('03/01/2016', '08:00'), row('15/09/2026', '07:30'), row('15/09/2026', '21:10'), row('02/05/2024', '10:00')
-    ])}, materias: [] }; renderActivitiesTable(fullSnapshot.atividades)`);
-    const dates = page.get('tbody-activities-list').children.map(tr => tr.innerHTML.match(/<td>([\d/]+)<\/td>\s*<td[^>]*>([\d:]+)/).slice(1).join(' '));
-    assert.deepEqual(dates, ['15/09/2026 21:10', '15/09/2026 07:30', '02/05/2024 10:00', '03/01/2016 08:00']);
+  it('opens directly on the section named in the address', () => {
+    const page = dashboard(null, {}, { hash: '#atividades' });
+    page.run('fullSnapshot = { atividades: [], materias: [] }');
+    page.context.setupViewSwitch();
+    assert.equal(page.get('tab-activities').classList.contains('hidden'), false);
+    assert.equal(page.get('tab-overview').classList.contains('hidden'), true);
+    assert.equal(page.tabs.activities.getAttribute('aria-selected'), 'true');
+  });
+
+  it('arrow keys move between tabs and update the address', () => {
+    const page = dashboard();
+    page.run('fullSnapshot = { atividades: [], materias: [] }');
+    page.context.setupViewSwitch();
+    page.tabs.overview.dispatch('keydown', { key: 'ArrowRight' });
+    assert.equal(page.location.hash, '#historico');
+    page.tabs.historical.dispatch('keydown', { key: 'End' });
+    assert.equal(page.location.hash, '#atividades');
+    page.tabs.activities.dispatch('keydown', { key: 'ArrowRight' });
+    assert.equal(page.location.hash, '#visao-geral');
+  });
+
+  it('sample data mode shows the banner and hides the account name and sync status', () => {
+    const page = dashboard();
+    page.run("usingMockData = true; renderUserHeader({ Nome: 'Ana', Sobrenome: 'Silva' })");
+    assert.equal(page.get('mock-banner').classList.contains('hidden'), false);
+    assert.equal(page.get('user-badge').classList.contains('hidden'), true);
+    assert.equal(page.get('user-display-name').textContent, '');
+    assert.doesNotMatch(page.get('user-status-text').textContent, /Sincronizado via AprovadoApp/);
+    assert.match(page.get('footer-source').textContent, /exemplo/);
+    page.run("usingMockData = false; renderUserHeader({ Nome: 'Ana', Sobrenome: 'Silva' })");
+    assert.equal(page.get('mock-banner').classList.contains('hidden'), true);
+    assert.equal(page.get('user-badge').classList.contains('hidden'), false);
+    assert.equal(page.get('user-display-name').textContent, 'Ana Silva');
+    assert.equal(page.get('user-status-text').textContent, 'Sincronizado via AprovadoApp');
+  });
+
+  it('draws the evolution chart for the selected period with empty days kept at zero', () => {
+    const page = dashboard('2026-10-28T12:00:00');
+    page.run("currentPeriod = '7d'");
+    const day = (date, ms, count) => ({ date, ms, hours: (ms / 3600000).toFixed(2), count, questions: 0 });
+    page.context.history = [day('2026-10-22', 7200000, 2), day('2026-10-27', 3600000, 1)];
+    page.run('renderDailyTimelineChart(history)');
+    const cols = page.get('daily-timeline-chart').children;
+    assert.equal(cols.length, 8, '7d covers eight calendar days, including the ones without study');
+    const bars = cols.map(col => col.children[0]);
+    assert.equal(bars.filter(b => /is-empty/.test(b.className)).length, 6);
+    assert.match(bars[1].title, /^22\/10\/2026: 2h · 2 sessões$/);
+    assert.match(bars[2].title, /sem estudo$/);
+    assert.match(page.get('timeline-caption').textContent, /por dia · maior barra: 2h/);
+  });
+
+  it('groups a long period by month and keeps every month, with pt-BR decimals', () => {
+    const page = dashboard('2026-10-28T12:00:00');
+    page.run("currentPeriod = 'all'");
+    page.context.history = [
+      { date: '2024-01-10', ms: 5400000, hours: '1.50', count: 1, questions: 0 },
+      { date: '2026-10-05', ms: 3600000, hours: '1.00', count: 1, questions: 4 }
+    ];
+    page.run('renderDailyTimelineChart(history)');
+    const cols = page.get('daily-timeline-chart').children;
+    assert.equal(cols.length, 34);
+    assert.match(cols[0].children[0].title, /^janeiro de 2024: 1,5h · 1 sessão · 1 dia com estudo$/);
+    assert.match(page.get('timeline-caption').textContent, /por mês · maior barra: 1,5h/);
+    assert.equal(cols[0].children[1].textContent, '01/24');
   });
 
   it('ranking toggle clicks regroup data without changing the selected view or period', () => {
@@ -200,6 +301,7 @@ describe('Dashboard rendering regressions', () => {
       { Inicio: '2025-03-04T12:00:00', Duracao: 3600000 },
       { Inicio: '2026-08-04T12:00:00', Duracao: 3600000 }
     ], materias: [] }`);
+    page.context.setupViewSwitch();
     page.context.setupPeriodRankingToggle();
     page.historical.dispatch('click');
     assert.match(page.get('tbody-period-ranking').innerHTML, /2026\.2/);
@@ -211,6 +313,21 @@ describe('Dashboard rendering regressions', () => {
     page.granularity.semester.dispatch('click');
     assert.match(page.get('tbody-period-ranking').innerHTML, /2026\.2/);
     assert.equal(page.granularity.year.getAttribute('aria-pressed'), 'false');
+  });
+
+  it('shows the same four modalities, and the same Teoria, as the methodological mix', () => {
+    const page = dashboard();
+    page.run(`fullSnapshot = { atividades: [
+      { Inicio: '2026-06-01T12:00:00', Duracao: 3600000, TipoEstudo: 'Teoria' },
+      { Inicio: '2026-06-02T12:00:00', Duracao: 3600000, TipoEstudo: 'Leitura de lei seca' },
+      { Inicio: '2026-06-03T12:00:00', Duracao: 7200000, TipoEstudo: 'Questões' }
+    ], materias: [] }; updateDashboard()`);
+    const list = page.get('study-types-list');
+    const names = list.children.map(row => row.innerHTML.match(/<strong>([^<]+)<\/strong>/)[1]);
+    assert.deepEqual(names, ['Teoria', 'Questões', 'Revisão', 'Outros']);
+    assert.match(list.children[0].innerHTML, /50,0%/);
+    page.run('renderMixAndInsights(computeMethodologicalMix(fullSnapshot.atividades), null)');
+    assert.match(page.get('mix-legend').innerHTML, /Teoria: <strong>50,0%<\/strong>/);
   });
 
   it('subject and modality change events update the overview metrics', () => {

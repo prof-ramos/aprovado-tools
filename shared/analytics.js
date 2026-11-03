@@ -76,6 +76,51 @@ export function filterActivitiesByPeriod(activities, period, customStart = null,
   });
 }
 
+const THEORY_REGEX = /teoria|doutrina|leitura|videoaula|video-aula|v[íi]deo|video|aula|pdf|livro|cap[íi]tulo/i;
+const QUESTIONS_REGEX = /quest[õo]es|exerc[íi]cio|exercicios|simulado|bateria|teste|prova/i;
+const REVIEW_REGEX = /revis[ãa]o|revisar|revisoes|flashcard|anki|resumo|mapa/i;
+
+export const MODALITY_LABELS = { teoria: 'Teoria', questoes: 'Questões', revisao: 'Revisão', outros: 'Outros' };
+
+/**
+ * Single source of truth for grouping a study type into Teoria, Questões, Revisão or Outros.
+ * Used by both "Modalidades e hábitos" and the methodological mix, so their numbers match.
+ * Returns 'teoria' | 'questoes' | 'revisao' | 'outros'.
+ */
+export function classifyModality(activity) {
+  const rawType = ((activity && activity.TipoEstudo) || '').trim();
+  if (QUESTIONS_REGEX.test(rawType)) return 'questoes';
+  if (REVIEW_REGEX.test(rawType)) return 'revisao';
+  if (THEORY_REGEX.test(rawType)) return 'teoria';
+  if (((activity && activity.ExercicioQuantidade) || 0) > 0 && (!rawType || rawType.toLowerCase() === 'geral')) return 'questoes';
+  return 'outros';
+}
+
+/** Time, sessions and questions per modality. Percentages and hours are rounded once, here. */
+export function groupByModality(activities = []) {
+  const groups = {};
+  for (const key of Object.keys(MODALITY_LABELS)) {
+    groups[key] = { key, name: MODALITY_LABELS[key], durationMs: 0, sessions: 0, questions: 0, correct: 0 };
+  }
+  let totalMs = 0;
+  for (const atv of (activities || [])) {
+    const g = groups[classifyModality(atv)];
+    const dur = atv.Duracao || 0;
+    g.durationMs += dur;
+    g.sessions += 1;
+    g.questions += atv.ExercicioQuantidade || 0;
+    g.correct += atv.ExercicioAcerto || 0;
+    totalMs += dur;
+  }
+  return Object.values(groups).map(g => ({
+    ...g,
+    hours: Number((g.durationMs / 3600000).toFixed(2)),
+    percentage: Number((totalMs > 0 ? (g.durationMs / totalMs) * 100 : 0).toFixed(1)),
+    accuracy: g.questions > 0 ? (g.correct / g.questions) * 100 : 0,
+    formattedDuration: formatDurationMs(g.durationMs)
+  }));
+}
+
 export function computeStudyMetrics(activities = [], materias = [], ciclo = null, revisoesPendentes = []) {
   const totalSessions = activities.length;
   let totalDurationMs = 0;
@@ -255,6 +300,7 @@ export function computeStudyMetrics(activities = [], materias = [], ciclo = null
     streak,
     subjects: subjectsArray,
     types: typesArray,
+    modalities: groupByModality(activities),
     dailyHistory,
     weekdayDistribution: weekdayTotals.map(ms => ({
       ms,
@@ -276,6 +322,94 @@ export function computeStudyMetrics(activities = [], materias = [], ciclo = null
     } : null,
     pendingReviewsCount: revisoesPendentes ? revisoesPendentes.length : 0
   };
+}
+
+function dateFromKey(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function addDays(date, days) {
+  const next = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+/**
+ * Inclusive date range ("YYYY-MM-DD" keys) that the selected period covers, so the timeline
+ * shows the whole period even when it starts or ends without study. 'all' and open custom
+ * ranges fall back to the first and last day with data.
+ */
+export function timelineRange(period, dailyHistory = [], customStart = null, customEnd = null, today = new Date()) {
+  const first = dailyHistory.length ? dailyHistory[0].date : null;
+  const last = dailyHistory.length ? dailyHistory[dailyHistory.length - 1].date : null;
+  const todayKey = formatLocalDate(today);
+  const back = { '7d': 7, '30d': 30, '90d': 90 }[period];
+  if (back) return { start: formatLocalDate(addDays(today, -back)), end: todayKey };
+  if (period === 'this_year') return { start: `${today.getFullYear()}-01-01`, end: todayKey };
+  if (period === 'custom') {
+    const s = customStart ? parseDateString(customStart) : null;
+    const e = customEnd ? parseDateString(customEnd) : null;
+    return {
+      start: s && !isNaN(s.getTime()) ? formatLocalDate(s) : first,
+      end: e && !isNaN(e.getTime()) ? formatLocalDate(e) : (customStart ? todayKey : last)
+    };
+  }
+  return { start: first, end: last };
+}
+
+/**
+ * Groups the daily history for the evolution chart: by day up to 45 days, by week (Monday to
+ * Sunday) up to one year, by month beyond. Days, weeks and months without study are kept as zero.
+ * Returns { granularity: 'day'|'week'|'month', buckets: [{ key, start, end, hours, ms, sessions,
+ * questions, studyDays }] }. Input data is not modified.
+ */
+export function buildTimelineSeries(dailyHistory = [], range = {}) {
+  const start = range.start || (dailyHistory.length ? dailyHistory[0].date : null);
+  const end = range.end || (dailyHistory.length ? dailyHistory[dailyHistory.length - 1].date : null);
+  if (!start || !end || start > end) return { granularity: 'day', buckets: [] };
+
+  const startDate = dateFromKey(start);
+  const endDate = dateFromKey(end);
+  const spanDays = Math.round((endDate - startDate) / 86400000) + 1;
+  const granularity = spanDays <= 45 ? 'day' : (spanDays <= 366 ? 'week' : 'month');
+
+  const byDate = new Map(dailyHistory.map(d => [d.date, d]));
+  const buckets = [];
+  const bucketOf = new Map();
+  const newBucket = (key, from, to) => {
+    const bucket = { key, start: formatLocalDate(from), end: formatLocalDate(to), ms: 0, sessions: 0, questions: 0, studyDays: 0 };
+    buckets.push(bucket);
+    bucketOf.set(key, bucket);
+    return bucket;
+  };
+
+  for (let day = startDate; day <= endDate; day = addDays(day, 1)) {
+    const dateKey = formatLocalDate(day);
+    let key;
+    let from = day;
+    let to = day;
+    if (granularity === 'week') {
+      from = addDays(day, -((day.getDay() + 6) % 7));
+      to = addDays(from, 6);
+      key = formatLocalDate(from);
+    } else if (granularity === 'month') {
+      from = new Date(day.getFullYear(), day.getMonth(), 1);
+      to = new Date(day.getFullYear(), day.getMonth() + 1, 0);
+      key = dateKey.slice(0, 7);
+    } else {
+      key = dateKey;
+    }
+    const bucket = bucketOf.get(key) || newBucket(key, from, to);
+    const entry = byDate.get(dateKey);
+    if (entry) {
+      bucket.ms += entry.ms;
+      bucket.sessions += entry.count;
+      bucket.questions += entry.questions;
+      if (entry.ms > 0 || entry.count > 0) bucket.studyDays += 1;
+    }
+  }
+  return { granularity, buckets: buckets.map(b => ({ ...b, hours: Number((b.ms / 3600000).toFixed(2)) })) };
 }
 
 function calculateStreak(sortedDateKeys) {
@@ -979,31 +1113,11 @@ export function computeYieldQuadrants(subjectsSummary = [], options = {}) {
  * 6. Methodological Mix Diagnostics
  */
 export function computeMethodologicalMix(activities = []) {
-  const THEORY_REGEX = /teoria|doutrina|leitura|videoaula|video-aula|v[íi]deo|video|aula|pdf|livro|cap[íi]tulo/i;
-  const QUESTIONS_REGEX = /quest[õo]es|exerc[íi]cio|exercicios|simulado|bateria|teste|prova/i;
-  const REVIEW_REGEX = /revis[ãa]o|revisar|revisoes|flashcard|anki|resumo|mapa/i;
-
-  let teoriaMs = 0;
-  let questoesMs = 0;
-  let revisaoMs = 0;
-  let outrosMs = 0;
-
-  for (const atv of (activities || [])) {
-    const dur = atv.Duracao || 0;
-    const rawType = (atv.TipoEstudo || '').trim();
-
-    if (QUESTIONS_REGEX.test(rawType)) {
-      questoesMs += dur;
-    } else if (REVIEW_REGEX.test(rawType)) {
-      revisaoMs += dur;
-    } else if (THEORY_REGEX.test(rawType)) {
-      teoriaMs += dur;
-    } else if ((atv.ExercicioQuantidade || 0) > 0 && (!rawType || rawType.toLowerCase() === 'geral')) {
-      questoesMs += dur;
-    } else {
-      outrosMs += dur;
-    }
-  }
+  const groups = Object.fromEntries(groupByModality(activities).map(g => [g.key, g]));
+  const teoriaMs = groups.teoria.durationMs;
+  const questoesMs = groups.questoes.durationMs;
+  const revisaoMs = groups.revisao.durationMs;
+  const outrosMs = groups.outros.durationMs;
 
   const totalMs = teoriaMs + questoesMs + revisaoMs + outrosMs;
   const pTheory = totalMs > 0 ? (teoriaMs / totalMs) * 100 : 0;

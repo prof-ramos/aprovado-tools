@@ -5,6 +5,8 @@ import {
   formatDurationMs,
   formatDurationHours,
   parseDateString,
+  timelineRange,
+  buildTimelineSeries,
   severityLabel,
   computeHistoricalPatterns,
   computeActivityHeatmap
@@ -46,7 +48,20 @@ const copyReportTitle = document.getElementById('copy-report-title');
 
 const segButtons = document.querySelectorAll('.filter-bar .seg-btn');
 const filterBar = document.querySelector('.filter-bar');
+const viewTabs = document.querySelectorAll('.view-tab');
+const filterNote = document.getElementById('filter-note');
+const mockBanner = document.getElementById('mock-banner');
+const userBadge = document.getElementById('user-badge');
+const footerSource = document.getElementById('footer-source');
+const timelineCaption = document.getElementById('timeline-caption');
 let currentView = 'overview';
+let usingMockData = false;
+
+/* Sections and their addresses. Filter rules per section:
+   - overview and activities: period, subject, modality and custom dates apply;
+   - historical: always covers every record, so those filters stay visible but disabled. */
+const VIEW_HASHES = { overview: '#visao-geral', historical: '#historico', activities: '#atividades' };
+const FILTERED_VIEWS = ['overview', 'activities'];
 let currentPeriodGranularity = 'semester';
 const customDateContainer = document.getElementById('custom-date-container');
 const inputDateStart = document.getElementById('input-date-start');
@@ -95,6 +110,7 @@ async function loadMockSnapshot() {
   const mockUrl = window.chrome?.runtime?.getURL
     ? chrome.runtime.getURL('tests/fixtures/multiannual_mock_2016_2026.json')
     : '../tests/fixtures/multiannual_mock_2016_2026.json';
+  usingMockData = true;
   const res = await fetch(mockUrl);
   if (!res.ok) {
     throw new Error(`Falha ao carregar fixture mock: status ${res.status}`);
@@ -119,6 +135,7 @@ async function init() {
         showDisconnected();
         return;
       }
+      usingMockData = false;
       fullSnapshot = await AprovadoApi.fetchCompleteSnapshot();
     }
 
@@ -177,7 +194,12 @@ function renderUserHeader(user) {
   btnExportDropdown.disabled = false;
   setView(currentView);
   alertDisconnected.classList.add('hidden');
-  if (!user) return;
+  mockBanner?.classList.toggle('hidden', !usingMockData);
+  userBadge?.classList.toggle('hidden', usingMockData);
+  if (footerSource) footerSource.textContent = usingMockData
+    ? 'Dados de exemplo carregados de um arquivo local'
+    : 'Dados sincronizados localmente do AprovadoApp';
+  if (!user || usingMockData) return;
   userAvatar.textContent = (user.Nome || 'E').charAt(0).toUpperCase();
   userDisplayName.textContent = `${user.Nome || ''} ${user.Sobrenome || ''}`.trim() || 'Estudante';
   userStatusText.textContent = 'Sincronizado via AprovadoApp';
@@ -200,7 +222,7 @@ function populateFilterSelects(snapshot) {
     if (a.TipoEstudo) typesSet.add(a.TipoEstudo.trim());
   });
 
-  selectType.innerHTML = '<option value="all">Todas as Modalidades</option>';
+  selectType.innerHTML = '<option value="all">Todas as modalidades</option>';
   Array.from(typesSet).sort().forEach(t => {
     const opt = document.createElement('option');
     opt.value = t;
@@ -289,35 +311,71 @@ function renderKpiBanner(metrics) {
   dashAvgSession.textContent = `Média por sessão: ${formatDurationMs(avgSessionMs)}`;
 }
 
+const TIMELINE_CAPTIONS = {
+  day: 'Horas líquidas por dia',
+  week: 'Horas líquidas por semana (segunda a domingo)',
+  month: 'Horas líquidas por mês'
+};
+const MONTH_NAMES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+function dayMonthLabel(key) {
+  const [, m, d] = key.split('-');
+  return `${d}/${m}`;
+}
+
+function timelineLabel(bucket, granularity) {
+  if (granularity === 'month') {
+    const [y, m] = bucket.key.split('-');
+    return `${m}/${y.slice(2)}`;
+  }
+  return dayMonthLabel(bucket.start);
+}
+
+function timelineTooltip(bucket, granularity) {
+  const [y, m, d] = bucket.start.split('-');
+  const title = granularity === 'month' ? `${MONTH_NAMES[Number(m) - 1]} de ${y}`
+    : granularity === 'week' ? `Semana de ${dayMonthLabel(bucket.start)} a ${dayMonthLabel(bucket.end)}`
+      : `${d}/${m}/${y}`;
+  if (bucket.sessions === 0 && bucket.ms === 0) return `${title}: sem estudo`;
+  const parts = [`${formatValue(bucket.hours)}h`, `${formatNumber(bucket.sessions, 0)} ${bucket.sessions === 1 ? 'sessão' : 'sessões'}`];
+  if (granularity !== 'day') parts.push(`${bucket.studyDays} ${bucket.studyDays === 1 ? 'dia' : 'dias'} com estudo`);
+  if (bucket.questions) parts.push(`${formatNumber(bucket.questions, 0)} questões`);
+  return `${title}: ${parts.join(' · ')}`;
+}
+
+/** Evolution chart for the selected period: day, week or month bars, with empty ones kept at zero. */
 function renderDailyTimelineChart(dailyHistory) {
   dailyTimelineChart.innerHTML = '';
 
   if (!dailyHistory || dailyHistory.length === 0) {
+    if (timelineCaption) timelineCaption.textContent = TIMELINE_CAPTIONS.day;
     dailyTimelineChart.innerHTML = '<div style="color: var(--text-muted); font-size: 12px; margin: auto;">Nenhuma atividade no período selecionado.</div>';
     return;
   }
 
-  // Show at most 30 recent entries for chart readability
-  const data = dailyHistory.slice(-30);
-  const maxHours = Math.max(...data.map(d => parseFloat(d.hours)), 0.1);
+  const range = timelineRange(currentPeriod, dailyHistory, inputDateStart.value, inputDateEnd.value, new Date());
+  const { granularity, buckets } = buildTimelineSeries(dailyHistory, range);
+  const maxHours = Math.max(...buckets.map(b => b.hours), 0.1);
+  if (timelineCaption) {
+    timelineCaption.textContent = `${TIMELINE_CAPTIONS[granularity]} · maior barra: ${formatValue(maxHours)}h`;
+  }
 
-  data.forEach(item => {
+  // Label roughly twelve bars so the axis stays readable at any length.
+  const labelStep = Math.max(1, Math.ceil(buckets.length / 12));
+  buckets.forEach((bucket, index) => {
     const col = document.createElement('div');
     col.className = 'chart-bar-col';
-
-    const h = parseFloat(item.hours);
-    const heightPct = Math.max(4, Math.round((h / maxHours) * 160));
+    if (buckets.length > 60) col.style.minWidth = '6px';
 
     const bar = document.createElement('div');
-    bar.className = 'chart-bar';
-    bar.style.height = `${heightPct}px`;
-    bar.title = `${item.date}: ${formatValue(item.hours)}h (${item.count} sessões${item.questions ? `, ${item.questions} questões` : ''})`;
+    bar.className = bucket.hours > 0 ? 'chart-bar' : 'chart-bar is-empty';
+    bar.style.height = bucket.hours > 0 ? `${Math.max(4, Math.round((bucket.hours / maxHours) * 160))}px` : '2px';
+    bar.title = timelineTooltip(bucket, granularity);
+    bar.setAttribute('aria-label', bar.title);
 
     const label = document.createElement('span');
     label.className = 'chart-bar-label';
-    // Format "YYYY-MM-DD" -> "DD/MM"
-    const parts = item.date.split('-');
-    label.textContent = parts.length === 3 ? `${parts[2]}/${parts[1]}` : item.date;
+    label.textContent = index % labelStep === 0 ? timelineLabel(bucket, granularity) : '';
 
     col.appendChild(bar);
     col.appendChild(label);
@@ -390,9 +448,9 @@ function renderSubjectsSummary(subjects) {
 }
 
 function renderModalitiesAndShifts(metrics) {
-  // Types
+  // Same four modalities as the methodological mix, so Teoria matches in both places.
   studyTypesList.innerHTML = '';
-  (metrics.types || []).forEach(t => {
+  (metrics.modalities || []).forEach(t => {
     const row = document.createElement('div');
     row.className = 'type-row';
     row.innerHTML = `
@@ -473,11 +531,7 @@ function renderActivitiesTable(unsortedActivities) {
 // Event Listeners
 segButtons.forEach(btn => {
   btn.addEventListener('click', () => {
-    if (btn.dataset.view === 'historical') {
-      setView('historical');
-      return;
-    }
-    setView('overview');
+    if (btn.disabled) return;
     segButtons.forEach(b => b.classList.toggle('active', b === btn));
     currentPeriod = btn.dataset.period;
 
@@ -535,6 +589,7 @@ btnSyncNow.addEventListener('click', async () => {
     if (isExplicitMock || !hasStorage) {
       fullSnapshot = await loadMockSnapshot();
     } else {
+      usingMockData = false;
       fullSnapshot = await AprovadoApi.fetchCompleteSnapshot(true);
     }
     renderUserHeader(fullSnapshot.user);
@@ -603,37 +658,71 @@ exportCopyMd.addEventListener('click', async () => {
    Tab Navigation & Historical Patterns Renderers
    ========================================================================== */
 
-// The "Análise histórica" button lives in the period selector. Choosing it
-// shows the historical pane; choosing any period returns to the overview.
+function viewFromHash(hash = window.location.hash) {
+  const wanted = String(hash || '').toLowerCase();
+  const match = Object.entries(VIEW_HASHES).find(([, value]) => value === wanted);
+  return match ? match[0] : 'overview';
+}
+
+// Shows one section and keeps the tab bar and the filters in sync with it.
 function setView(view) {
-  currentView = view === 'historical' ? 'historical' : 'overview';
-  const isHistorical = currentView === 'historical';
+  currentView = VIEW_HASHES[view] ? view : 'overview';
+  const filtersApply = FILTERED_VIEWS.includes(currentView);
 
-  document.getElementById('tab-overview')?.classList.toggle('hidden', !fullSnapshot || isHistorical);
-  document.getElementById('tab-overview')?.classList.toggle('active', !isHistorical);
-  document.getElementById('tab-historical-patterns')?.classList.toggle('hidden', !fullSnapshot || !isHistorical);
-  document.getElementById('tab-historical-patterns')?.classList.toggle('active', isHistorical);
-
-  segButtons.forEach(b => {
-    if (b.dataset.view === 'historical') {
-      b.classList.toggle('active', isHistorical);
-      b.setAttribute('aria-pressed', isHistorical ? 'true' : 'false');
-    } else {
-      b.classList.toggle('active', !isHistorical && b.dataset.period === currentPeriod);
-    }
+  [['overview', 'tab-overview'], ['historical', 'tab-historical-patterns'], ['activities', 'tab-activities']].forEach(([name, id]) => {
+    const pane = document.getElementById(id);
+    pane?.classList.toggle('hidden', !fullSnapshot || currentView !== name);
+    pane?.classList.toggle('active', currentView === name);
   });
 
-  // History always covers every record, so subject/type/custom-date filters do not apply.
-  filterBar?.querySelectorAll('[data-overview-only]').forEach(el => el.classList.toggle('hidden', isHistorical));
-  customDateContainer.classList.toggle('hidden', isHistorical || currentPeriod !== 'custom');
+  viewTabs.forEach(tab => {
+    const selected = tab.dataset.view === currentView;
+    tab.classList.toggle('active', selected);
+    tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+    tab.setAttribute('tabindex', selected ? '0' : '-1');
+    tab.setAttribute('aria-current', selected ? 'page' : 'false');
+  });
 
-  if (isHistorical && fullSnapshot) {
+  segButtons.forEach(b => {
+    b.classList.toggle('active', b.dataset.period === currentPeriod);
+    b.disabled = !filtersApply;
+  });
+  [selectSubject, selectType, inputDateStart, inputDateEnd, btnApplyCustomDates].forEach(control => { control.disabled = !filtersApply; });
+  filterBar?.querySelectorAll('[data-filter-scope]').forEach(el => {
+    el.classList.toggle('is-disabled', !filtersApply);
+    el.setAttribute('aria-disabled', filtersApply ? 'false' : 'true');
+  });
+  filterNote?.classList.toggle('hidden', filtersApply);
+  customDateContainer.classList.toggle('hidden', currentPeriod !== 'custom');
+
+  if (currentView === 'historical' && fullSnapshot) {
     renderHistoricalPatternsTab(fullSnapshot.atividades, fullSnapshot.materias);
   }
 }
 
+// Clicking a tab changes the address, so Back/Forward and shared links reach the same section.
+function navigateToView(view) {
+  setView(view);
+  const hash = VIEW_HASHES[currentView];
+  if (window.location.hash !== hash) window.location.hash = hash;
+}
+
 function setupViewSwitch() {
-  setView('overview');
+  setView(viewFromHash());
+  const order = Array.from(viewTabs);
+  order.forEach((tab, index) => {
+    tab.addEventListener('click', () => navigateToView(tab.dataset.view));
+    tab.addEventListener('keydown', event => {
+      const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+      const target = event.key === 'Home' ? order[0] : event.key === 'End' ? order[order.length - 1]
+        : step ? order[(index + step + order.length) % order.length] : null;
+      if (!target) return;
+      event.preventDefault?.();
+      navigateToView(target.dataset.view);
+      target.focus?.();
+    });
+  });
+  window.addEventListener('hashchange', () => setView(viewFromHash()));
 }
 
 function setupPeriodRankingToggle() {

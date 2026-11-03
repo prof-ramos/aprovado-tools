@@ -12,6 +12,8 @@ Use sempre a forma da coluna "Use" ao criar ou alterar um texto.
 | Quantidade de exercícios | **questões** | qst |
 | Tempo de estudo sem pausas | **horas líquidas** | horas efetivas |
 | Um registro de estudo | **sessão** (na tela) e **atividade** (na lista e nos arquivos) | — |
+| Agrupamento de tipos de estudo | **modalidade**: Teoria, Questões, Revisão ou Outros | tipo de estudo, quando se fala do grupo |
+| Seções do dashboard | **Visão geral**, **Histórico**, **Atividades** | Análise histórica (como botão de período) |
 | Horário em que se estuda | **horário de estudo**, **estudo por hora do dia** | cronotipo, distribuição circadiana |
 | Gravidade de uma recomendação | **Ponto forte**, **Informação**, **Atenção**, **Prioridade** | success, warning, critical |
 
@@ -35,3 +37,26 @@ Larguras CSS e coordenadas SVG nunca passam por `formatNumber`.
 ## Ordem das listas
 
 O histórico de atividades mostra as sessões mais recentes primeiro.
+
+## Regra das modalidades
+
+Uma única função, `classifyModality` (`shared/analytics.js`), decide a modalidade
+de cada atividade. Quem calcula percentuais por modalidade usa essa função, de
+modo que "Modalidades e hábitos" e o mix metodológico mostram os mesmos números.
+
+| Modalidade | Entra quando o tipo de estudo contém |
+|---|---|
+| Questões | questões, exercício, simulado, bateria, teste, prova (tem prioridade) |
+| Revisão | revisão, revisar, flashcard, anki, resumo, mapa |
+| Teoria | teoria, doutrina, leitura, videoaula, vídeo, aula, pdf, livro, capítulo |
+| Questões | tipo vazio ou "Geral" com exercícios registrados |
+| Outros | todo o resto |
+
+A ordem da tabela é a ordem de avaliação. O filtro **Modalidade** do dashboard
+continua usando os tipos de estudo originais do AprovadoApp.
+
+## Gráfico de evolução
+
+Período de até 45 dias: uma barra por dia. Até 366 dias: uma barra por semana,
+de segunda a domingo. Acima disso: uma barra por mês. Dias, semanas e meses sem
+estudo ficam no gráfico como barras vazias.

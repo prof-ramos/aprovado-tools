@@ -26,8 +26,8 @@ Abra o popup pelo ícone da extensão para consultar os indicadores e exportar d
 |---|---|
 | Popup | Resumo de tempo, sessões, questões, sequência e ciclo; filtros de período e exportações rápidas. |
 | Painel lateral | Indicadores, ciclo, revisões pendentes e distribuição por matéria durante a navegação. |
-| Dashboard — visão geral | Filtros por data, matéria e modalidade; busca de atividades, paginação, evolução diária e resumo por matéria. |
-| Dashboard — análise histórica | Histórico completo: ranking de semestres/anos, mapa anual, grade dia × hora, duração das sessões, eficiência por horário/turno e síntese por regras. |
+| Dashboard — visão geral | Filtros por período, matéria e modalidade; evolução por dia, semana ou mês, modalidades e resumo por matéria. |
+| Dashboard — histórico | Histórico completo: ranking de semestres/anos, mapa anual, grade dia × hora, duração das sessões, eficiência por horário/turno e síntese por regras. |
 
 O botão **Sincronizar** força uma nova leitura. As listas podem ser reutilizadas por até cinco minutos, sempre após confirmar a identidade da sessão e o dono do cache. O modo normal exige acesso ao serviço, inclusive ao abrir dados em cache.
 

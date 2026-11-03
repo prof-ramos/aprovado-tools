@@ -76,6 +76,18 @@
       </div>
     </header>
 
+    <!-- Sections: each one has its own address (#visao-geral, #historico, #atividades) -->
+    <nav class="view-tabs" role="tablist" aria-label="Seções do dashboard">
+      <button type="button" id="view-tab-overview" class="view-tab active" role="tab" data-view="overview" aria-selected="true" aria-current="page" aria-controls="tab-overview">Visão geral</button>
+      <button type="button" id="view-tab-historical" class="view-tab" role="tab" data-view="historical" aria-selected="false" aria-controls="tab-historical-patterns" title="Padrões de todo o histórico: horários, sessões, semestres">Histórico</button>
+      <button type="button" id="view-tab-activities" class="view-tab" role="tab" data-view="activities" aria-selected="false" aria-controls="tab-activities">Atividades</button>
+    </nav>
+
+    <div id="mock-banner" class="mock-banner hidden" role="status">
+      <strong>Dados de exemplo</strong>
+      <span>Números fictícios para demonstração. Nada aqui vem da sua conta.</span>
+    </div>
+
     <!-- Disconnected Alert -->
     <div id="alert-disconnected" class="alert-box alert-warning hidden">
       <div class="alert-content">
@@ -87,7 +99,7 @@
 
     <!-- Filter Control Bar -->
     <section class="filter-bar">
-      <div class="filter-group">
+      <div class="filter-group" data-filter-scope="overview activities">
         <label>Período:</label>
         <div class="segmented-control">
           <button class="seg-btn active" data-period="all">Tudo</button>
@@ -96,37 +108,31 @@
           <button class="seg-btn" data-period="30d">30 dias</button>
           <button class="seg-btn" data-period="7d">7 dias</button>
           <button class="seg-btn" data-period="custom">Personalizado</button>
-          <span class="seg-divider" aria-hidden="true"></span>
-          <button class="seg-btn seg-btn-analysis" data-view="historical" aria-pressed="false" aria-controls="tab-historical-patterns" title="Padrões de todo o histórico: horários, sessões, semestres">
-            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M2 8.5h3l2-5 3 9 2-4h2"/>
-            </svg>
-            <span>Análise histórica</span>
-          </button>
         </div>
       </div>
 
       <!-- Custom Date Inputs -->
-      <div id="custom-date-container" class="filter-group hidden">
+      <div id="custom-date-container" class="filter-group hidden" data-filter-scope="overview activities">
         <input type="date" id="input-date-start" class="date-input">
         <span class="date-sep">até</span>
         <input type="date" id="input-date-end" class="date-input">
         <button id="btn-apply-custom-dates" class="btn btn-secondary btn-sm">Filtrar</button>
       </div>
 
-      <div class="filter-group" data-overview-only>
+      <div class="filter-group" data-filter-scope="overview activities">
         <label for="select-subject">Matéria:</label>
         <select id="select-subject" class="select-input">
           <option value="all">Todas as matérias</option>
         </select>
       </div>
 
-      <div class="filter-group" data-overview-only>
+      <div class="filter-group" data-filter-scope="overview activities">
         <label for="select-type">Modalidade:</label>
         <select id="select-type" class="select-input">
           <option value="all">Todas as modalidades</option>
         </select>
       </div>
+      <p id="filter-note" class="filter-note hidden" role="note">Período, matéria e modalidade valem só na Visão geral e em Atividades. O histórico usa todos os registros.</p>
     </section>
 
     <!-- Main Dashboard Container -->
@@ -138,7 +144,7 @@
       </div>
 
       <!-- Tab Pane 1: Visão Geral -->
-      <div id="tab-overview" class="dash-tab-pane active" role="region" aria-label="Visão geral do período">
+      <div id="tab-overview" class="dash-tab-pane active" role="tabpanel" aria-labelledby="view-tab-overview">
         <!-- Executive KPIs Grid -->
         <section class="kpi-banner">
           <div class="metric-card">
@@ -179,7 +185,7 @@
             <div class="card-title-bar">
               <div>
                 <h3>Evolução cronológica de estudos</h3>
-                <span class="card-caption">Horas líquidas diárias</span>
+                <span class="card-caption" id="timeline-caption">Horas líquidas por dia</span>
               </div>
             </div>
             <div id="daily-timeline-chart" class="timeline-chart-container"></div>
@@ -236,7 +242,7 @@
             <div class="card-title-bar">
               <div>
                 <h3>Modalidades e hábitos</h3>
-                <span class="card-caption">Turnos e distribuição</span>
+                <span class="card-caption">Tipos de estudo agrupados em quatro modalidades, e turnos do dia</span>
               </div>
             </div>
             <div class="habit-section">
@@ -266,8 +272,10 @@
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- History Table Section -->
+      <!-- Tab Pane 3: Atividades -->
+      <div id="tab-activities" class="dash-tab-pane hidden" role="tabpanel" aria-labelledby="view-tab-activities">
         <section class="activities-history-section">
           <div class="card-title-bar">
             <div class="section-left">
@@ -312,7 +320,7 @@
       </div>
 
       <!-- Tab Pane 2: Padrões Históricos de Estudo -->
-      <div id="tab-historical-patterns" class="dash-tab-pane hidden" role="region" aria-label="Análise histórica">
+      <div id="tab-historical-patterns" class="dash-tab-pane hidden" role="tabpanel" aria-labelledby="view-tab-historical">
         <!-- Multiannual KPIs -->
         <section class="kpi-banner hist-kpi-banner">
           <div class="metric-card">
@@ -553,8 +561,8 @@
 
     <!-- Footer -->
     <footer class="dash-footer">
-      <div>Aprovado Tools • Painel analítico de alta precisão</div>
-      <div>Dados sincronizados localmente do AprovadoApp</div>
+      <div>Aprovado Tools</div>
+      <div id="footer-source">Dados sincronizados localmente do AprovadoApp</div>
     </footer>
   </div>
 
