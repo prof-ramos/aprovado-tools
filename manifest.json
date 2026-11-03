@@ -28,10 +28,8 @@
   "permissions": [
     "storage",
     "unlimitedStorage",
-    "cookies",
     "sidePanel",
-    "contextMenus",
-    "tabs"
+    "contextMenus"
   ],
   "host_permissions": [
     "https://aprovadoapp.com/*",

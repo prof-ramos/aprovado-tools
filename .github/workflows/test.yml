@@ -31,3 +31,19 @@ jobs:
           package-manager-cache: false
       # There are no npm dependencies to install. pretest generates the fixture.
       - run: npm test
+
+  documentation:
+    name: Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: npm run check:docs
+      - run: git diff --check HEAD^ HEAD

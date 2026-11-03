@@ -37,7 +37,7 @@ Na baseline `bcf0ec0`, a suíte tinha 89 testes de padrões históricos. O coman
 
 ## Achados registrados mas não planejados (não selecionados nesta rodada)
 
-- **Permissões provavelmente desnecessárias**: `tabs` (nada lê URL/título de abas, e a permissão gera o aviso "ler histórico de navegação") e `cookies` (usada só pelo handler `CHECK_LOGIN_STATUS`, `background.js:50-56`, que nada chama). Ver `manifest.json:30-35` e `CHROMEWEBSTORE.md:79,82`. Ao planejar, incluir teste manual de login depois da remoção.
+- **Permissões removidas nesta rodada:** `tabs`, `cookies` e o handler `CHECK_LOGIN_STATUS` foram removidos após conferência dos consumidores. Regressões do worker cobrem navegação, painel e comandos; consulte o recibo atual antes de retomar. Registro original: `tabs` (nada lê URL/título de abas, e a permissão gera o aviso "ler histórico de navegação") e `cookies` (usada só pelo handler `CHECK_LOGIN_STATUS`, `background.js:50-56`, que nada chama). Ver `manifest.json:30-35` e `CHROMEWEBSTORE.md:79,82`. Ao planejar, incluir teste manual de login depois da remoção.
 - **Cache por usuário — corrigido nesta rodada:** `fetchCompleteSnapshot` confirma a identidade antes de reutilizar o cache e compara IDs; uma segunda leitura de identidade antes da gravação rejeita trocas detectadas durante a sincronização. Regressões em `tests/api.test.js` cobrem troca de conta, sessão encerrada, falha de identidade e cache legado sem dono.
 - **Ideia: badge de revisões pendentes no ícone da extensão.** `pendingReviewsCount` é calculado (`shared/analytics.js:267`) e não é usado em lugar nenhum; o README promete alertas de atraso.
 - **Métodos de API sem uso**: `getTimeReport`, `getStudyTypeReport`, `listSubjectsWithDuration` e `getHomeActivities` (`shared/api.js`). Remover, ou usar para "horas previstas vs cumpridas".
@@ -72,4 +72,4 @@ Detalhes completos em `006-spike-open-json-backup.md`.
 
 ## Achado não planejado (resumo)
 
-Permissões `tabs` e `cookies` provavelmente desnecessárias e badge de revisões pendentes: ver seção "Achados registrados mas não planejados" acima. O vínculo do cache à conta foi implementado e testado.
+Permissões `tabs` e `cookies` removidas; badge de revisões pendentes continua sendo uma ideia, não defeito pendente: ver seção "Achados registrados mas não planejados" acima. O vínculo do cache à conta foi implementado e testado.

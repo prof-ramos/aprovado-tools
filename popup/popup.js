@@ -74,6 +74,13 @@ function setLoading(isLoading) {
 }
 
 function showDisconnected() {
+  currentSnapshot = null;
+  for (const el of [userAvatar, userName, userEmail, kpiTime, kpiAvgDay, kpiSessions,
+    kpiDaysCount, kpiQuestions, kpiAccuracy, kpiStreak, kpiLongestStreak, cyclePct]) {
+    el.textContent = '';
+  }
+  cycleProgressFill.style.width = '0%';
+  cyclePreview.classList.add('hidden');
   authBadge.className = 'auth-badge disconnected';
   authStatusText.textContent = 'Desconectado';
   disconnectedState.classList.remove('hidden');
@@ -216,6 +223,7 @@ btnCopyMarkdown.addEventListener('click', async () => {
     }, 2000);
   } catch (err) {
     console.error('Falha ao copiar:', err);
+    copyBtnText.textContent = 'Falha ao copiar. Tente novamente.';
   }
 });
 

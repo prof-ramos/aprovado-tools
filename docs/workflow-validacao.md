@@ -20,6 +20,7 @@ Na raiz do checkout, execute em sequência e confira o código de saída de cada
 ```sh
 TZ=UTC npm test
 TZ=America/Sao_Paulo npm test
+npm run check:docs
 git diff --check
 npm run build:zip
 unzip -t dist/aprovado-tools-v$(node -p "require('./manifest.json').version").zip
@@ -97,7 +98,7 @@ Limpeza: abas e arquivos temporários da tarefa.
 Execute as etapas acessíveis antes de encerrar. Se faltou autenticação, permissão
 ou capacidade concreta da ferramenta, mantenha essa limitação explícita; não
 marque validação real como concluída com evidência de mock, DOM simulado ou teste
-unitário. Uma mudança apenas documental exige conferir links e diff; não precisa
+unitário. Uma mudança apenas documental exige `npm run check:docs` e `git diff --check`; não precisa
 reexecutar a suíte sem alteração de comportamento. Para mudanças de produto,
 revalide se o código mudar depois do recibo. Commit/push seguem o escopo autorizado;
 merge e publicação seguem a autorização da tarefa.

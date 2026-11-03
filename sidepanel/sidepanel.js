@@ -76,6 +76,15 @@ function setLoading(isLoading) {
 }
 
 function showDisconnected() {
+  currentSnapshot = null;
+  for (const el of [userAvatar, userName, kpiTime, kpiAvg, kpiSessions, kpiDays,
+    kpiQuestions, kpiAccuracy, kpiStreak, kpiLongest, cicloPct, reviewsCountBadge]) {
+    el.textContent = '';
+  }
+  cicloProgressBar.style.width = '0%';
+  for (const el of [cicloSubjectsList, reviewsList, subjectsBars]) el.innerHTML = '';
+  sectionCiclo.classList.add('hidden');
+  sectionReviews.classList.add('hidden');
   panelDisconnected.classList.remove('hidden');
   panelMain.classList.add('hidden');
 }
@@ -229,8 +238,13 @@ btnCopyMd.addEventListener('click', async () => {
     currentSnapshot.ciclo,
     currentSnapshot.revisoesPendentes
   );
-  await AprovadoExport.copyReportToClipboard(metrics, currentSnapshot.user);
-  copyText.textContent = 'Copiado para Área de Transferência! ✓';
+  try {
+    await AprovadoExport.copyReportToClipboard(metrics, currentSnapshot.user);
+    copyText.textContent = 'Copiado para Área de Transferência! ✓';
+  } catch (err) {
+    console.error('Falha ao copiar:', err);
+    copyText.textContent = 'Falha ao copiar. Tente novamente.';
+  }
   setTimeout(() => {
     copyText.textContent = '📋 Copiar Resumo em Markdown';
   }, 2000);

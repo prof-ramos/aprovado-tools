@@ -1,6 +1,6 @@
 # Diagnóstico de acesso antes de declarar bloqueio
 
-Use quando uma tarefa autorizada depender de credencial ou sessão e uma tentativa inicial falhar. As regras atuais do usuário e o [guia local do op](/Users/gabrielramos/Developer/infra/m3-gabrielramos/1password/README.md) são a referência; este roteiro organiza a investigação sem alterar permissões.
+Use quando uma tarefa autorizada depender de credencial ou sessão e uma tentativa inicial falhar. As regras atuais do usuário e o guia local do op (`~/Developer/infra/m3-gabrielramos/1password/README.md`) são a referência; este roteiro organiza a investigação sem alterar permissões.
 
 1. **Identifique o recurso e o canal.** Para itens de cofre, referências `op://` e execução de ferramentas, priorize o CLI `op`. Para Developer Environments e montagens `.env`, use o MCP local `1password-mcp`, lendo a skill e os recursos exigidos nas instruções do usuário. Confira as ferramentas disponíveis e seus esquemas. Conclusão: recurso, destino e operação necessária identificados.
 2. **Teste a operação necessária.** Uma falha de `op whoami` indica identidade indisponível, não bloqueio geral. Teste pontualmente a listagem ou resolução exigida pela tarefa, de forma sequencial. Preserve o erro e código de saída sanitizados. Conclusão: resultado da operação efetiva conhecido, além do diagnóstico de identidade.

@@ -169,14 +169,14 @@ flowchart TD
 1. **Dependência de Sessão Web Ativa**:
    - A extensão não armazena login e senha do usuário. Caso o cookie de autenticação do AprovadoApp expire, o usuário deve acessar o site oficial para renovar a sessão.
 2. **CORS e Políticas de Cookies do Navegador**:
-   - As telas fazem `fetch` com `credentials: include` para `https://aprovadoapp.com/service`. O manifesto permite HTTPS nas raízes `.com`, `.com.br` e seus subdomínios, também usados pelos atalhos. A permissão `cookies` é usada separadamente pelo handler `CHECK_LOGIN_STATUS`, que retorna somente presença de cookie; as telas não usam esse handler para autenticar. A necessidade dessa permissão deve ser avaliada pelos seus consumidores, não presumida por causa do `fetch`.
+   - As telas fazem `fetch` com `credentials: include` para `https://aprovadoapp.com/service`. O manifesto permite HTTPS nas raízes `.com`, `.com.br` e seus subdomínios, também usados pelos atalhos. A autenticação usa a sessão enviada pelo navegador, sem acesso à API de leitura de cookies. As permissões `cookies` e `tabs` e o handler sem consumidores `CHECK_LOGIN_STATUS` foram removidos; criar abas e obter o `windowId` da aba ativa dispensam acesso aos campos sensíveis de histórico.
 3. **Ausência de Webhooks ou Eventos Push no AprovadoApp**:
    - A extensão consulta a identidade antes de reutilizar listas em cache por até 5 minutos. O botão Sincronizar força a atualização das listas. Isso exige acesso ao serviço mesmo quando as listas ainda estão em cache; não há leitura offline de cache sem autenticação confirmada.
 4. **Volume de Histórico e Capacidade de Armazenamento**:
    - Usuários com mais de uma década de estudo acumulam megabytes de registros JSON. Para evitar a cota padrão de `chrome.storage.local` (10 MB no Chrome atual; 5 MB até o Chrome 113), o manifesto inclui obrigatoriamente a permissão `"unlimitedStorage"`.
 
 5. **Retenção e estado já carregado**:
-   - O prazo de cache não é um prazo de exclusão. Logout não apaga automaticamente `chrome.storage.local` nem revoga snapshots já em memória; o dashboard mantém dados e exportações após falha de sincronização. Os controles de identidade protegem novas leituras e gravações. Veja [PRIVACY.md](PRIVACY.md).
+   - O prazo de cache não é um prazo de exclusão. Logout não apaga automaticamente `chrome.storage.local` nem revoga snapshots já em memória; uma falha de carga ou sincronização limpa os snapshots em memória e os dados renderizados nas três telas, bloqueando exportações até a recuperação. Não há observador contínuo de logout. Os controles de identidade protegem novas leituras e gravações. Veja [PRIVACY.md](PRIVACY.md).
 6. **Conversão experimental de backup**:
    - `shared/backup.js` é um conversor puro, testado e sem integração às telas; é excluído do ZIP. Propostas em `plans/` não representam uma funcionalidade disponível.
 

@@ -39,7 +39,7 @@ Para suporte, consulte o repositório e as issues do projeto.
 | Imagens promocionais | Ainda não preparadas. |
 | Política de privacidade | [PRIVACY.md](PRIVACY.md), em português e inglês; conferir a URL pública na submissão. |
 | Pacote | Gerado por `npm run build:zip`; conferir conteúdo e versão pelo workflow. |
-| Revisão de permissões | Pendente antes da submissão: avaliar `tabs` e o handler de presença de cookie sem ampliar o escopo de acesso. |
+| Revisão de permissões | `tabs`, `cookies` e o handler sem uso removidos no código; conferir o pacote efetivamente enviado e a validação de login. |
 | Submissão e aprovação | Não realizadas por este documento. |
 
 Prepare capturas com dados sintéticos: visão geral, análise histórica, exportações e painel lateral nativo. Consulte os [requisitos oficiais de imagens da loja](https://developer.chrome.com/docs/webstore/images) antes de produzir os arquivos e confira os campos exigidos no console no momento da submissão.
@@ -49,10 +49,9 @@ Prepare capturas com dados sintéticos: visão geral, análise histórica, expor
 A descrição de uso não prova que uma permissão seja necessária. O manifesto atual é a fonte da lista; [PRIVACY.md](PRIVACY.md#4-permissões-declaradas) descreve o uso de cada permissão no código.
 
 - `storage` e `unlimitedStorage`: snapshot completo e marcadores locais; não há filtros recentes persistentes ou seletor de tema implementado.
-- `cookies`: usado apenas pelo handler `CHECK_LOGIN_STATUS`; as telas autenticam pela API com a sessão do navegador. Não apresentar esse handler como indispensável à sincronização sem reavaliar seus consumidores.
-- `tabs`: declarado, mas não há leitura de URL ou título de abas. Reavaliar a necessidade antes de descrever acesso ao histórico de navegação.
 - `sidePanel` e `contextMenus`: painel lateral e atalhos de abertura.
-- Hosts: `https://aprovadoapp.com/*`, `https://*.aprovadoapp.com/*`, `https://aprovadoapp.com.br/*` e `https://*.aprovadoapp.com.br/*`. Os atalhos usam os padrões do manifesto; a API e a consulta de cookie usam `.com`. Não alegar autenticação independente em `.com.br` sem evidência.
+- A abertura de abas e a autenticação não usam as permissões `tabs` ou `cookies`. O handler de presença de cookie foi removido.
+- Hosts: `https://aprovadoapp.com/*`, `https://*.aprovadoapp.com/*`, `https://aprovadoapp.com.br/*` e `https://*.aprovadoapp.com.br/*`. Os atalhos usam os padrões do manifesto; a API usa `.com`. Não alegar autenticação independente em `.com.br` sem evidência.
 
 ## Checklist de submissão
 

@@ -24,7 +24,7 @@ O cliente consulta `https://aprovadoapp.com/service`. Embora os atalhos também 
 
 Cada carga normal confirma a identidade online antes de reutilizar listas em cache de até cinco minutos. **Sincronizar** ignora a validade temporal e busca novamente as listas. Falhas de matérias ou atividades interrompem a carga sem substituir o cache anterior; ciclo e revisões podem faltar sem impedir as métricas principais. Não há atualização em tempo real nem leitura normal do cache sem confirmação de sessão.
 
-Uma aba já carregada pode continuar mostrando seu snapshot após logout ou falha de sincronização. Feche as superfícies da extensão ao encerrar uma sessão em computador compartilhado. O logout não exclui o armazenamento local; veja [retenção e exclusão](../PRIVACY.md#3-retenção-e-exclusão).
+Uma aba já carregada pode continuar mostrando seu snapshot após logout, até uma nova consulta detectar a desconexão. Uma falha de carga ou sincronização limpa os dados exibidos e bloqueia exportações até a recuperação. Feche as superfícies da extensão ao encerrar uma sessão em computador compartilhado. O logout não exclui o armazenamento local; veja [retenção e exclusão](../PRIVACY.md#3-retenção-e-exclusão).
 
 ## Filtrar e analisar
 
