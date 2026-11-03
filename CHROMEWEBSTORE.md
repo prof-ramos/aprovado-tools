@@ -1,101 +1,67 @@
-# Chrome Web Store Listing — Aprovado Tools — Métricas & Exportação
+# Preparação para a Chrome Web Store
 
-> Last Updated: 2026-11-02
+Atualizado em 3 de novembro de 2026. A v1.0.0 está [publicada no GitHub](https://github.com/prof-ramos/aprovado-tools/releases/tag/v1.0.0); este documento prepara uma futura submissão e não indica publicação ou aprovação pela Chrome Web Store.
 
-## Store Listing
+## Texto proposto para a ficha
 
-**Extension Name** [REQUIRED]
-Aprovado Tools — Métricas & Exportação
+**Nome:** Aprovado Tools — Métricas & Exportação
 
-**Short Description** [REQUIRED]
-Exporte e analise métricas completas de estudo, histórico de atividades, ciclo e revisões do seu AprovadoApp em CSV e JSON.
+**Descrição curta:** Exporte e analise métricas de estudo, histórico, ciclo e revisões do AprovadoApp em CSV, JSON e Markdown.
 
-**Detailed Description** [REQUIRED]
-Aprovado Tools é a ferramenta definitiva para quem estuda pelo AprovadoApp e busca máxima clareza sobre seu rendimento, horas líquidas e taxa de acertos em exercícios.
+**Descrição detalhada:**
 
-Acompanhe seu progresso de estudo em tempo real, visualize gráficos de evolução diária, entenda a distribuição de tempo por disciplina e exporte todo o seu histórico para planilhas ou notas com um único clique.
+Aprovado Tools é uma extensão não oficial para estudantes que usam o AprovadoApp e querem consultar e exportar seu histórico.
 
-Principais Recursos:
+- Consulte horas de estudo, sessões, dias ativos, sequência e assertividade em questões.
+- Use filtros de período, matéria e modalidade no dashboard.
+- Explore o histórico completo: semestres e anos, mapa anual, horários, turnos, duração das sessões e síntese por regras locais.
+- Acompanhe ciclo, revisões pendentes e distribuição por matéria no painel lateral.
+- Exporte atividades e resumo por matéria em CSV, baixe um snapshot completo em JSON ou copie um relatório em Markdown.
 
-- Painel Completo de Métricas: Veja horas líquidas totais, sessões registradas, média diária e taxa geral de assertividade em simulados e questões.
-- Exportação Completa para Planilhas: Baixe todas as suas sessões de estudo em formato CSV (compatível com Excel, Google Planilhas e Apple Numbers com acentuação perfeita) e resumo consolidado por disciplina.
-- Backup Integral da Conta: Gere backups estruturados em JSON de todo o seu histórico, disciplinas cadastradas, ciclo de estudos e revisões.
-- Copiar Relatório em Markdown: Exporte relatórios executivos formatados diretamente para o Notion, Obsidian ou aplicativos de anotações.
-- Ciclo de Estudos e Revisões: Acompanhe a porcentagem de conclusão da rodada atual do seu ciclo de estudos e verifique revisões pendentes ou agendadas.
-- Painel Lateral Integrado: Mantenha suas metas e cronograma visíveis na barra lateral do navegador enquanto lê materiais, PDFs ou assiste a videoaulas.
-- Atalho Direto no Aprovado: Botão integrado na própria barra do AprovadoApp para abrir o painel sem sair da página.
+Faça login em aprovadoapp.com no mesmo perfil do navegador e abra a extensão. Use Sincronizar para atualizar as listas. O cache pode reduzir consultas de histórico por até cinco minutos, mas a identidade é sempre confirmada online. Não há atualização em tempo real ou importação de backups pela interface.
 
-Como Usar:
+Os cálculos são locais, sem telemetria, serviços de IA ou servidor próprio. Requisições autenticadas vão diretamente ao AprovadoApp. Arquivos exportados podem conter perfil e anotações; o armazenamento local permanece após logout até ser substituído ou removido.
 
-1. Acesse sua conta no AprovadoApp (aprovadoapp.com ou aprovadoapp.com.br) normalmente no navegador.
-2. Clique no ícone do Aprovado Tools na barra de extensões ou no botão integrado no próprio site.
-3. Visualize instantaneamente suas métricas consolidadas ou clique em 'Abrir Dashboard Completo' para uma análise aprofundada.
-4. Escolha o formato desejado (CSV, JSON ou Markdown) para baixar ou copiar seus dados de estudo.
+Para suporte, consulte o repositório e as issues do projeto.
 
-Privacidade e Segurança:
+**Categoria proposta:** Productivity
 
-Seus dados de estudo pertencem exclusivamente a você. O Aprovado Tools opera localmente no seu navegador e não possui servidores externos, rastreadores ou telemetria. As requisições são feitas diretamente entre o seu navegador e a sua conta no AprovadoApp.
+**Idioma:** Português (Brasil)
 
-Suporte e Feedback:
+**Finalidade única:** Analisar e exportar os dados de estudo da conta do usuário no AprovadoApp.
 
-Extensão não oficial criada por e para estudantes. Para sugestões, dúvidas ou suporte, consulte o repositório oficial no GitHub.
+## Materiais e pendências
 
-**Category** [REQUIRED]
-Productivity
+| Item | Situação no repositório |
+|---|---|
+| Ícone 128 × 128 | Disponível em `icons/icon-128.png`. |
+| Capturas destinadas à loja | Ainda não preparadas como assets de publicação. Recibos de QA não substituem esses arquivos. |
+| Imagens promocionais | Ainda não preparadas. |
+| Política de privacidade | [PRIVACY.md](PRIVACY.md), em português e inglês; conferir a URL pública na submissão. |
+| Pacote | Gerado por `npm run build:zip`; conferir conteúdo e versão pelo workflow. |
+| Revisão de permissões | Pendente antes da submissão: avaliar `tabs` e o handler de presença de cookie sem ampliar o escopo de acesso. |
+| Submissão e aprovação | Não realizadas por este documento. |
 
-**Single Purpose** [REQUIRED]
-Exportar e analisar métricas de estudo, ciclo e revisões da conta do usuário no AprovadoApp.
+Prepare capturas com dados sintéticos: visão geral, análise histórica, exportações e painel lateral nativo. Consulte os [requisitos oficiais de imagens da loja](https://developer.chrome.com/docs/webstore/images) antes de produzir os arquivos e confira os campos exigidos no console no momento da submissão.
 
-**Primary Language** [REQUIRED]
-Portuguese (Brazil)
+## Permissões: conferir implementação antes de justificar
 
----
+A descrição de uso não prova que uma permissão seja necessária. O manifesto atual é a fonte da lista; [PRIVACY.md](PRIVACY.md#4-permissões-declaradas) descreve o uso de cada permissão no código.
 
-## Graphics & Assets
+- `storage` e `unlimitedStorage`: snapshot completo e marcadores locais; não há filtros recentes persistentes ou seletor de tema implementado.
+- `cookies`: usado apenas pelo handler `CHECK_LOGIN_STATUS`; as telas autenticam pela API com a sessão do navegador. Não apresentar esse handler como indispensável à sincronização sem reavaliar seus consumidores.
+- `tabs`: declarado, mas não há leitura de URL ou título de abas. Reavaliar a necessidade antes de descrever acesso ao histórico de navegação.
+- `sidePanel` e `contextMenus`: painel lateral e atalhos de abertura.
+- Hosts: `https://aprovadoapp.com/*`, `https://*.aprovadoapp.com/*`, `https://aprovadoapp.com.br/*` e `https://*.aprovadoapp.com.br/*`. Os atalhos usam os padrões do manifesto; a API e a consulta de cookie usam `.com`. Não alegar autenticação independente em `.com.br` sem evidência.
 
-| Asset | Dimensions | Status | Filename |
-|---|---|---|---|
-| Store Icon [REQUIRED] | 128×128 PNG | ✅ Ready | `icons/icon-128.png` |
-| Screenshot 1 [REQUIRED] | 1280×800 or 640×400 | ⬜ Not created | |
-| Screenshot 2 [RECOMMENDED] | 1280×800 or 640×400 | ⬜ Not created | |
-| Screenshot 3 [RECOMMENDED] | 1280×800 or 640×400 | ⬜ Not created | |
-| Small Promo Tile [RECOMMENDED] | 440×280 | ⬜ Not created | |
-| Marquee Promo Tile | 1400×560 | ⬜ Not created | |
+## Checklist de submissão
 
-### Screenshot Notes
-- Screenshot 1: Visão executiva do Dashboard com banner de KPIs (Horas totais, sessões, assertividade de questões, sequência).
-- Screenshot 2: Gráfico de evolução cronológica diária e painel de ciclo de estudos.
-- Screenshot 3: Tabela detalhada de matérias e menu suspenso de exportação (CSV, JSON, Markdown).
-- Screenshot 4: Painel lateral aberto em aba de leitura de estudo.
+1. Confirme a versão do manifesto, o pacote e os cenários aplicáveis no [workflow de validação](docs/workflow-validacao.md).
+2. Revise as permissões no código, teste qualquer alteração e alinhe ficha e política ao pacote efetivamente enviado.
+3. Produza os assets da loja, confira dimensões e remova informações pessoais.
+4. Preencha as declarações de dados conforme o comportamento real; processamento local ainda envolve acesso a dados pessoais. Confira a [política de dados do usuário](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq).
+5. Revise os campos e instruções de avaliação no console e registre separadamente envio, aprovação e publicação.
 
----
+## Distribuição existente
 
-## Permissions Justification
-
-| Permission | Type | Justification |
-|---|---|---|
-| `storage` | permissions | Armazena preferências locais (tema, filtros recentes) e cache local de métricas para inicialização rápida. |
-| `unlimitedStorage` | permissions | Permite persistir snapshots completos do histórico multianual de estudos (10+ anos e milhares de atividades) localmente no navegador sem atingir a cota padrão de 5MB. |
-| `cookies` | permissions | Detecta a sessão ativa de login do usuário no AprovadoApp para permitir sincronização de dados sem solicitar senhas. |
-| `sidePanel` | permissions | Permite abrir o painel lateral com métricas e revisões enquanto o estudante navega e estuda em outras abas. |
-| `contextMenus` | permissions | Adiciona opções no menu de contexto do navegador para abrir rapidamente o painel de métricas. |
-| `tabs` | permissions | Abre o painel completo de métricas em uma nova aba e detecta a janela atual para exibir o painel lateral. |
-| `https://aprovadoapp.com/*` | host_permissions | Comunica-se com os serviços do AprovadoApp para carregar o histórico de estudos, ciclo e revisões para exportação e análise. |
-| `https://*.aprovadoapp.com/*` | host_permissions | Garante compatibilidade caso o serviço use subdomínios oficiais da plataforma. |
-| `https://aprovadoapp.com.br/*` | host_permissions | Permite detectar login e injetar atalhos de exportação no domínio brasileiro do AprovadoApp. |
-| `https://*.aprovadoapp.com.br/*` | host_permissions | Garante compatibilidade em eventuais subdomínios no domínio .br. |
-
----
-
-## Privacy & Data Use
-
-### Data Collection
-- **User Activity Data (Estudos)**: Dados de matérias, sessões e exercícios lidos da conta do usuário.
-- **Armazenamento**: Estritamente local (`chrome.storage.local`).
-- **Transmissão Externa**: NENHUM dado é enviado a servidores de terceiros ou serviços externos. Toda a comunicação ocorre estritamente entre a extensão e o domínio oficial do AprovadoApp autenticado pelo próprio usuário.
-
----
-
-## Version History
-
-- **v1.0.0** (2026-11-02): Versão inicial com Dashboard completo de métricas, Painel Lateral, popup de exportação rápida (CSV, JSON, Markdown), integração com ciclo de estudos e revisões espaçadas.
+A release GitHub v1.0.0 foi publicada em **3 de novembro de 2026**, com ZIP e `SHA256SUMS`. Para instalar ou atualizar manualmente, siga o [guia de uso](docs/uso.md). Não existe atualização automática da instalação sem compactação.

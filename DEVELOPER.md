@@ -2,6 +2,8 @@
 
 Este documento orienta desenvolvedores e contribuidores na configuração do ambiente, fluxo de desenvolvimento, testes e resolução de problemas da extensão **Aprovado Tools**.
 
+Para instalação de usuário e formatos de exportação, consulte o [guia de uso](docs/uso.md). O [índice de documentação](docs/README.md) separa os guias atuais dos recibos históricos.
+
 Para executar e registrar a validação de uma alteração, siga o
 [workflow de validação para agentes](docs/workflow-validacao.md).
 
@@ -11,7 +13,7 @@ Para executar e registrar a validação de uma alteração, siga o
 
 ### 1.1. Pré-requisitos
 - **Node.js**: Versão 18.20.0 ou superior para os scripts e o test runner nativo `node --test`. Prefira uma versão LTS com suporte ativo; Node 18 está fora de suporte e é mantido na CI apenas para verificar compatibilidade.
-- **Navegador baseado em Chromium**: Google Chrome, Brave ou Microsoft Edge (com suporte a Manifest V3).
+- **Google Chrome atualizado**: o painel usa `chrome.sidePanel.open()`, disponível a partir do Chrome 116. Outros navegadores Chromium precisam de validação própria; suporte a Manifest V3 sozinho não comprova suporte ao painel.
 - **Git**: Para controle de versão.
 
 ### 1.2. Clonando o Repositório
@@ -43,7 +45,7 @@ npm test
   ```text
   chrome-extension://<EXTENSION_ID>/dashboard/dashboard.html?mock=true
   ```
-  Para prévia fora da extensão, sirva a raiz do repositório por um servidor HTTP local (por exemplo, `python3 -m http.server 8000`) e acesse `http://localhost:8000/dashboard/dashboard.html?mock=true`. Não abra o HTML diretamente por `file://`, pois o navegador precisa carregar módulos e buscar o JSON. O mock não exige conexão com o AprovadoApp. O ZIP de produção não inclui fixtures; use o checkout local para esta prévia.
+  Para prévia fora da extensão, sirva a raiz do repositório por um servidor HTTP local (por exemplo, `python3 -m http.server 8000 --bind 127.0.0.1`) e acesse `http://127.0.0.1:8000/dashboard/dashboard.html?mock=true`. Não abra o HTML diretamente por `file://`, pois o navegador precisa carregar módulos e buscar o JSON. O mock não exige conexão com o AprovadoApp. O ZIP de produção não inclui fixtures; use o checkout local para esta prévia.
 
 
 ### 1.6. Verificação do popup e do painel nativo
@@ -112,7 +114,7 @@ aprovado-tools/
 Ao editar arquivos JavaScript, HTML ou CSS:
 1. Edite o código localmente no seu editor preferido.
 2. Para aplicar alterações no `background.js` ou `manifest.json`: acesse `chrome://extensions` e clique no ícone de recarga (↻) do card da extensão.
-3. Para alterações no `dashboard.html` ou `popup.html`: basta recarregar a aba ou fechar e reabrir o popup.
+3. Para alterações nas páginas HTML, CSS ou módulos usados por elas: recarregue a aba ou feche e reabra o popup/painel. Para `content.js` e `content.css`, recarregue a extensão e depois a página do AprovadoApp. Veja a [tabela oficial de recarga](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#reload).
 4. Para recarregar via console do DevTools na aba da extensão:
    ```javascript
    chrome.runtime.reload();
@@ -123,7 +125,9 @@ Para gerar o pacote limpo para publicação na Chrome Web Store:
 ```bash
 npm run build:zip
 ```
-O arquivo final será salvo em `dist/aprovado-tools-v1.0.0.zip` excluindo arquivos de teste, git e documentação de desenvolvimento.
+O nome é derivado de `manifest.json`: `dist/aprovado-tools-v<versão>.zip`. O comando inclui somente os arquivos e diretórios de execução enumerados em `package.json` e exclui `shared/backup.js`; testes, fixtures e documentação ficam fora do pacote. O script remove ZIPs anteriores em `dist/` antes de gerar o novo. Não guarde artefatos que precise preservar nessa pasta.
+
+A geração do ZIP não publica a extensão. As releases do GitHub e uma futura submissão à loja são etapas separadas; veja [CHROMEWEBSTORE.md](CHROMEWEBSTORE.md).
 
 ---
 
@@ -185,4 +189,10 @@ No PowerShell, use `$env:TZ = 'America/Sao_Paulo'; npm test`. A matriz ajuda a d
 | **"Side Panel não abre ao clicar no botão"** | A API `chrome.sidePanel.open()` exige gesto do usuário (*user gesture*). | Certifique-se de disparar a abertura a partir de um clique direto (`click` event) no popup ou botão injetado. |
 | **Acentos desformatados no Excel ao abrir CSV** | O Excel requer marcador de ordem de bytes (BOM) UTF-8. | O módulo `export.js` já inclui `\uFEFF` no início do arquivo e separador `;`. Evite remover esse caractere ao alterar a exportação. |
 | **Erro de violação de CSP (Content Security Policy)** | Tentativa de usar scripts inline (`<script>code</script>`), `eval()` ou atributos inline (`onclick=""`). | O Manifest V3 proíbe estritamente código inline. Utilize arquivos `.js` externos e registre eventos com `addEventListener`. |
-| **"QUOTA_BYTES_PER_ITEM exceeded" no storage** | Volume de atividades ultrapassando a cota padrão de 5 MB do storage. | A permissão `"unlimitedStorage"` no `manifest.json` resolve essa limitação. Confirme se ela consta nas permissões do manifesto. |
+| **Falha ao persistir o snapshot** | Limite de armazenamento ou indisponibilidade da API local. | Confira a mensagem real e o manifesto. `storage.local` tem cota de 10 MB no Chrome atual (5 MB até o Chrome 113), ampliável por `unlimitedStorage`; `QUOTA_BYTES_PER_ITEM` não é a cota de `storage.local`. |
+
+## 6. Limites e referências
+
+A prévia HTTP testa conteúdo e layout, sem autenticação, permissões ou superfícies nativas. O modo normal exige identidade online antes de ler cache, e o conversor de backups não tem integração à UI. Consulte [ARCHITECTURE.md](ARCHITECTURE.md) antes de alterar esses limites.
+
+Referências oficiais: [Side Panel](https://developer.chrome.com/docs/extensions/reference/api/sidePanel), [armazenamento local](https://developer.chrome.com/docs/extensions/reference/api/storage) e [cookies](https://developer.chrome.com/docs/extensions/reference/api/cookies).
