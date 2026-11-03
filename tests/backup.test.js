@@ -11,3 +11,20 @@ test('rejeita arquivos inválidos', () => { for (const x of [null, 42, {}, [], {
 test('descarta atividades que não são objetos', () => { assert.deepEqual(snapshotFromBackup({ usuario: null, atividades: [{ Id: 1 }, null, 'x', 3, []] }).atividades, [{ Id: 1 }]); });
 test('não modifica entrada', () => { const before = JSON.stringify(backup); snapshotFromBackup(backup); assert.equal(JSON.stringify(backup), before); });
 test('normaliza listas opcionais inválidas', () => { const s = snapshotFromBackup({ usuario: null, atividades: [], materias: 4 }); assert.deepEqual(s.materias, []); assert.deepEqual(s.revisoesConcluidas, []); });
+test('aceita estrutura do CLI e ignora relatórios extras sem perder as listas', () => {
+  const payload = {
+    ...backup,
+    ciclo: { Materias: [{ Id: 1 }] },
+    metricas_tempo: [{ Data: '2025-03-10', Duracao: 3600000 }],
+    metricas_ciclo: { Total: 3600000 }
+  };
+  const before = JSON.stringify(payload);
+  const snapshot = snapshotFromBackup(payload);
+  assert.deepEqual(snapshot.atividades, payload.atividades);
+  assert.deepEqual(snapshot.materias, payload.materias);
+  assert.deepEqual(snapshot.ciclo, payload.ciclo);
+  assert.deepEqual(snapshot.revisoesConcluidas, payload.revisoes_concluidas);
+  assert.equal(Object.hasOwn(snapshot, 'metricas_tempo'), false);
+  assert.equal(Object.hasOwn(snapshot, 'metricas_ciclo'), false);
+  assert.equal(JSON.stringify(payload), before);
+});

@@ -42,6 +42,17 @@ npm test
   ```
   Para prévia fora da extensão, sirva a raiz do repositório por um servidor HTTP local (por exemplo, `python3 -m http.server 8000`) e acesse `http://localhost:8000/dashboard/dashboard.html?mock=true`. Não abra o HTML diretamente por `file://`, pois o navegador precisa carregar módulos e buscar o JSON. O mock não exige conexão com o AprovadoApp. O ZIP de produção não inclui fixtures; use o checkout local para esta prévia.
 
+
+### 1.6. Verificação do popup e do painel nativo
+
+1. Recarregue a extensão local em `chrome://extensions` e abra uma página normal do AprovadoApp no mesmo perfil.
+2. Abra o popup pelo ícone **Aprovado Tools** da barra do navegador. `popup/popup.html` aberto em uma aba serve apenas para inspecionar seu conteúdo: seus botões chamam `window.close()`, fechando essa aba e, em automação, possivelmente o espaço que a contém.
+3. Para testar o painel nativo, use **Abrir painel lateral** no popup autenticado ou o menu de contexto do ícone → **Abrir Painel Lateral de Estudos**. Confirme o painel junto à página e sua alça de redimensionamento. Abrir `sidepanel/sidepanel.html` numa aba verifica somente a página.
+4. Confira a sessão no próprio perfil de teste. Sem login, o resultado esperado é **Sessão desconectada**; com login, acione **Sincronizar** e confirme **Sincronizado** e as métricas. Use preenchimento seguro do gerenciador ou entrada direta pelo usuário.
+5. Registre separadamente o que foi executado: navegador/perfil, commit recarregado, modo real/mock, superfície (aba/popup/painel nativo), ação e resultado observado. Liste filtros ou exportações que ficaram sem exercício. Publique apenas agregados; mantenha backups reais fora do Git.
+
+Para correções de controles injetados, valide a quantidade de botões depois de várias mutações da página e de reinjetar o script antes de os callbacks agendados terminarem. O teste deve executar o `content.js` real.
+
 ---
 
 ## 2. Visão Geral da Estrutura do Projeto
