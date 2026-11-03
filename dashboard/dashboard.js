@@ -900,7 +900,7 @@ function renderCircadian(circadianData) {
   }
 
   if (peakNote) {
-    peakNote.innerHTML = `🏆 Pico de estudo às <strong>${circadianData.peakHour.label}</strong> com <strong>${circadianData.peakHour.hours.toFixed(1)}h</strong> (${circadianData.peakHour.percentage.toFixed(1)}% do tempo total)`;
+    peakNote.innerHTML = `Pico de estudo às <strong>${circadianData.peakHour.label}</strong> com <strong>${circadianData.peakHour.hours.toFixed(1)}h</strong> (${circadianData.peakHour.percentage.toFixed(1)}% do tempo total)`;
   }
 
   // 2. 4 Daytime Shifts (sum strictly to 100%)
@@ -908,10 +908,10 @@ function renderCircadian(circadianData) {
   if (shiftsContainer) {
     shiftsContainer.innerHTML = '';
     const shiftDefs = [
-      { key: 'madrugada', name: 'Madrugada', icon: '🌙', range: '00h às 06h' },
-      { key: 'manha', name: 'Manhã', icon: '🌅', range: '06h às 12h' },
-      { key: 'tarde', name: 'Tarde', icon: '☀️', range: '12h às 18h' },
-      { key: 'noite', name: 'Noite', icon: '🌌', range: '18h às 24h' }
+      { key: 'madrugada', name: 'Madrugada', range: '00h às 06h' },
+      { key: 'manha', name: 'Manhã', range: '06h às 12h' },
+      { key: 'tarde', name: 'Tarde', range: '12h às 18h' },
+      { key: 'noite', name: 'Noite', range: '18h às 24h' }
     ];
 
     shiftDefs.forEach(s => {
@@ -922,11 +922,11 @@ function renderCircadian(circadianData) {
       card.className = `shift-card ${isDominant ? 'is-dominant' : ''}`;
       card.innerHTML = `
         <div class="shift-card-header">
-          <span>${s.icon} ${s.name}</span>
-          ${isDominant ? '<span class="dominant-tag">Turno Dominante</span>' : ''}
+          <span>${s.name}</span>
+          ${isDominant ? '<span class="dominant-tag">Turno dominante</span>' : ''}
         </div>
         <div class="shift-hours-val">${shiftData.hours.toFixed(1)}h</div>
-        <div class="shift-card-header">
+        <div class="shift-card-footer">
           <span class="shift-pct-pill">${shiftData.percentage.toFixed(1)}%</span>
           <span class="shift-sessions-val">${shiftData.sessions} sessões</span>
         </div>
@@ -1047,7 +1047,7 @@ function renderQuadrants(quadrantsData) {
 
       <!-- Gargalos Críticos (Bottom-Right: high hours, low accuracy) -->
       <rect x="${cutoffX}" y="${cutoffY}" width="${left + plotWidth - cutoffX}" height="${top + plotHeight - cutoffY}" class="matrix-quadrant-bg q-gargalos" />
-      <text x="${left + plotWidth - 10}" y="${top + plotHeight - 10}" text-anchor="end" fill="#ef4444" font-size="11" font-weight="700" opacity="0.7">⚠️ GARGALOS CRÍTICOS</text>
+      <text x="${left + plotWidth - 10}" y="${top + plotHeight - 10}" text-anchor="end" fill="#f87171" font-size="11" font-weight="600" opacity="0.8">Gargalos críticos</text>
 
       <!-- Cutoff Lines -->
       <line x1="${cutoffX}" y1="${top}" x2="${cutoffX}" y2="${top + plotHeight}" class="matrix-cutoff-line" />
@@ -1141,8 +1141,8 @@ function renderQuadrants(quadrantsData) {
       <!-- Pontos Fortes -->
       <div class="quadrant-panel panel-fortes">
         <div class="quadrant-panel-header">
-          <span style="color: var(--accent);">🟢 Pontos Fortes (${pontosFortes.length})</span>
-          <span style="font-size: 11px; color: var(--text-muted);">Alto Tempo & Alta Assertividade</span>
+          <span class="quadrant-panel-title text-accent">Pontos fortes (${pontosFortes.length})</span>
+          <span class="quadrant-panel-sub">Alto tempo e alta assertividade</span>
         </div>
         <div class="subject-pills-list">
           ${renderSubjectPills(pontosFortes)}
@@ -1152,11 +1152,11 @@ function renderQuadrants(quadrantsData) {
       <!-- Gargalos Críticos -->
       <div class="quadrant-panel panel-gargalos">
         <div class="quadrant-panel-header">
-          <span style="color: var(--danger);">🔴 Gargalos Críticos (${gargalosCriticos.length})</span>
-          <span style="font-size: 11px; color: var(--text-muted);">Alto Tempo & Baixa Assertividade</span>
+          <span class="quadrant-panel-title text-danger">Gargalos críticos (${gargalosCriticos.length})</span>
+          <span class="quadrant-panel-sub">Alto tempo e baixa assertividade</span>
         </div>
         <div class="method-alert-box">
-          <strong>⚠️ Alerta de Método:</strong> Alto tempo investido com assertividade abaixo do corte (${quadrantsData.accuracyCutoff}%). Interrompa leituras passivas e utilize engenharia reversa com foco nos cadernos de erros.
+          <strong>Alerta de método:</strong> Alto tempo investido com assertividade abaixo do corte (${quadrantsData.accuracyCutoff}%). Interrompa leituras passivas e utilize engenharia reversa com foco nos cadernos de erros.
         </div>
         <div class="subject-pills-list">
           ${renderSubjectPills(gargalosCriticos)}
@@ -1166,8 +1166,8 @@ function renderQuadrants(quadrantsData) {
       <!-- Base Sólida -->
       <div class="quadrant-panel panel-solida">
         <div class="quadrant-panel-header">
-          <span style="color: var(--accent-blue);">🔵 Base Sólida (${baseSolida.length})</span>
-          <span style="font-size: 11px; color: var(--text-muted);">Baixo Tempo & Alta Assertividade</span>
+          <span class="quadrant-panel-title text-blue">Base sólida (${baseSolida.length})</span>
+          <span class="quadrant-panel-sub">Baixo tempo e alta assertividade</span>
         </div>
         <div class="subject-pills-list">
           ${renderSubjectPills(baseSolida)}
@@ -1177,8 +1177,8 @@ function renderQuadrants(quadrantsData) {
       <!-- Zona de Risco -->
       <div class="quadrant-panel panel-risco">
         <div class="quadrant-panel-header">
-          <span style="color: var(--warning);">🟠 Zona de Risco / Negligência (${zonaRisco.length})</span>
-          <span style="font-size: 11px; color: var(--text-muted);">Baixo Tempo & Baixa Assertividade</span>
+          <span class="quadrant-panel-title text-warning">Zona de risco (${zonaRisco.length})</span>
+          <span class="quadrant-panel-sub">Baixo tempo e baixa assertividade</span>
         </div>
         <div class="subject-pills-list">
           ${renderSubjectPills(zonaRisco)}
@@ -1192,7 +1192,7 @@ function renderQuadrants(quadrantsData) {
     if (semExercicios.length > 0) {
       semExerciciosContainer.classList.remove('hidden');
       semExerciciosContainer.innerHTML = `
-        <strong>⚠️ Disciplinas Sem Exercícios Registrados:</strong> 
+        <strong>Disciplinas sem exercícios registrados:</strong> 
         ${semExercicios.map(s => `<strong>${escapeHtml(s.name)}</strong> (${s.totalHours.toFixed(1)}h)`).join(', ')}. 
         Resolva questões para calibrar o rendimento e posicionar na matriz.
       `;
@@ -1291,23 +1291,23 @@ function renderMixAndInsights(mixData, insightsData) {
   if (synthesisContainer && insightsData) {
     synthesisContainer.innerHTML = `
       <div class="synthesis-section">
-        <div class="synthesis-heading">📊 1. Resumo Executivo do Histórico</div>
+        <div class="synthesis-heading">1. Resumo executivo do histórico</div>
         <div class="synthesis-body">${escapeHtml(insightsData.executiveSummary)}</div>
       </div>
       <div class="synthesis-section">
-        <div class="synthesis-heading">⏰ 2. Padrão Circadiano & Cronotipo</div>
+        <div class="synthesis-heading">2. Padrão circadiano e cronotipo</div>
         <div class="synthesis-body">${escapeHtml(insightsData.circadianInsights)}</div>
       </div>
       <div class="synthesis-section">
-        <div class="synthesis-heading">📅 3. Consistência e Cadência Semanal</div>
+        <div class="synthesis-heading">3. Consistência e cadência semanal</div>
         <div class="synthesis-body">${escapeHtml(insightsData.weeklyCadenceInsights)}</div>
       </div>
       <div class="synthesis-section">
-        <div class="synthesis-heading">🎯 4. Diagnóstico dos Quadrantes de Rendimento</div>
+        <div class="synthesis-heading">4. Diagnóstico dos quadrantes de rendimento</div>
         <div class="synthesis-body">${escapeHtml(insightsData.quadrantInsights)}</div>
       </div>
       <div class="synthesis-section">
-        <div class="synthesis-heading">⚖️ 5. Recomendações do Mix Metodológico</div>
+        <div class="synthesis-heading">5. Recomendações do mix metodológico</div>
         <ul class="synthesis-list">
           ${insightsData.methodRecommendations.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
         </ul>

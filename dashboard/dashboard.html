@@ -12,31 +12,30 @@
     <header class="navbar">
       <div class="nav-left">
         <div class="brand-logo">
-          <svg viewBox="0 0 24 24" width="22" height="22">
-            <path d="M18 20V10M12 20V4M6 20v-6"></path>
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 13.5h12M4 10.5v-3M8 10.5V4.5M12 10.5v-5"/>
           </svg>
         </div>
         <div class="brand-text">
           <h1>Aprovado Tools</h1>
-          <span class="badge-tag">Analytics & Exportação</span>
+          <span class="badge-tag">Métricas e exportação</span>
         </div>
       </div>
 
       <div class="nav-right">
         <!-- User status card -->
         <div class="user-profile-badge" id="user-badge">
-          <div class="avatar-circle" id="user-avatar">?</div>
+          <div class="avatar-circle" id="user-avatar">G</div>
           <div class="user-meta">
-            <span class="user-title" id="user-display-name">Carregando usuário...</span>
-            <span class="user-sub" id="user-status-text">Conectando...</span>
+            <span class="user-title" id="user-display-name">Carregando...</span>
+            <span class="user-sub" id="user-status-text">Sincronizado</span>
           </div>
         </div>
 
         <!-- Sync Button -->
         <button id="btn-sync-now" class="btn btn-secondary" title="Sincronizar dados recentes do AprovadoApp">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M23 4v6h-6M1 20v-6h6"></path>
-            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 8A6 6 0 1 1 8 2M14 2v6h-6"/>
           </svg>
           <span>Sincronizar</span>
         </button>
@@ -44,37 +43,33 @@
         <!-- Export Dropdown -->
         <div class="dropdown">
           <button id="btn-export-dropdown" class="btn btn-primary">
-            <span>📥 Exportar</span>
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M6 9l6 6 6-6"></path>
+            <span>Exportar</span>
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 6l4 4 4-4"/>
             </svg>
           </button>
           <div id="export-menu" class="dropdown-menu hidden">
             <button id="export-csv-activities" class="dropdown-item">
-              <span class="item-icon">📄</span>
               <div class="item-desc">
                 <strong>Atividades (CSV)</strong>
                 <span>Histórico completo compatível com Excel</span>
               </div>
             </button>
             <button id="export-csv-subjects" class="dropdown-item">
-              <span class="item-icon">📚</span>
               <div class="item-desc">
-                <strong>Resumo por Disciplina (CSV)</strong>
-                <span>Horas e questões consolidadas por matéria</span>
+                <strong>Resumo por disciplina (CSV)</strong>
+                <span>Horas e questões consolidadas</span>
               </div>
             </button>
             <button id="export-json-backup" class="dropdown-item">
-              <span class="item-icon">💾</span>
               <div class="item-desc">
-                <strong>Backup Completo (JSON)</strong>
-                <span>Snapshot integral compatível com prof-ramos/aprovado</span>
+                <strong>Backup completo (JSON)</strong>
+                <span>Snapshot integral compatível com CLI</span>
               </div>
             </button>
             <button id="export-copy-md" class="dropdown-item">
-              <span class="item-icon">📋</span>
               <div class="item-desc">
-                <strong id="copy-report-title">Copiar Relatório (Markdown)</strong>
+                <strong id="copy-report-title">Copiar relatório (Markdown)</strong>
                 <span>Texto formatado para Notion ou Obsidian</span>
               </div>
             </button>
@@ -85,12 +80,11 @@
 
     <!-- Disconnected Alert -->
     <div id="alert-disconnected" class="alert-box alert-warning hidden">
-      <div class="alert-icon">⚠️</div>
       <div class="alert-content">
-        <strong>Você não está conectado ao AprovadoApp no navegador.</strong>
-        <span>Faça login na sua conta para que a extensão carregue seu histórico de estudo em tempo real.</span>
+        <strong>Sessão desconectada do AprovadoApp</strong>
+        <span>Faça login na sua conta no navegador para carregar seus dados em tempo real.</span>
       </div>
-      <a href="https://aprovadoapp.com" target="_blank" class="btn btn-primary">Fazer Login no AprovadoApp</a>
+      <a href="https://aprovadoapp.com" target="_blank" class="btn btn-primary">Acessar login</a>
     </div>
 
     <!-- Filter Control Bar -->
@@ -99,7 +93,7 @@
         <label>Período:</label>
         <div class="segmented-control">
           <button class="seg-btn active" data-period="all">Tudo</button>
-          <button class="seg-btn" data-period="this_year">Este Ano</button>
+          <button class="seg-btn" data-period="this_year">Este ano</button>
           <button class="seg-btn" data-period="90d">90 dias</button>
           <button class="seg-btn" data-period="30d">30 dias</button>
           <button class="seg-btn" data-period="7d">7 dias</button>
@@ -107,7 +101,7 @@
         </div>
       </div>
 
-      <!-- Custom Date Inputs (hidden by default) -->
+      <!-- Custom Date Inputs -->
       <div id="custom-date-container" class="filter-group hidden">
         <input type="date" id="input-date-start" class="date-input">
         <span class="date-sep">até</span>
@@ -118,27 +112,32 @@
       <div class="filter-group">
         <label for="select-subject">Matéria:</label>
         <select id="select-subject" class="select-input">
-          <option value="all">Todas as Disciplinas</option>
+          <option value="all">Todas as disciplinas</option>
         </select>
       </div>
 
       <div class="filter-group">
         <label for="select-type">Modalidade:</label>
         <select id="select-type" class="select-input">
-          <option value="all">Todas as Modalidades</option>
+          <option value="all">Todas as modalidades</option>
         </select>
       </div>
     </section>
 
     <!-- Top-level Tab Navigation Bar -->
-    <nav class="dash-tabs-bar" role="tablist" aria-label="Navegação Principal do Dashboard">
+    <nav class="dash-tabs-bar" role="tablist" aria-label="Navegação principal">
       <button class="dash-tab-btn active" role="tab" aria-selected="true" aria-controls="tab-overview" data-tab="tab-overview" id="tab-btn-overview" tabindex="0">
-        <span class="tab-icon">📊</span>
-        <span>Visão Geral</span>
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="12" height="12" rx="2"/>
+          <path d="M5 11V8M8 11V5M11 11V7"/>
+        </svg>
+        <span>Visão geral</span>
       </button>
       <button class="dash-tab-btn" role="tab" aria-selected="false" aria-controls="tab-historical-patterns" data-tab="tab-historical-patterns" id="tab-btn-historical-patterns" tabindex="-1">
-        <span class="tab-icon">🧬</span>
-        <span>Padrões Históricos de Estudo (2016–2026)</span>
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 8.5h3l2-5 3 9 2-4h2"/>
+        </svg>
+        <span>Padrões históricos (2016–2026)</span>
       </button>
     </nav>
 
@@ -147,419 +146,361 @@
       <!-- Loading Skeleton/Spinner -->
       <div id="dashboard-loading" class="loading-overlay">
         <div class="spinner-large"></div>
-        <p>Calculando estatísticas e métricas de estudo...</p>
+        <p>Calculando métricas e histórico de estudos...</p>
       </div>
 
-      <!-- Tab Pane 1: Visão Geral (Default Active) -->
+      <!-- Tab Pane 1: Visão Geral -->
       <div id="tab-overview" class="dash-tab-pane active" role="tabpanel" aria-labelledby="tab-btn-overview">
         <!-- Executive KPIs Grid -->
         <section class="kpi-banner">
           <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">TEMPO TOTAL</span>
-            <span class="metric-icon">⏱️</span>
+            <span class="metric-title">Tempo total</span>
+            <div class="metric-value" id="dash-total-time">0h 0m</div>
+            <div class="metric-footer" id="dash-total-hours-decimal">0.0h líquidas</div>
           </div>
-          <div class="metric-value" id="dash-total-time">0h 0m</div>
-          <div class="metric-footer" id="dash-total-hours-decimal">0.0 horas líquidas</div>
-        </div>
 
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">SESSÕES DE ESTUDO</span>
-            <span class="metric-icon">📝</span>
+          <div class="metric-card">
+            <span class="metric-title">Sessões de estudo</span>
+            <div class="metric-value" id="dash-total-sessions">0</div>
+            <div class="metric-footer" id="dash-active-days">0 dias ativos</div>
           </div>
-          <div class="metric-value" id="dash-total-sessions">0</div>
-          <div class="metric-footer" id="dash-active-days">0 dias ativos</div>
-        </div>
 
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">QUESTÕES RESOLVIDAS</span>
-            <span class="metric-icon">🎯</span>
+          <div class="metric-card">
+            <span class="metric-title">Assertividade em questões</span>
+            <div class="metric-value" id="dash-questions-accuracy">0%</div>
+            <div class="metric-footer" id="dash-questions-counts">0 acertos de 0 questões</div>
           </div>
-          <div class="metric-value" id="dash-questions-accuracy">0%</div>
-          <div class="metric-footer" id="dash-questions-counts">0 acertos de 0 questões</div>
-        </div>
 
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">SEQUÊNCIA ATUAL</span>
-            <span class="metric-icon">🔥</span>
+          <div class="metric-card">
+            <span class="metric-title">Sequência de estudo</span>
+            <div class="metric-value" id="dash-streak-current">0 dias</div>
+            <div class="metric-footer" id="dash-streak-record">Recorde: 0 dias</div>
           </div>
-          <div class="metric-value" id="dash-streak-current">0 dias</div>
-          <div class="metric-footer" id="dash-streak-record">Recorde histórico: 0 dias</div>
-        </div>
 
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">MÉDIA DIÁRIA</span>
-            <span class="metric-icon">📈</span>
+          <div class="metric-card">
+            <span class="metric-title">Média diária</span>
+            <div class="metric-value" id="dash-avg-daily">0h 0m</div>
+            <div class="metric-footer" id="dash-avg-session">Média por sessão: 0m</div>
           </div>
-          <div class="metric-value" id="dash-avg-daily">0h 0m</div>
-          <div class="metric-footer" id="dash-avg-session">Média por sessão: 0m</div>
-        </div>
-      </section>
+        </section>
 
-      <!-- Charts & Visual Analytics Grid -->
-      <div class="analytics-grid">
-        <!-- Daily Study Evolution Chart -->
-        <div class="chart-card chart-large">
-          <div class="card-title-bar">
-            <h3>📈 Evolução Cronológica dos Estudos</h3>
-            <span class="card-caption">Horas líquidas diárias</span>
-          </div>
-          <div id="daily-timeline-chart" class="timeline-chart-container">
-            <!-- Rendered via JS SVG -->
-          </div>
-        </div>
-
-        <!-- Ciclo de Estudos Widget -->
-        <div class="chart-card" id="card-ciclo-widget">
-          <div class="card-title-bar">
-            <h3>🔄 Ciclo de Estudos</h3>
-            <span id="dash-ciclo-pct" class="badge-accent">0%</span>
-          </div>
-          <div class="ciclo-gauge-box">
-            <div class="progress-bar-bg" style="height: 10px;">
-              <div id="dash-ciclo-fill" class="progress-bar-fill" style="width: 0%"></div>
+        <!-- Charts Grid -->
+        <div class="analytics-grid">
+          <!-- Daily Study Evolution Chart -->
+          <div class="chart-card chart-large">
+            <div class="card-title-bar">
+              <div>
+                <h3>Evolução cronológica de estudos</h3>
+                <span class="card-caption">Horas líquidas diárias</span>
+              </div>
             </div>
-            <div class="ciclo-hours-info" id="dash-ciclo-hours-info">0h executadas de 0h previstas</div>
+            <div id="daily-timeline-chart" class="timeline-chart-container"></div>
           </div>
-          <div id="dash-ciclo-list" class="ciclo-mini-list"></div>
-        </div>
-      </div>
 
-      <!-- Second Row: Disciplines and Study Types -->
-      <div class="analytics-grid">
-        <!-- Subjects Breakdown Table & Progress -->
-        <div class="chart-card chart-large">
-          <div class="card-title-bar">
-            <h3>📚 Distribuição & Rendimento por Matéria</h3>
-            <span class="card-caption">Tempo acumulado e assertividade de questões</span>
+          <!-- Ciclo de Estudos Widget -->
+          <div class="chart-card" id="card-ciclo-widget">
+            <div class="card-title-bar">
+              <div>
+                <h3>Ciclo de estudos</h3>
+                <span class="card-caption">Acompanhamento da rodada</span>
+              </div>
+              <span id="dash-ciclo-pct" class="badge-accent">0%</span>
+            </div>
+            <div class="ciclo-gauge-box">
+              <div class="progress-bar-bg">
+                <div id="dash-ciclo-fill" class="progress-bar-fill" style="width: 0%"></div>
+              </div>
+              <div class="ciclo-hours-info" id="dash-ciclo-hours-info">0h executadas de 0h previstas</div>
+            </div>
+            <div id="dash-ciclo-list" class="ciclo-mini-list"></div>
           </div>
-          <div class="subjects-analytics-table-wrap">
-            <table class="data-table" id="table-subjects-summary">
+        </div>
+
+        <!-- Second Row: Disciplines and Study Types -->
+        <div class="analytics-grid">
+          <!-- Subjects Breakdown Table -->
+          <div class="chart-card chart-large">
+            <div class="card-title-bar">
+              <div>
+                <h3>Distribuição por disciplina</h3>
+                <span class="card-caption">Tempo acumulado e rendimento</span>
+              </div>
+            </div>
+            <div class="subjects-analytics-table-wrap">
+              <table class="data-table" id="table-subjects-summary">
+                <thead>
+                  <tr>
+                    <th>Disciplina</th>
+                    <th>Horas</th>
+                    <th>% Tempo</th>
+                    <th>Sessões</th>
+                    <th>Questões</th>
+                    <th>Aproveitamento</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-subjects-summary"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Modalities and Period Habits -->
+          <div class="chart-card">
+            <div class="card-title-bar">
+              <div>
+                <h3>Modalidades e hábitos</h3>
+                <span class="card-caption">Turnos e distribuição</span>
+              </div>
+            </div>
+            <div class="habit-section">
+              <h4 class="sub-heading">Distribuição por modalidade</h4>
+              <div id="study-types-list" class="types-distribution-list"></div>
+            </div>
+            <div class="habit-section mt-4">
+              <h4 class="sub-heading">Turnos mais produtivos</h4>
+              <div class="shifts-grid" id="shifts-grid">
+                <div class="shift-item">
+                  <span class="shift-name">Madrugada</span>
+                  <span class="shift-hours" id="shift-madrugada">0h</span>
+                </div>
+                <div class="shift-item">
+                  <span class="shift-name">Manhã</span>
+                  <span class="shift-hours" id="shift-manha">0h</span>
+                </div>
+                <div class="shift-item">
+                  <span class="shift-name">Tarde</span>
+                  <span class="shift-hours" id="shift-tarde">0h</span>
+                </div>
+                <div class="shift-item">
+                  <span class="shift-name">Noite</span>
+                  <span class="shift-hours" id="shift-noite">0h</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Table Section -->
+        <section class="activities-history-section">
+          <div class="card-title-bar">
+            <div class="section-left">
+              <h3>Histórico de atividades registradas</h3>
+              <span class="card-caption" id="activities-count-caption">0 atividades encontradas</span>
+            </div>
+            <div class="table-search-box">
+              <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="7" cy="7" r="4.5"/>
+                <path d="M10.5 10.5L14 14"/>
+              </svg>
+              <input type="text" id="input-search-activities" placeholder="Filtrar por matéria, conteúdo ou anotações...">
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table">
               <thead>
                 <tr>
-                  <th>Disciplina</th>
-                  <th>Horas</th>
-                  <th>% Tempo</th>
-                  <th>Sessões</th>
+                  <th>Data</th>
+                  <th>Início</th>
+                  <th>Matéria</th>
+                  <th>Conteúdo</th>
+                  <th>Modalidade</th>
+                  <th>Duração</th>
                   <th>Questões</th>
-                  <th>Aproveitamento</th>
+                  <th>Anotações</th>
                 </tr>
               </thead>
-              <tbody id="tbody-subjects-summary"></tbody>
+              <tbody id="tbody-activities-list"></tbody>
             </table>
           </div>
-        </div>
 
-        <!-- Modalities and Period Habits -->
-        <div class="chart-card">
-          <div class="card-title-bar">
-            <h3>🎯 Modalidades & Hábitos</h3>
-          </div>
-          <div class="habit-section">
-            <h4 class="sub-heading">Distribuição por Modalidade</h4>
-            <div id="study-types-list" class="types-distribution-list"></div>
-          </div>
-          <div class="habit-section mt-4">
-            <h4 class="sub-heading">Turnos Mais Produtivos</h4>
-            <div class="shifts-grid" id="shifts-grid">
-              <div class="shift-item">
-                <span class="shift-name">Madrugada</span>
-                <span class="shift-hours" id="shift-madrugada">0h</span>
-              </div>
-              <div class="shift-item">
-                <span class="shift-name">Manhã</span>
-                <span class="shift-hours" id="shift-manha">0h</span>
-              </div>
-              <div class="shift-item">
-                <span class="shift-name">Tarde</span>
-                <span class="shift-hours" id="shift-tarde">0h</span>
-              </div>
-              <div class="shift-item">
-                <span class="shift-name">Noite</span>
-                <span class="shift-hours" id="shift-noite">0h</span>
-              </div>
+          <div class="pagination-bar">
+            <span id="pagination-info">Mostrando 1 a 50</span>
+            <div class="pagination-buttons">
+              <button id="btn-page-prev" class="btn btn-secondary btn-sm" disabled>Anterior</button>
+              <button id="btn-page-next" class="btn btn-secondary btn-sm">Próxima</button>
             </div>
           </div>
-        </div>
+        </section>
       </div>
-
-      <!-- Third Row: Recent Activities Full History Table -->
-      <section class="activities-history-section">
-        <div class="card-title-bar">
-          <div class="section-left">
-            <h3>📋 Histórico de Atividades Registradas</h3>
-            <span class="card-caption" id="activities-count-caption">0 atividades encontradas</span>
-          </div>
-          <div class="table-search-box">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="input-search-activities" placeholder="Buscar por matéria, tópico ou anotações...">
-          </div>
-        </div>
-
-        <div class="table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Início</th>
-                <th>Matéria</th>
-                <th>Conteúdo</th>
-                <th>Modalidade</th>
-                <th>Duração</th>
-                <th>Questões</th>
-                <th>Anotações</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-activities-list">
-              <!-- Dynamically populated -->
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pagination-bar">
-          <span id="pagination-info">Mostrando 1 a 50</span>
-          <div class="pagination-buttons">
-            <button id="btn-page-prev" class="btn btn-secondary btn-sm" disabled>Anterior</button>
-            <button id="btn-page-next" class="btn btn-secondary btn-sm">Próxima</button>
-          </div>
-        </div>
-      </section>
-      </div> <!-- /#tab-overview -->
 
       <!-- Tab Pane 2: Padrões Históricos de Estudo (2016–2026) -->
       <div id="tab-historical-patterns" class="dash-tab-pane hidden" role="tabpanel" aria-labelledby="tab-btn-historical-patterns">
-        <!-- R1 & R2: Executive Summary Metrics Bar (Multiannual) -->
+        <!-- Multiannual KPIs -->
         <section class="kpi-banner hist-kpi-banner">
           <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-title">ANOS ANALISADOS</span>
-              <span class="metric-icon">🗓️</span>
-            </div>
+            <span class="metric-title">Anos analisados</span>
             <div class="metric-value" id="hist-total-years">11 anos</div>
             <div class="metric-footer" id="hist-years-range">2016 – 2026</div>
           </div>
 
           <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-title">HORAS CUMULATIVAS</span>
-              <span class="metric-icon">⏱️</span>
-            </div>
+            <span class="metric-title">Horas acumuladas</span>
             <div class="metric-value" id="hist-total-hours">0h 0m</div>
-            <div class="metric-footer" id="hist-total-hours-decimal">0.0 horas líquidas</div>
+            <div class="metric-footer" id="hist-total-hours-decimal">0.0h líquidas</div>
           </div>
 
           <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-title">SESSÕES REGISTRADAS</span>
-              <span class="metric-icon">📝</span>
-            </div>
+            <span class="metric-title">Sessões registradas</span>
             <div class="metric-value" id="hist-total-sessions">0</div>
             <div class="metric-footer" id="hist-active-days">0 dias com registro</div>
           </div>
 
           <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-title">ASSERTIVIDADE HISTÓRICA</span>
-              <span class="metric-icon">🎯</span>
-            </div>
+            <span class="metric-title">Assertividade histórica</span>
             <div class="metric-value" id="hist-accuracy">0%</div>
             <div class="metric-footer" id="hist-questions-detail">0 acertos de 0 questões</div>
           </div>
 
           <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-title">ANO DE PICO</span>
-              <span class="metric-icon">🏆</span>
-            </div>
+            <span class="metric-title">Ano de pico</span>
             <div class="metric-value" id="hist-peak-year">----</div>
             <div class="metric-footer" id="hist-peak-hours">Recorde de dedicação</div>
           </div>
         </section>
 
-        <!-- R2: Multiannual Comparative Section (2016–2026) -->
+        <!-- Multiannual Comparative Section -->
         <section class="chart-card chart-full-width">
           <div class="card-title-bar">
             <div>
-              <h3>🗓️ Histórico Multianual & Fases de Estudo (2016–2026)</h3>
-              <span class="card-caption">Classificação determinística de períodos em Alta Intensidade, Manutenção e Hiato</span>
+              <h3>Histórico multianual e fases de estudo (2016–2026)</h3>
+              <span class="card-caption">Classificação em alta intensidade, manutenção e hiato</span>
             </div>
           </div>
-          <div id="multiannual-cards-grid" class="multiannual-grid">
-            <!-- Dynamically populated year cards -->
-          </div>
+          <div id="multiannual-cards-grid" class="multiannual-grid"></div>
         </section>
 
-        <!-- R2: GitHub-Style Study Activity Heatmap -->
+        <!-- Activity Heatmap -->
         <section class="chart-card chart-full-width">
           <div class="card-title-bar">
             <div>
-              <h3>🔥 Mapa de Calor de Atividade Anual (Activity Heatmap)</h3>
-              <span class="card-caption">Grade estilo GitHub com 53 semanas x 7 dias e 5 níveis de intensidade</span>
+              <h3>Mapa anual de atividade</h3>
+              <span class="card-caption">Frequência e volume diário (53 semanas)</span>
             </div>
             <div class="heatmap-year-selector-wrap">
               <label for="heatmap-year-select">Ano:</label>
-              <select id="heatmap-year-select" class="select-input select-sm" aria-label="Selecione o ano para o mapa de calor"></select>
+              <select id="heatmap-year-select" class="select-input select-sm" aria-label="Selecione o ano"></select>
             </div>
           </div>
 
           <div class="heatmap-kpis-bar">
             <div class="heatmap-kpi-item">
-              <span class="heatmap-kpi-label">Horas no Ano:</span>
+              <span class="heatmap-kpi-label">Horas no ano:</span>
               <span class="heatmap-kpi-val" id="heatmap-kpi-hours">0.0h</span>
             </div>
             <div class="heatmap-kpi-item">
-              <span class="heatmap-kpi-label">Dias Ativos:</span>
+              <span class="heatmap-kpi-label">Dias ativos:</span>
               <span class="heatmap-kpi-val" id="heatmap-kpi-days">0 dias</span>
             </div>
             <div class="heatmap-kpi-item">
-              <span class="heatmap-kpi-label">Dia Mais Produtivo:</span>
+              <span class="heatmap-kpi-label">Dia mais produtivo:</span>
               <span class="heatmap-kpi-val" id="heatmap-kpi-peak-day">--</span>
             </div>
             <div class="heatmap-kpi-item">
-              <span class="heatmap-kpi-label">Maior Sequência:</span>
+              <span class="heatmap-kpi-label">Maior sequência:</span>
               <span class="heatmap-kpi-val" id="heatmap-kpi-streak">0 dias</span>
             </div>
           </div>
 
-          <div id="heatmap-svg-container" class="heatmap-svg-wrapper">
-            <!-- Native SVG 53-week x 7-day rendered here -->
-          </div>
+          <div id="heatmap-svg-container" class="heatmap-svg-wrapper"></div>
 
           <div class="heatmap-legend">
             <span class="legend-text">Menos</span>
-            <span class="legend-box level-0" title="0 horas"></span>
-            <span class="legend-box level-1" title="Até 1.5h"></span>
-            <span class="legend-box level-2" title="1.5h a 3.5h"></span>
-            <span class="legend-box level-3" title="3.5h a 6.0h"></span>
-            <span class="legend-box level-4" title="Mais de 6.0h"></span>
+            <span class="legend-box level-0" title="0h"></span>
+            <span class="legend-box level-1" title="≤1.5h"></span>
+            <span class="legend-box level-2" title="≤3.5h"></span>
+            <span class="legend-box level-3" title="≤6.0h"></span>
+            <span class="legend-box level-4" title=">6.0h"></span>
             <span class="legend-text">Mais</span>
-            <span class="legend-caption">(Nível 0: 0h • Nível 1: ≤1.5h • Nível 2: ≤3.5h • Nível 3: ≤6h • Nível 4: &gt;6h)</span>
           </div>
 
-          <!-- Floating Tooltip for Heatmap & Scatter dots -->
           <div id="heatmap-tooltip" class="heatmap-tooltip hidden" role="tooltip" aria-hidden="true"></div>
         </section>
 
-        <!-- R3: Circadian & Temporal Patterns -->
+        <!-- Circadian & Temporal Patterns -->
         <div class="analytics-grid">
-          <!-- 24-Hour Histogram Chart -->
           <div class="chart-card chart-large">
             <div class="card-title-bar">
               <div>
-                <h3>⏰ Distribuição Circadiana (00h às 23h)</h3>
-                <span class="card-caption">Volume em horas líquidas e assertividade em cada hora do dia</span>
+                <h3>Distribuição circadiana (00h às 23h)</h3>
+                <span class="card-caption">Volume em horas líquidas ao longo do dia</span>
               </div>
             </div>
-            <div id="circadian-histogram-chart" class="circadian-histogram-container">
-              <!-- Dynamically populated 24-hour bars -->
-            </div>
-            <div id="circadian-peak-note" class="circadian-peak-note">
-              Pico de concentração: calculando...
-            </div>
+            <div id="circadian-histogram-chart" class="circadian-histogram-container"></div>
+            <div id="circadian-peak-note" class="circadian-peak-note"></div>
           </div>
 
-          <!-- 4 Daytime Shifts Breakdown -->
           <div class="chart-card">
             <div class="card-title-bar">
               <div>
-                <h3>🌅 Produtividade por Turno do Dia</h3>
-                <span class="card-caption">Madrugada, Manhã, Tarde e Noite (Total = 100%)</span>
+                <h3>Produtividade por turno</h3>
+                <span class="card-caption">Proporção dos períodos</span>
               </div>
             </div>
-            <div id="circadian-shifts-container" class="shifts-detailed-grid">
-              <!-- Dynamically populated shift cards -->
-            </div>
+            <div id="circadian-shifts-container" class="shifts-detailed-grid"></div>
           </div>
         </div>
 
-        <!-- Weekday Ranking (Volume & Consistency) -->
+        <!-- Weekday Ranking -->
         <div class="chart-card chart-full-width mt-4">
           <div class="card-title-bar">
             <div>
-              <h3>📅 Ranking Semanal por Volume e Consistência (1º ao 7º lugar)</h3>
-              <span class="card-caption">Ordenação por horas totais investidas e score de regularidade semanal</span>
+              <h3>Cadência semanal por volume e consistência</h3>
+              <span class="card-caption">Ordenação por horas totais investidas</span>
             </div>
           </div>
-          <div id="weekday-ranking-container" class="weekday-ranking-wrap">
-            <!-- Dynamically populated weekday ranking table -->
-          </div>
+          <div id="weekday-ranking-container" class="weekday-ranking-wrap"></div>
         </div>
 
-        <!-- R4: Yield Quadrant Matrix (Matriz de Quadrantes) -->
+        <!-- Yield Quadrant Matrix -->
         <section class="chart-card chart-full-width mt-4">
           <div class="card-title-bar">
             <div>
-              <h3>🎯 Matriz de Quadrantes de Rendimento (Tempo Investido vs. Assertividade)</h3>
-              <span class="card-caption">Pontos Fortes, Gargalos Críticos, Base Sólida e Zona de Risco</span>
+              <h3>Matriz de rendimento (tempo investido vs. assertividade)</h3>
+              <span class="card-caption">Pontos fortes, gargalos críticos, base sólida e zona de risco</span>
             </div>
           </div>
-          <div id="quadrants-cutoff-info" class="quadrants-cutoff-info">
-            Calculando cortes estatísticos...
-          </div>
+          <div id="quadrants-cutoff-info" class="quadrants-cutoff-info"></div>
           <div id="quadrants-matrix-container" class="quadrant-matrix-container">
-            <div id="quadrants-svg-container" class="quadrant-svg-wrap">
-              <!-- Native SVG 2x2 Scatter Plot -->
-            </div>
-            <div id="quadrants-breakdown-container" class="quadrant-breakdown-wrap">
-              <!-- 4 quadrant lists -->
-            </div>
+            <div id="quadrants-svg-container" class="quadrant-svg-wrap"></div>
+            <div id="quadrants-breakdown-container" class="quadrant-breakdown-wrap"></div>
           </div>
-          <div id="quadrants-sem-exercicios-container" class="sem-exercicios-wrap hidden">
-            <!-- Subjects without exercises alert -->
-          </div>
+          <div id="quadrants-sem-exercicios-container" class="sem-exercicios-wrap hidden"></div>
         </section>
 
-        <!-- R5: Methodological Mix & Rule-based Insights -->
+        <!-- Methodological Mix & Insights -->
         <div class="analytics-grid mt-4">
-          <!-- Modalities Mix Card -->
           <div class="chart-card">
             <div class="card-title-bar">
               <div>
-                <h3>⚖️ Mix Metodológico de Estudo</h3>
-                <span class="card-caption">Distribuição entre Teoria, Questões, Revisão e Outros</span>
+                <h3>Mix metodológico de estudo</h3>
+                <span class="card-caption">Teoria, questões e revisão</span>
               </div>
             </div>
             <div class="mix-segmented-bar-wrapper">
-              <div id="mix-segmented-bar" class="mix-segmented-bar">
-                <!-- Dynamically segmented progress bar -->
-              </div>
-              <div id="mix-legend" class="mix-legend">
-                <!-- Legend items with percentages and hours -->
-              </div>
+              <div id="mix-segmented-bar" class="mix-segmented-bar"></div>
+              <div id="mix-legend" class="mix-legend"></div>
             </div>
-            <h4 class="sub-heading mt-4">Recomendações Pedagógicas</h4>
-            <div id="mix-recommendations-container" class="mix-recommendations-container">
-              <!-- Diagnostic severity alert cards -->
-            </div>
+            <h4 class="sub-heading mt-4">Recomendações metodológicas</h4>
+            <div id="mix-recommendations-container" class="mix-recommendations-container"></div>
           </div>
 
-          <!-- Rule-based NLG Text Synthesis Card -->
           <div class="chart-card chart-large">
             <div class="card-title-bar">
               <div>
-                <h3>🧠 Síntese Executiva de Insights (NLG Baseado em Regras)</h3>
-                <span class="card-caption">Diagnóstico analítico 100% determinístico e processado localmente</span>
+                <h3>Síntese analítica de padrões</h3>
+                <span class="card-caption">Diagnóstico determinístico baseado no histórico</span>
               </div>
             </div>
-            <div id="insights-synthesis-container" class="executive-synthesis-card">
-              <!-- Formatted executive text report in Portuguese -->
-            </div>
+            <div id="insights-synthesis-container" class="executive-synthesis-card"></div>
           </div>
         </div>
-      </div> <!-- /#tab-historical-patterns -->
+      </div>
     </main>
 
     <!-- Footer -->
     <footer class="dash-footer">
-      <div>Aprovado Tools • Extensão não oficial desenvolvida para alta performance nos estudos</div>
-      <div>Dados sincronizados diretamente da sua conta no AprovadoApp</div>
+      <div>Aprovado Tools • Painel analítico de alta precisão</div>
+      <div>Dados sincronizados localmente do AprovadoApp</div>
     </footer>
   </div>
 

@@ -100,8 +100,7 @@ export const AprovadoExport = {
       s.correct,
       s.accuracy.toFixed(1) + '%',
       s.contents ? s.contents.length : 0
-    ].map(escapeCsvField).join(';'););
-
+    ].map(escapeCsvField).join(';'));
     const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     triggerBrowserDownload(blob, filename);
