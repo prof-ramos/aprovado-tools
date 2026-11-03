@@ -10,7 +10,7 @@
     "generate:mock": "node scripts/generate_multiannual_mock.js",
     "pretest": "npm run generate:mock",
     "test": "node --test --test-concurrency=1",
-    "build:zip": "mkdir -p dist && rm -f dist/*.zip && zip -r -FS dist/aprovado-tools-v1.0.0.zip manifest.json background.js content.js content.css icons popup sidepanel dashboard shared"
+    "build:zip": "mkdir -p dist && rm -f dist/*.zip && zip -r -FS dist/aprovado-tools-v$(node -p \"require('./manifest.json').version\").zip manifest.json background.js content.js content.css icons popup sidepanel dashboard shared"
   },
   "keywords": [
     "aprovado",

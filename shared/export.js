@@ -121,7 +121,7 @@ export const AprovadoExport = {
 
     const payload = {
       gerado_em: new Date().toISOString(),
-      versao_extensao: '1.0.0',
+      versao_extensao: globalThis.chrome?.runtime?.getManifest?.()?.version ?? 'desconhecida',
       origem: 'Aprovado Tools Chrome Extension',
       usuario: snapshot.user || null,
       materias: snapshot.materias || [],
