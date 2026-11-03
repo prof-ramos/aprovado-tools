@@ -41,7 +41,10 @@ const exportJsonBackup = document.getElementById('export-json-backup');
 const exportCopyMd = document.getElementById('export-copy-md');
 const copyReportTitle = document.getElementById('copy-report-title');
 
-const segButtons = document.querySelectorAll('.seg-btn');
+const segButtons = document.querySelectorAll('.filter-bar .seg-btn');
+const filterBar = document.querySelector('.filter-bar');
+let currentView = 'overview';
+let currentPeriodGranularity = 'semester';
 const customDateContainer = document.getElementById('custom-date-container');
 const inputDateStart = document.getElementById('input-date-start');
 const inputDateEnd = document.getElementById('input-date-end');
@@ -98,7 +101,8 @@ async function loadMockSnapshot() {
 
 async function init() {
   setLoading(true);
-  setupTabNavigation();
+  setupViewSwitch();
+  setupPeriodRankingToggle();
 
   const isExplicitMock = window.location.search.includes('mock=true');
   const hasStorage = Boolean(window.chrome?.storage?.local);
@@ -425,8 +429,12 @@ function renderActivitiesTable(activities) {
 // Event Listeners
 segButtons.forEach(btn => {
   btn.addEventListener('click', () => {
-    segButtons.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    if (btn.dataset.view === 'historical') {
+      setView('historical');
+      return;
+    }
+    setView('overview');
+    segButtons.forEach(b => b.classList.toggle('active', b === btn));
     currentPeriod = btn.dataset.period;
 
     if (currentPeriod === 'custom') {
@@ -545,50 +553,51 @@ exportCopyMd.addEventListener('click', async () => {
    Tab Navigation & Historical Patterns Renderers
    ========================================================================== */
 
-function setupTabNavigation() {
-  const tabButtons = document.querySelectorAll('.dash-tab-btn');
-  const tabPanes = document.querySelectorAll('.dash-tab-pane');
-  const filterBar = document.querySelector('.filter-bar');
+// The "Análise histórica" button lives in the period selector. Choosing it
+// shows the historical pane; choosing any period returns to the overview.
+function setView(view) {
+  currentView = view === 'historical' ? 'historical' : 'overview';
+  const isHistorical = currentView === 'historical';
 
-  function switchTab(targetTabId) {
-    tabButtons.forEach(btn => {
-      const isActive = btn.getAttribute('data-tab') === targetTabId;
-      btn.classList.toggle('active', isActive);
-      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-      btn.tabIndex = isActive ? 0 : -1;
-    });
+  document.getElementById('tab-overview')?.classList.toggle('hidden', isHistorical);
+  document.getElementById('tab-overview')?.classList.toggle('active', !isHistorical);
+  document.getElementById('tab-historical-patterns')?.classList.toggle('hidden', !isHistorical);
+  document.getElementById('tab-historical-patterns')?.classList.toggle('active', isHistorical);
 
-    tabPanes.forEach(pane => {
-      const isActive = pane.id === targetTabId;
-      pane.classList.toggle('active', isActive);
-      pane.classList.toggle('hidden', !isActive);
-    });
-
-    if (filterBar) {
-      filterBar.classList.toggle('hidden', targetTabId !== 'tab-overview');
+  segButtons.forEach(b => {
+    if (b.dataset.view === 'historical') {
+      b.classList.toggle('active', isHistorical);
+      b.setAttribute('aria-pressed', isHistorical ? 'true' : 'false');
+    } else {
+      b.classList.toggle('active', !isHistorical && b.dataset.period === currentPeriod);
     }
+  });
 
-    if (targetTabId === 'tab-historical-patterns' && fullSnapshot) {
-      renderHistoricalPatternsTab(fullSnapshot.atividades, fullSnapshot.materias);
-    }
+  // History always covers every record, so subject/type/custom-date filters do not apply.
+  filterBar?.querySelectorAll('[data-overview-only]').forEach(el => el.classList.toggle('hidden', isHistorical));
+  customDateContainer.classList.toggle('hidden', isHistorical || currentPeriod !== 'custom');
+
+  if (isHistorical && fullSnapshot) {
+    renderHistoricalPatternsTab(fullSnapshot.atividades, fullSnapshot.materias);
   }
+}
 
-  tabButtons.forEach(btn => {
+function setupViewSwitch() {
+  setView('overview');
+}
+
+function setupPeriodRankingToggle() {
+  const toggle = document.getElementById('period-ranking-toggle');
+  if (!toggle) return;
+  toggle.querySelectorAll('.seg-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const target = btn.getAttribute('data-tab');
-      switchTab(target);
-    });
-
-    btn.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-        const btnArray = Array.from(tabButtons);
-        const currentIndex = btnArray.indexOf(btn);
-        const nextIndex = e.key === 'ArrowRight'
-          ? (currentIndex + 1) % btnArray.length
-          : (currentIndex - 1 + btnArray.length) % btnArray.length;
-        btnArray[nextIndex].focus();
-        btnArray[nextIndex].click();
-      }
+      currentPeriodGranularity = btn.dataset.granularity === 'year' ? 'year' : 'semester';
+      toggle.querySelectorAll('.seg-btn').forEach(b => {
+        const active = b === btn;
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      renderPeriodRanking(cachedHistoricalPatterns?.semesters);
     });
   });
 }
@@ -607,9 +616,13 @@ function renderHistoricalPatternsTab(activities = [], materias = []) {
   cachedHistoricalPatterns = patterns;
 
   renderExecutiveSummaryMetrics(patterns.history);
+  renderPeriodRanking(patterns.semesters);
   renderMultiannualCards(patterns.history);
   setupHeatmapControls(activities, patterns.history);
   renderCircadian(patterns.circadian);
+  renderEfficiencyNote(patterns.efficiency);
+  renderHourWeekdayHeatmap(patterns.hourWeekday);
+  renderSessionProfile(patterns.sessions);
   renderQuadrants(patterns.quadrants);
   renderMixAndInsights(patterns.mix, patterns.insights);
 }
@@ -630,8 +643,6 @@ function renderExecutiveSummaryMetrics(historyData) {
   if (histTotalYears) histTotalYears.textContent = `${historyData.totalYearsCount} anos`;
   const range = `${historyData.startYear} – ${historyData.endYear}`;
   if (histYearsRange) histYearsRange.textContent = range;
-  const tabLabel = document.getElementById('historical-tab-label');
-  if (tabLabel) tabLabel.textContent = `Padrões históricos (${range})`;
   const historyTitle = document.getElementById('historical-section-title');
   if (historyTitle) historyTitle.textContent = `Histórico multianual e fases de estudo (${range})`;
 
@@ -1316,7 +1327,240 @@ function renderMixAndInsights(mixData, insightsData) {
           ${insightsData.methodRecommendations.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
         </ul>
       </div>
+      <div class="synthesis-section">
+        <div class="synthesis-heading">6. Tamanho de sessão</div>
+        <div class="synthesis-body">${escapeHtml(insightsData.sessionInsights || '')}</div>
+      </div>
+      <div class="synthesis-section">
+        <div class="synthesis-heading">7. Horário mais eficiente</div>
+        <div class="synthesis-body">${escapeHtml(insightsData.efficiencyInsights || '')}</div>
+      </div>
+      <div class="synthesis-section">
+        <div class="synthesis-heading">8. Melhor semestre e ano</div>
+        <div class="synthesis-body">${escapeHtml(insightsData.periodInsights || '')}</div>
+      </div>
     `;
+  }
+}
+
+/* ==========================================================================
+   Best period, hour × weekday, efficiency and session-size renderers
+   ========================================================================== */
+
+function formatMinutes(min) {
+  if (!Number.isFinite(min) || min <= 0) return '0 min';
+  if (min < 60) return `${Math.round(min)} min`;
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  return m ? `${h}h ${m}min` : `${h}h`;
+}
+
+function formatAccuracy(value) {
+  return value === null || value === undefined ? '—' : `${Number(value).toFixed(1)}%`;
+}
+
+function renderPeriodRanking(semesterData) {
+  const highlights = document.getElementById('period-highlights');
+  const tbody = document.getElementById('tbody-period-ranking');
+  if (!semesterData || !highlights || !tbody) return;
+
+  const isYear = currentPeriodGranularity === 'year';
+  const list = isYear ? semesterData.years : semesterData.semesters;
+  const h = isYear ? semesterData.yearHighlights : semesterData.semesterHighlights;
+  const unit = isYear ? 'ano' : 'semestre';
+
+  if (!list.length) {
+    highlights.innerHTML = `<div class="empty-note">Sem registros suficientes para comparar períodos.</div>`;
+    tbody.innerHTML = '';
+    return;
+  }
+
+  const card = (title, period, value, detail, extraClass = '') => `
+    <div class="period-highlight-card ${extraClass}">
+      <span class="metric-title">${escapeHtml(title)}</span>
+      <div class="metric-value">${period ? escapeHtml(period.label) : '—'}</div>
+      <div class="metric-footer">${period ? escapeHtml(value) : escapeHtml(detail)}</div>
+    </div>`;
+
+  highlights.innerHTML = [
+    card(`Melhor ${unit} no conjunto`, h.overallBest,
+      h.overallBest ? `${h.overallBest.totalHours}h · ${h.overallBest.consistency}% dos dias · ${formatAccuracy(h.overallBest.accuracy)}` : '', '—', 'is-best'),
+    card('Maior volume', h.bestByHours, h.bestByHours ? `${h.bestByHours.totalHours}h em ${h.bestByHours.sessions} sessões` : '', '—'),
+    card('Mais consistente', h.bestByConsistency, h.bestByConsistency ? `${h.bestByConsistency.consistency}% dos dias (${h.bestByConsistency.activeDays} dias)` : '', '—'),
+    card('Maior assertividade', h.bestByAccuracy, h.bestByAccuracy ? `${formatAccuracy(h.bestByAccuracy.accuracy)} em ${h.bestByAccuracy.totalQuestions} questões` : '',
+      `Mínimo de ${semesterData.minQuestions} questões por período`)
+  ].join('');
+
+  const rows = [...list].reverse();
+  tbody.innerHTML = rows.map(p => {
+    const mark = (cond) => (cond ? ' class="is-best-cell"' : '');
+    const accLow = p.accuracy !== null && p.totalQuestions < semesterData.minQuestions;
+    return `
+      <tr${p === h.overallBest ? ' class="is-best-row"' : ''}>
+        <td><strong>${escapeHtml(p.label)}</strong>${p.isCurrent ? ' <span class="badge-tag">em andamento</span>' : ''}</td>
+        <td${mark(p === h.bestByHours)}>${p.totalHours.toFixed(1)}h</td>
+        <td>${p.sessions}</td>
+        <td>${p.activeDays}</td>
+        <td${mark(p === h.bestByConsistency)}>${p.consistency.toFixed(1)}%</td>
+        <td>${p.longestStreak} dias</td>
+        <td${mark(p === h.bestByAccuracy)}${accLow ? ' title="Poucas questões: fora do ranking de assertividade"' : ''}>${formatAccuracy(p.accuracy)}${accLow ? '*' : ''}</td>
+        <td>${p.averageRank !== undefined ? `${p.averageRank.toFixed(1)}` : '—'}</td>
+      </tr>`;
+  }).join('');
+}
+
+function renderEfficiencyNote(efficiency) {
+  const note = document.getElementById('circadian-efficiency-note');
+  if (!note) return;
+  if (!efficiency?.mostEfficientHour) {
+    note.textContent = `Assertividade por horário aparece quando um horário acumula pelo menos ${efficiency?.minQuestions ?? 50} questões.`;
+    return;
+  }
+  const best = efficiency.mostEfficientHour;
+  const peak = efficiency.volumePeakHour;
+  let text = `Melhor assertividade às <strong>${escapeHtml(best.label)}</strong> (${formatAccuracy(best.accuracy)} em ${best.questions} questões)`;
+  if (peak && peak.hour !== best.hour) {
+    text += ` · Maior volume às <strong>${escapeHtml(peak.label)}</strong>`;
+    if (efficiency.gapPoints !== null) {
+      text += ` (${formatAccuracy(peak.accuracy)}, ${efficiency.gapPoints > 0 ? '−' : '+'}${Math.abs(efficiency.gapPoints).toFixed(1)} p.p.)`;
+    }
+  } else if (peak) {
+    text += ' · também é o horário de maior volume';
+  }
+  if (efficiency.mostEfficientShift) {
+    text += ` · Turno mais eficiente: <strong>${escapeHtml(efficiency.mostEfficientShift.label)}</strong> (${formatAccuracy(efficiency.mostEfficientShift.accuracy)})`;
+  }
+  note.innerHTML = text;
+}
+
+function heatLevel(value, max) {
+  if (!value || max <= 0) return 0;
+  const ratio = value / max;
+  if (ratio <= 0.25) return 1;
+  if (ratio <= 0.5) return 2;
+  if (ratio <= 0.75) return 3;
+  return 4;
+}
+
+function renderHourWeekdayHeatmap(matrix) {
+  const container = document.getElementById('hour-weekday-container');
+  const top = document.getElementById('hour-weekday-top');
+  const tooltip = document.getElementById('heatmap-tooltip');
+  if (!container || !matrix) return;
+
+  if (top) {
+    top.innerHTML = matrix.topSlots.length
+      ? `<span class="heatmap-kpi-label">Horários mais frequentes:</span> ` + matrix.topSlots
+        .map((slot, i) => `<span class="slot-pill">${i + 1}º ${escapeHtml(slot.label)} · ${slot.hours.toFixed(1)}h</span>`).join('')
+      : '<span class="heatmap-kpi-label">Sem sessões registradas.</span>';
+  }
+
+  const step = 22;
+  const size = 19;
+  const left = 34;
+  const topGutter = 16;
+  const width = left + 24 * step + 4;
+  const height = topGutter + 7 * step + 4;
+  // Monday first reads more naturally for a study week.
+  const order = [1, 2, 3, 4, 5, 6, 0];
+
+  let svg = `<svg viewBox="0 0 ${width} ${height}" class="heatmap-svg hour-weekday-svg" width="${width}" height="${height}" role="img" aria-label="Horas de estudo por dia da semana e hora do dia">`;
+  for (let hr = 0; hr < 24; hr += 3) {
+    svg += `<text x="${left + hr * step}" y="11" class="heatmap-month-label">${String(hr).padStart(2, '0')}h</text>`;
+  }
+  order.forEach((day, row) => {
+    const y = topGutter + row * step;
+    svg += `<text x="0" y="${y + 13}" class="heatmap-day-label">${escapeHtml(matrix.days[day].short)}</text>`;
+    matrix.cells[day].forEach(cell => {
+      svg += `<rect x="${left + cell.hour * step}" y="${y}" width="${size}" height="${size}" rx="3" ry="3"
+        class="heatmap-cell hw-cell level-${heatLevel(cell.hours, matrix.maxHours)}"
+        data-day="${day}" data-hour="${cell.hour}" data-hours="${cell.hours}" data-sessions="${cell.sessions}" />`;
+    });
+  });
+  svg += '</svg>';
+  container.innerHTML = svg;
+
+  if (!tooltip) return;
+  container.querySelectorAll('.hw-cell').forEach(rect => {
+    rect.addEventListener('mouseenter', (e) => {
+      const day = matrix.days[parseInt(rect.getAttribute('data-day'), 10)];
+      const hour = parseInt(rect.getAttribute('data-hour'), 10);
+      const hours = parseFloat(rect.getAttribute('data-hours') || '0');
+      const sessions = parseInt(rect.getAttribute('data-sessions') || '0', 10);
+      tooltip.innerHTML = `
+        <div class="tooltip-title">${escapeHtml(day.name)}, ${String(hour).padStart(2, '0')}h</div>
+        <div class="tooltip-row"><span>Horas:</span><strong>${hours.toFixed(1)}h</strong></div>
+        <div class="tooltip-row"><span>Sessões:</span><strong>${sessions}</strong></div>`;
+      tooltip.classList.remove('hidden');
+      tooltip.setAttribute('aria-hidden', 'false');
+      positionTooltip(e, tooltip);
+    });
+    rect.addEventListener('mousemove', (e) => positionTooltip(e, tooltip));
+    rect.addEventListener('mouseleave', () => {
+      tooltip.classList.add('hidden');
+      tooltip.setAttribute('aria-hidden', 'true');
+    });
+  });
+}
+
+function renderSessionProfile(profile) {
+  const kpis = document.getElementById('session-kpis');
+  const bucketsEl = document.getElementById('session-buckets-container');
+  const trendEl = document.getElementById('session-trend-container');
+  const idealNote = document.getElementById('session-ideal-note');
+  if (!profile || !bucketsEl) return;
+
+  if (kpis) {
+    const kpi = (label, value) => `<div class="heatmap-kpi-item"><span class="heatmap-kpi-label">${label}</span><span class="heatmap-kpi-val">${value}</span></div>`;
+    kpis.innerHTML = [
+      kpi('Sessão típica (mediana):', formatMinutes(profile.medianMinutes)),
+      kpi('Média:', formatMinutes(profile.meanMinutes)),
+      kpi('10% mais longas passam de:', formatMinutes(profile.p90Minutes)),
+      kpi('Mais longa:', profile.longest
+        ? `${escapeHtml(profile.longest.formatted)}${profile.longest.date ? ` (${formatDateBR(profile.longest.date)})` : ''}`
+        : '—')
+    ].join('');
+  }
+
+  const maxSessions = Math.max(...profile.buckets.map(b => b.sessions), 1);
+  bucketsEl.innerHTML = profile.buckets.map(b => {
+    const isIdeal = profile.idealBucket?.key === b.key;
+    const width = (b.sessions / maxSessions) * 100;
+    return `
+      <div class="session-bucket-row${isIdeal ? ' is-ideal' : ''}">
+        <span class="session-bucket-label">${escapeHtml(b.label)}</span>
+        <div class="session-bucket-bar-bg"><div class="session-bucket-bar" style="width: ${width.toFixed(1)}%"></div></div>
+        <span class="session-bucket-meta">${b.sessions} (${b.percentage.toFixed(1)}%)</span>
+        <span class="session-bucket-acc${b.reliable ? '' : ' is-faint'}" title="${b.questions} questões">${formatAccuracy(b.accuracy)}</span>
+      </div>`;
+  }).join('') + `<div class="session-bucket-footnote">Barras: número de sessões · Direita: assertividade (esmaecida abaixo de ${profile.minQuestions} questões)</div>`;
+
+  if (trendEl) {
+    const points = profile.medianByYear;
+    if (points.length < 2) {
+      trendEl.innerHTML = '<div class="empty-note">É preciso mais de um ano de registros.</div>';
+    } else {
+      const maxMin = Math.max(...points.map(p => p.medianMinutes), 1);
+      trendEl.innerHTML = points.map(p => `
+        <div class="session-trend-col" title="${p.year}: mediana de ${formatMinutes(p.medianMinutes)} em ${p.sessions} sessões">
+          <span class="session-trend-val">${p.medianMinutes}</span>
+          <div class="session-trend-bar" style="height: ${Math.max(4, (p.medianMinutes / maxMin) * 100).toFixed(1)}%"></div>
+          <span class="circadian-label">${String(p.year).slice(2)}</span>
+        </div>`).join('');
+    }
+  }
+
+  if (idealNote) {
+    if (profile.totalSessions === 0) {
+      idealNote.textContent = 'Nenhuma sessão registrada.';
+    } else if (profile.idealBucket) {
+      idealNote.innerHTML = `Sessão ideal: <strong>${escapeHtml(profile.idealBucket.label)}</strong>, com ${formatAccuracy(profile.idealBucket.accuracy)} de acertos em ${profile.idealBucket.questions} questões.`
+        + (profile.trend && profile.trend.direction !== 'estavel'
+          ? ` Desde ${profile.trend.fromYear}, suas sessões ficaram ${profile.trend.direction === 'mais_longas' ? 'mais longas' : 'mais curtas'} (${profile.trend.deltaMinutes > 0 ? '+' : ''}${profile.trend.deltaMinutes} min na mediana).`
+          : '');
+    } else {
+      idealNote.textContent = `A sessão ideal aparece quando uma faixa de duração acumula pelo menos ${profile.minQuestions} questões.`;
+    }
   }
 }
 

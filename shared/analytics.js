@@ -862,6 +862,7 @@ export function computeCircadianDistribution(activities = []) {
       percentage: h.percentage,
       sessions: h.sessions,
       questions: h.questions,
+      correct: h.correct,
       accuracy: h.accuracy
     })),
     peakHour,
@@ -1148,6 +1149,47 @@ export function generateStudyInsights(metrics, patterns) {
   // 5. Recomendações Metodológicas
   const methodRecommendations = mixRecs.map(r => `[${r.severity.toUpperCase()}] ${r.title}: ${r.text}`);
 
+  // 6. Tamanho de sessão
+  const sess = patterns?.sessions;
+  let sessionInsights = 'Sessões insuficientes para análise de duração.';
+  if (sess && sess.totalSessions > 0) {
+    const sessionParts = [`Sua sessão típica dura ${sess.medianMinutes} min (mediana); 10% das sessões passam de ${sess.p90Minutes} min.`];
+    if (sess.dominantBucket) sessionParts.push(`A faixa mais frequente é ${sess.dominantBucket.label} (${sess.dominantBucket.percentage}% das sessões).`);
+    if (sess.idealBucket) sessionParts.push(`Sessões de ${sess.idealBucket.label} têm a melhor assertividade (${sess.idealBucket.accuracy}%).`);
+    if (sess.trend && sess.trend.direction !== 'estavel') {
+      sessionParts.push(`Desde ${sess.trend.fromYear}, suas sessões ficaram ${sess.trend.direction === 'mais_longas' ? 'mais longas' : 'mais curtas'} (${sess.trend.deltaMinutes > 0 ? '+' : ''}${sess.trend.deltaMinutes} min na mediana).`);
+    }
+    sessionInsights = sessionParts.join(' ');
+  }
+
+  // 7. Horário mais eficiente
+  const eff = patterns?.efficiency;
+  const slots = patterns?.hourWeekday?.topSlots || [];
+  let efficiencyInsights = 'Questões insuficientes para comparar assertividade por horário.';
+  if (eff?.mostEfficientHour) {
+    const effParts = [`Sua melhor assertividade acontece às ${eff.mostEfficientHour.label} (${eff.mostEfficientHour.accuracy}%).`];
+    if (eff.volumePeakHour && eff.volumePeakHour.hour !== eff.mostEfficientHour.hour && eff.gapPoints !== null) {
+      effParts.push(`Você estuda mais às ${eff.volumePeakHour.label}, onde acerta ${eff.gapPoints} p.p. a menos.`);
+    }
+    if (eff.mostEfficientShift) effParts.push(`Por turno, a ${eff.mostEfficientShift.label} lidera com ${eff.mostEfficientShift.accuracy}%.`);
+    efficiencyInsights = effParts.join(' ');
+  }
+  if (slots.length) {
+    efficiencyInsights += ` Horários mais frequentes: ${slots.map(sl => sl.label).join('; ')}.`;
+  }
+
+  // 8. Melhor semestre e ano
+  const sem = patterns?.semesters;
+  let periodInsights = 'Histórico insuficiente para comparar semestres.';
+  if (sem?.semesterHighlights?.overallBest) {
+    const h = sem.semesterHighlights;
+    const periodParts = [`Seu melhor semestre no conjunto foi ${h.overallBest.label} (${h.overallBest.totalHours}h, ${h.overallBest.consistency}% dos dias com estudo${h.overallBest.accuracy !== null ? `, ${h.overallBest.accuracy}% de acertos` : ''}).`];
+    if (h.bestByHours && h.bestByHours !== h.overallBest) periodParts.push(`Maior volume: ${h.bestByHours.label} (${h.bestByHours.totalHours}h).`);
+    if (h.bestByAccuracy && h.bestByAccuracy !== h.overallBest) periodParts.push(`Maior assertividade: ${h.bestByAccuracy.label} (${h.bestByAccuracy.accuracy}%).`);
+    if (sem.yearHighlights?.overallBest) periodParts.push(`Melhor ano no conjunto: ${sem.yearHighlights.overallBest.label}.`);
+    periodInsights = periodParts.join(' ');
+  }
+
   // Texto formatado completo
   const fullFormattedText = [
     `## Síntese de Padrões Históricos de Estudo`,
@@ -1165,7 +1207,16 @@ export function generateStudyInsights(metrics, patterns) {
     quadrantInsights,
     ``,
     `### 5. Recomendações do Mix Metodológico`,
-    methodRecommendations.length ? methodRecommendations.map(r => `- ${r}`).join('\n') : '- Nenhuma recomendação necessária.'
+    methodRecommendations.length ? methodRecommendations.map(r => `- ${r}`).join('\n') : '- Nenhuma recomendação necessária.',
+    ``,
+    `### 6. Tamanho de Sessão`,
+    sessionInsights,
+    ``,
+    `### 7. Horário Mais Eficiente`,
+    efficiencyInsights,
+    ``,
+    `### 8. Melhor Semestre e Ano`,
+    periodInsights
   ].join('\n');
 
   return {
@@ -1174,7 +1225,401 @@ export function generateStudyInsights(metrics, patterns) {
     weeklyCadenceInsights,
     quadrantInsights,
     methodRecommendations,
+    sessionInsights,
+    efficiencyInsights,
+    periodInsights,
     fullFormattedText
+  };
+}
+
+/* ==========================================================================
+ * Session size, hour × weekday, hourly efficiency and semester ranking
+ * ========================================================================== */
+
+// Minimum answered questions before an accuracy value is trusted for ranking.
+export const MIN_QUESTIONS_FOR_ACCURACY = 50;
+
+const WEEKDAY_LABELS = [
+  { name: 'Domingo', short: 'Dom' },
+  { name: 'Segunda-feira', short: 'Seg' },
+  { name: 'Terça-feira', short: 'Ter' },
+  { name: 'Quarta-feira', short: 'Qua' },
+  { name: 'Quinta-feira', short: 'Qui' },
+  { name: 'Sexta-feira', short: 'Sex' },
+  { name: 'Sábado', short: 'Sáb' }
+];
+
+const SESSION_BUCKETS = [
+  { key: 'lt15', label: '<15m', minMin: 0, maxMin: 15 },
+  { key: '15_30', label: '15–30m', minMin: 15, maxMin: 30 },
+  { key: '30_60', label: '30–60m', minMin: 30, maxMin: 60 },
+  { key: '60_90', label: '1–1,5h', minMin: 60, maxMin: 90 },
+  { key: '90_120', label: '1,5–2h', minMin: 90, maxMin: 120 },
+  { key: 'gt120', label: '>2h', minMin: 120, maxMin: Infinity }
+];
+
+function accuracyOf(questions, correct) {
+  return questions > 0 ? Number(((correct / questions) * 100).toFixed(1)) : null;
+}
+
+function percentile(sortedValues, p) {
+  if (!sortedValues.length) return 0;
+  const idx = Math.min(sortedValues.length - 1, Math.max(0, Math.ceil((p / 100) * sortedValues.length) - 1));
+  return sortedValues[idx];
+}
+
+function median(sortedValues) {
+  if (!sortedValues.length) return 0;
+  const mid = Math.floor(sortedValues.length / 2);
+  return sortedValues.length % 2 ? sortedValues[mid] : (sortedValues[mid - 1] + sortedValues[mid]) / 2;
+}
+
+/**
+ * 9. Session length profile: how long sessions are and which length performs best.
+ */
+export function computeSessionLengthProfile(activities = [], options = {}) {
+  const minQuestions = options?.minQuestions ?? MIN_QUESTIONS_FOR_ACCURACY;
+  const buckets = SESSION_BUCKETS.map(b => ({
+    key: b.key, label: b.label, minMin: b.minMin, maxMin: b.maxMin,
+    sessions: 0, ms: 0, hours: 0, percentage: 0, hoursPercentage: 0,
+    questions: 0, correct: 0, accuracy: null, reliable: false
+  }));
+
+  const durations = [];
+  const byYear = new Map();
+  let longest = null;
+  let totalMs = 0;
+
+  for (const atv of (activities || [])) {
+    const ms = positiveDurationMs(atv?.Duracao);
+    if (ms <= 0) continue;
+    const minutes = ms / 60000;
+    const bucket = buckets.find(b => minutes >= b.minMin && minutes < b.maxMin) || buckets[buckets.length - 1];
+    const q = atv.ExercicioQuantidade || 0;
+    const c = atv.ExercicioAcerto || 0;
+    bucket.sessions += 1;
+    bucket.ms += ms;
+    bucket.questions += q;
+    bucket.correct += c;
+    durations.push(ms);
+    totalMs += ms;
+
+    const d = parseActivityDate(atv);
+    if (d) {
+      const y = d.getFullYear();
+      if (!byYear.has(y)) byYear.set(y, []);
+      byYear.get(y).push(ms);
+    }
+    if (!longest || ms > longest.ms) {
+      longest = {
+        ms,
+        formatted: formatDurationMs(ms),
+        date: d ? formatLocalDate(d) : null,
+        subject: atv.Materia?.Nome || null
+      };
+    }
+  }
+
+  const totalSessions = durations.length;
+  for (const b of buckets) {
+    b.hours = Number((b.ms / 3600000).toFixed(2));
+    b.percentage = totalSessions > 0 ? Number(((b.sessions / totalSessions) * 100).toFixed(1)) : 0;
+    b.hoursPercentage = totalMs > 0 ? Number(((b.ms / totalMs) * 100).toFixed(1)) : 0;
+    b.accuracy = accuracyOf(b.questions, b.correct);
+    b.reliable = b.questions >= minQuestions;
+  }
+
+  durations.sort((a, b) => a - b);
+  const medianMs = median(durations);
+  const meanMs = totalSessions > 0 ? totalMs / totalSessions : 0;
+  const p90Ms = percentile(durations, 90);
+
+  let idealBucket = null;
+  for (const b of buckets) {
+    if (!b.reliable || b.accuracy === null) continue;
+    if (!idealBucket || b.accuracy > idealBucket.accuracy) {
+      idealBucket = { key: b.key, label: b.label, accuracy: b.accuracy, questions: b.questions, sessions: b.sessions };
+    }
+  }
+
+  const dominantBucket = totalSessions > 0
+    ? [...buckets].sort((a, b) => b.sessions - a.sessions || b.ms - a.ms)[0]
+    : null;
+
+  const medianByYear = Array.from(byYear.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([year, list]) => {
+      const sorted = [...list].sort((a, b) => a - b);
+      const m = median(sorted);
+      return { year, sessions: list.length, medianMs: m, medianMinutes: Math.round(m / 60000) };
+    });
+
+  let trend = null;
+  if (medianByYear.length >= 2) {
+    const first = medianByYear[0];
+    const last = medianByYear[medianByYear.length - 1];
+    const deltaMinutes = last.medianMinutes - first.medianMinutes;
+    trend = {
+      fromYear: first.year,
+      toYear: last.year,
+      deltaMinutes,
+      direction: Math.abs(deltaMinutes) < 5 ? 'estavel' : (deltaMinutes > 0 ? 'mais_longas' : 'mais_curtas')
+    };
+  }
+
+  return {
+    totalSessions,
+    minQuestions,
+    buckets,
+    medianMs,
+    medianMinutes: Math.round(medianMs / 60000),
+    meanMs,
+    meanMinutes: Math.round(meanMs / 60000),
+    p90Ms,
+    p90Minutes: Math.round(p90Ms / 60000),
+    longest,
+    idealBucket,
+    dominantBucket: dominantBucket ? { key: dominantBucket.key, label: dominantBucket.label, percentage: dominantBucket.percentage } : null,
+    medianByYear,
+    trend
+  };
+}
+
+/**
+ * 10. Hour × weekday matrix (7 rows × 24 columns).
+ */
+export function computeHourWeekdayMatrix(activities = []) {
+  const cells = Array.from({ length: 7 }, (_, day) =>
+    Array.from({ length: 24 }, (_, hour) => ({ day, hour, ms: 0, hours: 0, sessions: 0 }))
+  );
+
+  let totalMs = 0;
+  for (const atv of (activities || [])) {
+    const ms = positiveDurationMs(atv?.Duracao);
+    if (ms <= 0) continue;
+    const d = parseActivityDate(atv);
+    if (!d) continue;
+    const cell = cells[d.getDay()][parseActivityHour(atv)];
+    cell.ms += ms;
+    cell.sessions += 1;
+    totalMs += ms;
+  }
+
+  let maxHours = 0;
+  const flat = [];
+  for (const row of cells) {
+    for (const cell of row) {
+      cell.hours = Number((cell.ms / 3600000).toFixed(2));
+      if (cell.hours > maxHours) maxHours = cell.hours;
+      if (cell.ms > 0) flat.push(cell);
+    }
+  }
+
+  const topSlots = flat
+    .sort((a, b) => b.ms - a.ms || b.sessions - a.sessions || a.day - b.day || a.hour - b.hour)
+    .slice(0, 3)
+    .map(c => ({
+      day: c.day,
+      hour: c.hour,
+      dayName: WEEKDAY_LABELS[c.day].name,
+      shortName: WEEKDAY_LABELS[c.day].short,
+      label: `${WEEKDAY_LABELS[c.day].name}, ${String(c.hour).padStart(2, '0')}h`,
+      hours: c.hours,
+      sessions: c.sessions,
+      percentage: totalMs > 0 ? Number(((c.ms / totalMs) * 100).toFixed(1)) : 0
+    }));
+
+  return {
+    days: WEEKDAY_LABELS.map((w, i) => ({ dayIndex: i, name: w.name, short: w.short })),
+    cells,
+    maxHours,
+    topSlots
+  };
+}
+
+/**
+ * 11. Hourly efficiency: where accuracy is highest, not just where volume is highest.
+ */
+export function computeHourlyEfficiency(circadian, options = {}) {
+  const minQuestions = options?.minQuestions ?? MIN_QUESTIONS_FOR_ACCURACY;
+  const hourly = Array.isArray(circadian?.hourly) ? circadian.hourly : [];
+
+  const hours = hourly.map(h => {
+    const questions = h.questions || 0;
+    const correct = h.correct ?? (h.accuracy !== null && h.accuracy !== undefined ? Math.round((h.accuracy / 100) * questions) : 0);
+    return {
+      hour: h.hour,
+      label: h.label,
+      questions,
+      correct,
+      accuracy: accuracyOf(questions, correct),
+      reliable: questions >= minQuestions
+    };
+  });
+
+  let mostEfficientHour = null;
+  for (const h of hours) {
+    if (!h.reliable || h.accuracy === null) continue;
+    if (!mostEfficientHour || h.accuracy > mostEfficientHour.accuracy) mostEfficientHour = h;
+  }
+
+  const shiftLabels = { madrugada: 'Madrugada', manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' };
+  const shiftRanges = { madrugada: [0, 6], manha: [6, 12], tarde: [12, 18], noite: [18, 24] };
+  const shifts = Object.entries(shiftRanges).map(([key, [from, to]]) => {
+    let q = 0;
+    let c = 0;
+    for (const h of hours) {
+      if (h.hour >= from && h.hour < to) { q += h.questions; c += h.correct; }
+    }
+    return { key, label: shiftLabels[key], questions: q, correct: c, accuracy: accuracyOf(q, c), reliable: q >= minQuestions };
+  });
+
+  let mostEfficientShift = null;
+  for (const s of shifts) {
+    if (!s.reliable || s.accuracy === null) continue;
+    if (!mostEfficientShift || s.accuracy > mostEfficientShift.accuracy) mostEfficientShift = s;
+  }
+
+  const volumePeak = circadian?.peakHour && (circadian.peakHour.hours > 0)
+    ? hours.find(h => h.hour === circadian.peakHour.hour) || null
+    : null;
+
+  let gapPoints = null;
+  if (mostEfficientHour && volumePeak && volumePeak.reliable && volumePeak.accuracy !== null) {
+    gapPoints = Number((mostEfficientHour.accuracy - volumePeak.accuracy).toFixed(1));
+  }
+
+  return {
+    minQuestions,
+    hours,
+    shifts,
+    mostEfficientHour,
+    mostEfficientShift,
+    volumePeakHour: volumePeak,
+    gapPoints
+  };
+}
+
+/**
+ * 12. Semester (and year) ranking by volume, consistency and accuracy.
+ */
+function rankBy(list, valueFn) {
+  const sorted = [...list].sort((a, b) => valueFn(b) - valueFn(a));
+  const ranks = new Map();
+  sorted.forEach((item, idx) => ranks.set(item, idx + 1));
+  return ranks;
+}
+
+function rankPeriods(periods, minQuestions) {
+  if (!periods.length) {
+    return { bestByHours: null, bestByConsistency: null, bestByAccuracy: null, overallBest: null };
+  }
+  const accuracyScore = p => (p.totalQuestions >= minQuestions && p.accuracy !== null ? p.accuracy : -1);
+  const hoursRanks = rankBy(periods, p => p.totalHours);
+  const consistencyRanks = rankBy(periods, p => p.consistency);
+  const hasAccuracy = periods.some(p => accuracyScore(p) >= 0);
+  const accuracyRanks = hasAccuracy ? rankBy(periods, accuracyScore) : null;
+
+  for (const p of periods) {
+    const ranks = [hoursRanks.get(p), consistencyRanks.get(p)];
+    if (accuracyRanks) ranks.push(accuracyRanks.get(p));
+    p.ranks = { hours: hoursRanks.get(p), consistency: consistencyRanks.get(p), accuracy: accuracyRanks ? accuracyRanks.get(p) : null };
+    p.averageRank = Number((ranks.reduce((s, r) => s + r, 0) / ranks.length).toFixed(2));
+  }
+
+  const pick = (fn, valid = () => true) => {
+    let best = null;
+    for (const p of periods) {
+      if (!valid(p)) continue;
+      if (!best || fn(p, best)) best = p;
+    }
+    return best;
+  };
+
+  return {
+    bestByHours: pick((a, b) => a.totalHours > b.totalHours),
+    bestByConsistency: pick((a, b) => a.consistency > b.consistency),
+    bestByAccuracy: pick((a, b) => a.accuracy > b.accuracy, p => accuracyScore(p) >= 0),
+    overallBest: pick((a, b) => a.averageRank < b.averageRank || (a.averageRank === b.averageRank && a.totalHours > b.totalHours))
+  };
+}
+
+function summarizePeriod(key, label, entries, startDate, endDate, now) {
+  let totalMs = 0;
+  let questions = 0;
+  let correct = 0;
+  const dates = new Set();
+  for (const { atv, date } of entries) {
+    const ms = positiveDurationMs(atv.Duracao);
+    totalMs += ms;
+    questions += atv.ExercicioQuantidade || 0;
+    correct += atv.ExercicioAcerto || 0;
+    if (ms > 0) dates.add(formatLocalDate(date));
+  }
+  const isCurrent = now >= startDate && now <= endDate;
+  const effectiveEnd = isCurrent ? now : endDate;
+  const start = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const end = Date.UTC(effectiveEnd.getFullYear(), effectiveEnd.getMonth(), effectiveEnd.getDate());
+  const elapsedDays = Math.max(1, Math.round((end - start) / 86400000) + 1);
+  return {
+    key,
+    label,
+    isCurrent,
+    totalMs,
+    totalHours: Number((totalMs / 3600000).toFixed(1)),
+    formattedDuration: formatDurationMs(totalMs),
+    sessions: entries.length,
+    activeDays: dates.size,
+    elapsedDays,
+    consistency: Number(Math.min(100, (dates.size / elapsedDays) * 100).toFixed(1)),
+    longestStreak: calculateConsecutiveStreak(Array.from(dates).sort()),
+    totalQuestions: questions,
+    totalCorrect: correct,
+    accuracy: accuracyOf(questions, correct)
+  };
+}
+
+export function computeSemesterRanking(activities = [], options = {}) {
+  const minQuestions = options?.minQuestions ?? MIN_QUESTIONS_FOR_ACCURACY;
+  const now = options?.now ? new Date(options.now) : new Date();
+  const semesterMap = new Map();
+  const yearMap = new Map();
+
+  for (const atv of (activities || [])) {
+    const date = parseActivityDate(atv);
+    if (!date) continue;
+    const y = date.getFullYear();
+    const half = date.getMonth() < 6 ? 1 : 2;
+    const sKey = `${y}.${half}`;
+    if (!semesterMap.has(sKey)) semesterMap.set(sKey, { year: y, half, entries: [] });
+    semesterMap.get(sKey).entries.push({ atv, date });
+    if (!yearMap.has(y)) yearMap.set(y, []);
+    yearMap.get(y).push({ atv, date });
+  }
+
+  const semesters = Array.from(semesterMap.entries())
+    .sort((a, b) => a[1].year - b[1].year || a[1].half - b[1].half)
+    .map(([key, { year, half, entries }]) => {
+      const start = new Date(year, half === 1 ? 0 : 6, 1);
+      const end = new Date(year, half === 1 ? 5 : 11, half === 1 ? 30 : 31, 23, 59, 59, 999);
+      return { year, half, ...summarizePeriod(key, `${year}.${half}`, entries, start, end, now) };
+    })
+    .filter(s => s.totalMs > 0 || s.totalQuestions > 0);
+
+  const years = Array.from(yearMap.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([year, entries]) => ({
+      year,
+      ...summarizePeriod(String(year), String(year), entries, new Date(year, 0, 1), new Date(year, 11, 31, 23, 59, 59, 999), now)
+    }))
+    .filter(y => y.totalMs > 0 || y.totalQuestions > 0);
+
+  return {
+    minQuestions,
+    semesters,
+    years,
+    semesterHighlights: rankPeriods(semesters, minQuestions),
+    yearHighlights: rankPeriods(years, minQuestions)
   };
 }
 
@@ -1241,7 +1686,11 @@ export function computeHistoricalPatterns(activities = [], materias = [], option
   const quadrants = computeYieldQuadrants(subjectsSummary, options);
   const mix = computeMethodologicalMix(activities);
   const metrics = typeof computeStudyMetrics === 'function' ? computeStudyMetrics(activities, materias) : null;
-  const insights = generateStudyInsights(metrics, { history, circadian, quadrants, mix });
+  const sessions = computeSessionLengthProfile(activities, options);
+  const hourWeekday = computeHourWeekdayMatrix(activities);
+  const efficiency = computeHourlyEfficiency(circadian, options);
+  const semesters = computeSemesterRanking(activities, options);
+  const insights = generateStudyInsights(metrics, { history, circadian, quadrants, mix, sessions, efficiency, semesters, hourWeekday });
 
   return {
     history,
@@ -1249,6 +1698,10 @@ export function computeHistoricalPatterns(activities = [], materias = [], option
     circadian,
     quadrants,
     mix,
+    sessions,
+    hourWeekday,
+    efficiency,
+    semesters,
     insights
   };
 }
