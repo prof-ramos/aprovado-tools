@@ -2,6 +2,9 @@
 
 Este documento orienta desenvolvedores e contribuidores na configuração do ambiente, fluxo de desenvolvimento, testes e resolução de problemas da extensão **Aprovado Tools**.
 
+Para executar e registrar a validação de uma alteração, siga o
+[workflow de validação para agentes](docs/workflow-validacao.md).
+
 ---
 
 ## 1. Instruções de Configuração
