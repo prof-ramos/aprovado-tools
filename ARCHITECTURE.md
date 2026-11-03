@@ -65,7 +65,7 @@ graph TD
 - **Side Panel (`sidepanel/`):** Painel lateral retrátil que acompanha a navegação do usuário em abas de estudo e leitura, exibindo revisões pendentes e distribuição de matérias.
 - **Dashboard (`dashboard/`):** Aplicação de página inteira dividida em duas abas principais:
   1. *Visão Geral:* Filtros de data, busca com paginação, linha do tempo diária e tabela de matérias.
-  2. *Padrões Históricos de Estudo (2016–2026):* Análise multianual, mapa anual de atividade (heatmap estilo GitHub), distribuição circadiana 24h com produtividade por turno, matriz 2x2 de rendimento e mix metodológico.
+  2. *Padrões Históricos de Estudo (2016 até o ano corrente):* Análise multianual, mapa anual de atividade (heatmap estilo GitHub), distribuição circadiana 24h com produtividade por turno, matriz 2x2 de rendimento e mix metodológico.
 
 ### 2.4. Núcleo de Domínio (`shared/`)
 - **`api.js`:** Encapsula requisições autenticadas para os endpoints `/service/*` do AprovadoApp (`Atividade/Listar`, `Materia/Listar`, `Acompanhamento/CicloEstudos`, `Revisao/ListarPendentes`). Gerencia cache local de 5 minutos com `chrome.storage.local`.

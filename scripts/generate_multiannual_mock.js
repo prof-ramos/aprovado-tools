@@ -44,13 +44,11 @@ function createPRNG(seed) {
   };
 }
 
-const rng = createPRNG(20261102);
-
-function randInt(min, max) {
+function randInt(rng, min, max) {
   return Math.floor(rng() * (max - min + 1)) + min;
 }
 
-function randChoice(arr) {
+function randChoice(rng, arr) {
   return arr[Math.floor(rng() * arr.length)];
 }
 
@@ -136,7 +134,7 @@ const MODALITIES = [
   { type: 'Leitura de Lei Seca', weight: 0.05 }
 ];
 
-function pickModality() {
+function pickModality(rng) {
   const r = rng();
   let acc = 0;
   for (const m of MODALITIES) {
@@ -146,7 +144,7 @@ function pickModality() {
   return 'Teoria';
 }
 
-function pickSubject() {
+function pickSubject(rng) {
   const r = rng();
   let acc = 0;
   for (const s of MATERIAS) {
@@ -172,6 +170,8 @@ const YEAR_PLANS = {
 };
 
 export function generateMultiannualMock() {
+  // A fresh PRNG makes repeated calls as reproducible as separate CLI runs.
+  const rng = createPRNG(20261102);
   const activities = [];
   let currentActivityId = 10001;
 
@@ -180,7 +180,6 @@ export function generateMultiannualMock() {
 
   for (let year = 2016; year <= 2026; year++) {
     const plan = YEAR_PLANS[year];
-    const totalDaysInYear = isLeapYear(year) ? 366 : 365;
     const maxMonth = plan.endMonth || 12;
 
     // Collect all candidate calendar days in this year up to endMonth
@@ -190,11 +189,11 @@ export function generateMultiannualMock() {
     for (let m = 0; m < maxMonth; m++) {
       const monthDays = (year === 2026 && m === 10) ? 2 : daysInMonths[m]; // Nov 2 for 2026
       for (let d = 1; d <= monthDays; d++) {
-        const dateObj = new Date(year, m, d);
+        const dateObj = new Date(Date.UTC(year, m, d));
         calendarDays.push({
           dateStr: `${year}-${pad2(m + 1)}-${pad2(d)}`,
           dateBr: `${pad2(d)}/${pad2(m + 1)}/${year}`,
-          dayOfWeek: dateObj.getDay(),
+          dayOfWeek: dateObj.getUTCDay(),
           month: m + 1,
           day: d
         });
@@ -218,7 +217,13 @@ export function generateMultiannualMock() {
       // Sample down or up to targetDays
       if (weightedDays.length > plan.targetDays) {
         // Randomly pick plan.targetDays
-        const shuffled = [...weightedDays].sort(() => rng() - 0.5);
+        // Fisher–Yates consumes the same random values on every JS engine.
+        // A random sort comparator depends on the engine's sorting strategy.
+        const shuffled = [...weightedDays];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = randInt(rng, 0, i);
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
         selectedDays = shuffled.slice(0, plan.targetDays);
       } else {
         selectedDays = weightedDays;
@@ -233,8 +238,6 @@ export function generateMultiannualMock() {
     // Level 2: 1.5h < hours <= 3.5h (e.g. 2.5h = 9,000,000 ms)
     // Level 3: 3.5h < hours <= 6.0h (e.g. 4.5h = 16,200,000 ms)
     // Level 4: hours > 6.0h (e.g. 7.0h = 25,200,000 ms)
-
-    let remainingHours = plan.targetHours;
 
     for (let dayIdx = 0; dayIdx < selectedDays.length; dayIdx++) {
       const dayInfo = selectedDays[dayIdx];
@@ -269,10 +272,10 @@ export function generateMultiannualMock() {
         sessionHoursAllocated += sHours;
 
         const durationMs = Math.round(sHours * 3600 * 1000);
-        const subject = pickSubject();
-        const modality = pickModality();
+        const subject = pickSubject(rng);
+        const modality = pickModality(rng);
         const topicList = TOPICS[subject.Id] || ['Geral'];
-        const topic = randChoice(topicList);
+        const topic = randChoice(rng, topicList);
 
         // Pick start hour
         // We ensure all 24 hours (0..23) get covered across the dataset
@@ -284,7 +287,7 @@ export function generateMultiannualMock() {
 
         if (missingHours.length > 0 && rng() < 0.25) {
           // Explicitly cover missing hour
-          startHour = randChoice(missingHours);
+          startHour = randChoice(rng, missingHours);
         } else {
           // Realistic distribution by shift:
           // Madrugada (0-5): 6%
@@ -293,18 +296,18 @@ export function generateMultiannualMock() {
           // Noite (18-23): 24%
           const shiftRoll = rng();
           if (shiftRoll < 0.06) {
-            startHour = randInt(0, 5);
+            startHour = randInt(rng, 0, 5);
           } else if (shiftRoll < 0.44) {
-            startHour = randInt(6, 11);
+            startHour = randInt(rng, 6, 11);
           } else if (shiftRoll < 0.76) {
-            startHour = randInt(12, 17);
+            startHour = randInt(rng, 12, 17);
           } else {
-            startHour = randInt(18, 23);
+            startHour = randInt(rng, 18, 23);
           }
         }
         hoursCovered.add(startHour);
 
-        const startMin = randInt(0, 59);
+        const startMin = randInt(rng, 0, 59);
         const horaInicio = `${pad2(startHour)}:${pad2(startMin)}`;
         const inicioIso = `${dayInfo.dateStr}T${horaInicio}:00.000Z`;
 
@@ -314,12 +317,12 @@ export function generateMultiannualMock() {
 
         if (subject.hasQuestions) {
           if (modality === 'Questões') {
-            exercicioQuantidade = randInt(15, 45);
+            exercicioQuantidade = randInt(rng, 15, 45);
           } else if (modality === 'Revisão') {
-            exercicioQuantidade = randInt(5, 20);
+            exercicioQuantidade = randInt(rng, 5, 20);
           } else if (rng() < 0.35) {
             // Some theory sessions also include exercises
-            exercicioQuantidade = randInt(5, 15);
+            exercicioQuantidade = randInt(rng, 5, 15);
           }
 
           if (exercicioQuantidade > 0) {
@@ -347,7 +350,7 @@ export function generateMultiannualMock() {
             Cor: subject.Cor
           },
           Conteudo: {
-            Id: subject.Id * 100 + randInt(1, 4),
+            Id: subject.Id * 100 + randInt(rng, 1, 4),
             Nome: topic
           },
           TipoEstudo: modality,

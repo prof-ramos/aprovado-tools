@@ -8,6 +8,7 @@ import {
   computeActivityHeatmap
 } from '../shared/analytics.js';
 import { AprovadoExport } from '../shared/export.js';
+import { escapeHtml, sanitizeColor } from '../shared/ui.js';
 
 let fullSnapshot = null;
 let currentPeriod = 'all';
@@ -17,8 +18,11 @@ let activitiesSearchQuery = '';
 let currentPage = 1;
 const PAGE_SIZE = 50;
 
-let currentHeatmapYear = 2026;
+let currentHeatmapYear = new Date().getFullYear();
 let cachedHistoricalPatterns = null;
+let cachedHistoricalActivities = null;
+let cachedHistoricalMaterias = null;
+let cachedHistoricalDate = null;
 
 // DOM Elements
 const loadingOverlay = document.getElementById('dashboard-loading');
@@ -305,8 +309,8 @@ function renderCicloCard(ciclo) {
     const name = m.Nome || m.Materia?.Nome || 'Disciplina';
     const hrs = m.HorasExecutadasTexto || `${Math.floor((m.HorasExecutadas || 0) / 3600)}h`;
     row.innerHTML = `
-      <span>${name}</span>
-      <span style="color: var(--text-muted); font-weight: 600;">${hrs}</span>
+      <span>${escapeHtml(name)}</span>
+      <span style="color: var(--text-muted); font-weight: 600;">${escapeHtml(hrs)}</span>
     `;
     dashCicloList.appendChild(row);
   });
@@ -332,8 +336,8 @@ function renderSubjectsSummary(subjects) {
     tr.innerHTML = `
       <td>
         <div class="subject-cell">
-          <span class="subject-dot" style="background-color: ${s.color};"></span>
-          <span>${s.name}</span>
+          <span class="subject-dot" style="background-color: ${sanitizeColor(s.color)};"></span>
+          <span>${escapeHtml(s.name)}</span>
         </div>
       </td>
       <td><strong>${s.formattedHours}</strong></td>
@@ -394,19 +398,19 @@ function renderActivitiesTable(activities) {
         : '—';
 
       tr.innerHTML = `
-        <td>${a.DataInicio || '—'}</td>
-        <td style="color: var(--text-muted);">${a.HoraInicio || '—'}</td>
+        <td>${escapeHtml(a.DataInicio || '—')}</td>
+        <td style="color: var(--text-muted);">${escapeHtml(a.HoraInicio || '—')}</td>
         <td>
           <div class="subject-cell">
-            <span class="subject-dot" style="background-color: ${a.Materia?.Cor || '#3b82f6'};"></span>
-            <span>${a.Materia?.Nome || '—'}</span>
+            <span class="subject-dot" style="background-color: ${sanitizeColor(a.Materia?.Cor)};"></span>
+            <span>${escapeHtml(a.Materia?.Nome || '—')}</span>
           </div>
         </td>
-        <td>${a.Conteudo?.Nome || '<span style="color: var(--text-faint);">Geral</span>'}</td>
-        <td><span class="badge-tag">${a.TipoEstudo || 'Manual'}</span></td>
-        <td><strong>${durText}</strong></td>
+        <td>${a.Conteudo?.Nome ? escapeHtml(a.Conteudo.Nome) : '<span style="color: var(--text-faint);">Geral</span>'}</td>
+        <td><span class="badge-tag">${escapeHtml(a.TipoEstudo || 'Manual')}</span></td>
+        <td><strong>${escapeHtml(durText)}</strong></td>
         <td>${questionsText}</td>
-        <td style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted);" title="${a.Anotacoes || ''}">${a.Anotacoes || '—'}</td>
+        <td style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted);" title="${escapeHtml(a.Anotacoes || '')}">${escapeHtml(a.Anotacoes || '—')}</td>
       `;
       tbodyActivitiesList.appendChild(tr);
     });
@@ -590,9 +594,16 @@ function setupTabNavigation() {
 }
 
 function renderHistoricalPatternsTab(activities = [], materias = []) {
-  if (!activities || !activities.length) return;
+  const now = new Date();
+  const year = now.getFullYear();
+  const dateKey = `${year}-${now.getMonth()}-${now.getDate()}`;
+  if (cachedHistoricalPatterns && cachedHistoricalActivities === activities
+      && cachedHistoricalMaterias === materias && cachedHistoricalDate === dateKey) return;
 
-  const patterns = computeHistoricalPatterns(activities, materias);
+  cachedHistoricalActivities = activities;
+  cachedHistoricalMaterias = materias;
+  cachedHistoricalDate = dateKey;
+  const patterns = computeHistoricalPatterns(activities, materias, { endYear: year, heatmapYear: currentHeatmapYear });
   cachedHistoricalPatterns = patterns;
 
   renderExecutiveSummaryMetrics(patterns.history);
@@ -617,7 +628,12 @@ function renderExecutiveSummaryMetrics(historyData) {
   const histPeakHours = document.getElementById('hist-peak-hours');
 
   if (histTotalYears) histTotalYears.textContent = `${historyData.totalYearsCount} anos`;
-  if (histYearsRange) histYearsRange.textContent = `${historyData.startYear} – ${historyData.endYear}`;
+  const range = `${historyData.startYear} – ${historyData.endYear}`;
+  if (histYearsRange) histYearsRange.textContent = range;
+  const tabLabel = document.getElementById('historical-tab-label');
+  if (tabLabel) tabLabel.textContent = `Padrões históricos (${range})`;
+  const historyTitle = document.getElementById('historical-section-title');
+  if (historyTitle) historyTitle.textContent = `Histórico multianual e fases de estudo (${range})`;
 
   if (histTotalHours) {
     const totalMs = historyData.years.reduce((acc, y) => acc + (y.totalDurationMs || 0), 0);
@@ -712,23 +728,24 @@ function setupHeatmapControls(activities, historyData) {
   const select = document.getElementById('heatmap-year-select');
   if (!select) return;
 
-  const start = historyData?.startYear || 2016;
-  const end = historyData?.endYear || 2026;
+  const start = historyData?.startYear ?? 2016;
+  const end = historyData?.endYear ?? new Date().getFullYear();
+  currentHeatmapYear = Math.min(end, Math.max(start, currentHeatmapYear));
 
-  if (select.children.length === 0) {
-    for (let y = end; y >= start; y--) {
-      const opt = document.createElement('option');
-      opt.value = y;
-      opt.textContent = `${y}`;
-      if (y === currentHeatmapYear) opt.selected = true;
-      select.appendChild(opt);
-    }
-
-    select.addEventListener('change', () => {
-      currentHeatmapYear = parseInt(select.value, 10);
-      renderHeatmap(activities, currentHeatmapYear);
-    });
+  // Rebuild only on a new snapshot; preserve the user's selected year.
+  select.innerHTML = '';
+  for (let y = end; y >= start; y--) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = `${y}`;
+    select.appendChild(opt);
   }
+  select.value = String(currentHeatmapYear);
+  // Replace the handler rather than accumulating listeners or capturing old data.
+  select.onchange = () => {
+    currentHeatmapYear = parseInt(select.value, 10);
+    renderHeatmap(cachedHistoricalActivities || [], currentHeatmapYear);
+  };
 
   renderHeatmap(activities, currentHeatmapYear);
 }
@@ -909,7 +926,7 @@ function renderCircadian(circadianData) {
       card.className = `shift-card ${isDominant ? 'is-dominant' : ''}`;
       card.innerHTML = `
         <div class="shift-card-header">
-          <span>${s.name}</span>
+          <span>${escapeHtml(s.name)}</span>
           ${isDominant ? '<span class="dominant-tag">Turno dominante</span>' : ''}
         </div>
         <div class="shift-hours-val">${shiftData.hours.toFixed(1)}h</div>
@@ -1071,7 +1088,7 @@ function renderQuadrants(quadrantsData) {
         cx="${cx.toFixed(1)}"
         cy="${cy.toFixed(1)}"
         r="7"
-        fill="${s.color || '#3b82f6'}"
+        fill="${sanitizeColor(s.color)}"
         stroke="#ffffff"
         stroke-width="1.5"
         class="matrix-dot"
@@ -1101,7 +1118,7 @@ function renderQuadrants(quadrantsData) {
         const c = parseInt(dot.getAttribute('data-correct') || '0', 10);
 
         tooltip.innerHTML = `
-          <div class="tooltip-title">${name}</div>
+          <div class="tooltip-title">${escapeHtml(name)}</div>
           <div class="tooltip-row"><span>Tempo Total:</span><strong>${hours.toFixed(1)}h</strong></div>
           <div class="tooltip-row"><span>Assertividade:</span><strong>${acc.toFixed(1)}%</strong></div>
           <div class="tooltip-row"><span>Exercícios:</span><strong>${c} acertos de ${q}</strong></div>
@@ -1196,12 +1213,12 @@ function renderSubjectPills(subjects = []) {
   return subjects.map(s => `
     <div class="subject-pill">
       <div class="subject-pill-left">
-        <span class="subject-dot" style="background-color: ${s.color || '#3b82f6'};"></span>
+        <span class="subject-dot" style="background-color: ${sanitizeColor(s.color)};"></span>
         <span style="font-weight: 600;">${escapeHtml(s.name)}</span>
       </div>
       <div class="subject-pill-right">
         <span>${s.totalHours.toFixed(1)}h</span>
-        <span class="accuracy-badge ${s.accuracy >= 75 ? 'acc-high' : 'acc-low'}">${s.accuracy !== null ? s.accuracy.toFixed(1) + '%' : 'N/A'}</span>
+        <span class="accuracy-badge ${s.accuracy >= 80 ? 'accuracy-high' : (s.accuracy >= 65 ? 'accuracy-mid' : 'accuracy-low')}">${s.accuracy !== null ? s.accuracy.toFixed(1) + '%' : 'N/A'}</span>
       </div>
     </div>
   `).join('');
@@ -1319,16 +1336,6 @@ function positionTooltip(e, tooltip) {
   const y = Math.max(10, e.clientY);
   tooltip.style.left = `${x}px`;
   tooltip.style.top = `${y}px`;
-}
-
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }
 
 if (document.readyState === 'loading') {

@@ -25,7 +25,7 @@
       <div class="nav-right">
         <!-- User status card -->
         <div class="user-profile-badge" id="user-badge">
-          <div class="avatar-circle" id="user-avatar">G</div>
+          <div class="avatar-circle" id="user-avatar">E</div>
           <div class="user-meta">
             <span class="user-title" id="user-display-name">Carregando...</span>
             <span class="user-sub" id="user-status-text">Sincronizado</span>
@@ -137,7 +137,7 @@
         <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 8.5h3l2-5 3 9 2-4h2"/>
         </svg>
-        <span>Padrões históricos (2016–2026)</span>
+        <span id="historical-tab-label">Padrões históricos</span>
       </button>
     </nav>
 
@@ -323,14 +323,14 @@
         </section>
       </div>
 
-      <!-- Tab Pane 2: Padrões Históricos de Estudo (2016–2026) -->
+      <!-- Tab Pane 2: Padrões Históricos de Estudo -->
       <div id="tab-historical-patterns" class="dash-tab-pane hidden" role="tabpanel" aria-labelledby="tab-btn-historical-patterns">
         <!-- Multiannual KPIs -->
         <section class="kpi-banner hist-kpi-banner">
           <div class="metric-card">
             <span class="metric-title">Anos analisados</span>
             <div class="metric-value" id="hist-total-years">11 anos</div>
-            <div class="metric-footer" id="hist-years-range">2016 – 2026</div>
+            <div class="metric-footer" id="hist-years-range">—</div>
           </div>
 
           <div class="metric-card">
@@ -362,7 +362,7 @@
         <section class="chart-card chart-full-width">
           <div class="card-title-bar">
             <div>
-              <h3>Histórico multianual e fases de estudo (2016–2026)</h3>
+              <h3 id="historical-section-title">Histórico multianual e fases de estudo</h3>
               <span class="card-caption">Classificação em alta intensidade, manutenção e hiato</span>
             </div>
           </div>

@@ -43,10 +43,7 @@ Como a extensão está em desenvolvimento, você pode carregá-la no Google Chro
    ```
 2. No canto superior direito, ative a chave **Modo do desenvolvedor** (*Developer mode*).
 3. Clique no botão **Carregar sem compactação** (*Load unpacked*).
-4. Selecione a pasta deste projeto:
-   ```
-   /Users/gabrielramos/Developer/personal/aprovado-tools
-   ```
+4. Selecione a pasta raiz do repositório clonado, que contém `manifest.json`.
 5. A extensão **Aprovado Tools** aparecerá na sua lista de extensões ativas!
 6. Fixe o ícone na barra de ferramentas do navegador para acesso rápido.
 
@@ -69,7 +66,7 @@ Como a extensão está em desenvolvimento, você pode carregá-la no Google Chro
 - **Zero Dependências de Produção**: Código limpo em Vanilla JavaScript (ES Modules), CSS moderno e componentes nativos de renderização SVG.
 - **100% Determinístico**: Cálculos, partições e diagnósticos executados localmente sem envio de dados para servidores ou modelos de IA.
 - **Documentação Técnica Completa**:
-  - 📘 [Guia do Desenvolvedor (`DEVELOPER.md`)](DEVELOPER.md) — Configuração, fluxo de trabalho, suíte de 89 testes e troubleshooting.
+  - 📘 [Guia do Desenvolvedor (`DEVELOPER.md`)](DEVELOPER.md) — Configuração, fluxo de trabalho, testes e troubleshooting.
   - 🏛️ [Arquitetura do Sistema (`ARCHITECTURE.md`)](ARCHITECTURE.md) — Diagramas Mermaid, fluxo de dados e decisões de design.
   - 🔒 [Política de Privacidade (`PRIVACY.md`)](PRIVACY.md) — Política de privacidade pública e uso exclusivo no cliente.
   - 🏪 [Guia da Chrome Web Store (`CHROMEWEBSTORE.md`)](CHROMEWEBSTORE.md) — Ficha da loja, justificativas de permissões e assets.
@@ -79,8 +76,11 @@ Como a extensão está em desenvolvimento, você pode carregá-la no Google Chro
 ## 🧪 Testes e Empacotamento
 
 ```bash
-# Executa a suíte de 89 testes automatizados (unitários, integração e estresse)
+# Gera os dados sintéticos e executa os testes (Node.js 18.20.0 ou superior)
 npm test
+
+# Gera somente os dados para a prévia offline do dashboard com ?mock=true
+npm run generate:mock
 
 # Cria o arquivo ZIP limpo pronto para publicação na Chrome Web Store
 npm run build:zip

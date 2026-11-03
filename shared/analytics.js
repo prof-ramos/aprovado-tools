@@ -325,10 +325,14 @@ function calculateStreak(sortedDateKeys) {
 }
 
 /* ==========================================================================
- * Historical Study Patterns & Deterministic Analytics Engine (2016–2026)
+ * Historical Study Patterns & Deterministic Analytics Engine (2016–current year)
  * ========================================================================== */
 
 // Internal helpers
+function positiveDurationMs(value) {
+  return Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
 function isLeapYear(year) {
   return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
 }
@@ -430,9 +434,9 @@ export function classifyStudyPhase(totalHours = 0, activeDaysCount = 0, isCurren
 }
 
 /**
- * 2. Multiannual History (2016–2026)
+ * 2. Multiannual History (2016–current year by default)
  */
-export function computeMultiannualHistory(activities = [], startYear = 2016, endYear = 2026) {
+export function computeMultiannualHistory(activities = [], startYear = 2016, endYear = new Date().getFullYear()) {
   const sYear = Math.min(startYear, endYear);
   const eYear = Math.max(startYear, endYear);
   const currentYear = new Date().getFullYear();
@@ -460,9 +464,11 @@ export function computeMultiannualHistory(activities = [], startYear = 2016, end
     let dayOfYear = daysInYear;
     if (isCurrent) {
       const now = new Date();
-      const startOfYear = new Date(y, 0, 1);
-      const diffMs = now.getTime() - startOfYear.getTime();
-      dayOfYear = Math.max(1, Math.min(daysInYear, Math.floor(diffMs / 86400000) + 1));
+      // Compare calendar dates, not elapsed local milliseconds: DST can make
+      // the interval to midnight one hour longer or shorter than whole days.
+      const today = Date.UTC(y, now.getMonth(), now.getDate());
+      const startOfYear = Date.UTC(y, 0, 1);
+      dayOfYear = Math.max(1, Math.min(daysInYear, (today - startOfYear) / 86400000 + 1));
     }
 
     const yearEntries = activitiesByYear.get(y) || [];
@@ -473,10 +479,11 @@ export function computeMultiannualHistory(activities = [], startYear = 2016, end
 
     for (const entry of yearEntries) {
       const atv = entry.atv;
-      totalDurationMs += (atv.Duracao || 0);
+      const durationMs = positiveDurationMs(atv.Duracao);
+      totalDurationMs += durationMs;
       totalQuestions += (atv.ExercicioQuantidade || 0);
       totalCorrect += (atv.ExercicioAcerto || 0);
-      dateSet.add(formatLocalDate(entry.date));
+      if (durationMs > 0) dateSet.add(formatLocalDate(entry.date));
     }
 
     const totalHours = Number((totalDurationMs / 3600000).toFixed(1));
@@ -557,7 +564,7 @@ export function computeActivityHeatmap(activities = [], targetYear = new Date().
         dayMap.set(key, { ms: 0, sessionsCount: 0, questions: 0, correct: 0 });
       }
       const entry = dayMap.get(key);
-      entry.ms += (atv.Duracao || 0);
+      entry.ms += positiveDurationMs(atv.Duracao);
       entry.sessionsCount += 1;
       entry.questions += (atv.ExercicioQuantidade || 0);
       entry.correct += (atv.ExercicioAcerto || 0);
@@ -1171,7 +1178,7 @@ export function generateStudyInsights(metrics, patterns) {
  */
 export function computeHistoricalPatterns(activities = [], materias = [], options = {}) {
   const startYear = options?.startYear ?? 2016;
-  const endYear = options?.endYear ?? 2026;
+  const endYear = options?.endYear ?? new Date().getFullYear();
   const heatmapYear = options?.heatmapYear ?? new Date().getFullYear();
 
   const history = computeMultiannualHistory(activities, startYear, endYear);

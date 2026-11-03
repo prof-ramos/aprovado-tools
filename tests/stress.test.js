@@ -128,7 +128,11 @@ describe('Adversarial Stress Test Suite: Historical Study Patterns Engine', () =
         { Id: 11, Inicio: '2016-02-21T02:00:00', Duracao: 1800000, TipoEstudo: 'Questões' },
         { Id: 12, Inicio: '2016-10-16T00:00:00', Duracao: 3600000, TipoEstudo: 'Revisão' },
         { Id: 13, Inicio: '2016-10-16T03:00:00', Duracao: 1800000, TipoEstudo: 'Teoria' },
-        { Id: 14, Inicio: '2016-12-31T23:59:59', Duracao: 7200000, TipoEstudo: 'Revisão' }
+        { Id: 14, Inicio: '2016-12-31T23:59:59', Duracao: 7200000, TipoEstudo: 'Revisão' },
+        { Id: 15, Inicio: '2016-02-20T12:00:00', Duracao: 3600000, TipoEstudo: 'Teoria' },
+        { Id: 16, Inicio: '2016-02-22T12:00:00', Duracao: 3600000, TipoEstudo: 'Teoria' },
+        { Id: 17, Inicio: '2016-10-15T12:00:00', Duracao: 3600000, TipoEstudo: 'Teoria' },
+        { Id: 18, Inicio: '2016-10-17T12:00:00', Duracao: 3600000, TipoEstudo: 'Teoria' }
       ];
 
       const heatmap = computeActivityHeatmap(dstActivities, 2016);
@@ -140,6 +144,19 @@ describe('Adversarial Stress Test Suite: Historical Study Patterns Engine', () =
         0
       );
       assert.equal(totalInYear, 366, 'Heatmap must include all 366 days without DST truncation');
+      const inYearDays = heatmap.weeks.flatMap(w => w.days).filter(d => d.inTargetYear);
+      assert.equal(new Set(inYearDays.map(d => d.date)).size, 366, 'DST must not duplicate a calendar day');
+      assert.equal(heatmap.activeDaysCount, 7);
+      assert.equal(heatmap.totalYearHours, 9);
+      for (const date of ['2016-02-21', '2016-10-16']) {
+        const transitionDay = inYearDays.find(d => d.date === date);
+        assert.equal(transitionDay.sessionsCount, 2, date);
+        assert.equal(transitionDay.hours, 1.5, date);
+      }
+      const history = computeMultiannualHistory(dstActivities, 2016, 2016);
+      assert.equal(history.years[0].activeDaysCount, 7);
+      assert.equal(history.years[0].sessionsCount, 9);
+      assert.equal(history.years[0].longestStreak, 3, 'Calendar-day streaks survive both DST transitions');
 
       // Verify Dec 31 is present and populated
       const dec31 = heatmap.weeks.flatMap(w => w.days).find(d => d.date === '2016-12-31');
@@ -167,7 +184,9 @@ describe('Adversarial Stress Test Suite: Historical Study Patterns Engine', () =
 
       // Multiannual history with zero/negative duration
       const hist = computeMultiannualHistory(edgeActivities, 2024, 2024);
-      assert.ok(!isNaN(hist.totalCumulativeHours), 'Total hours must not be NaN');
+      assert.equal(hist.totalCumulativeHours, 0, 'Invalid durations must not subtract study hours');
+      assert.equal(hist.years[0].activeDaysCount, 0, 'Invalid durations must not count as active days');
+      assert.equal(hist.years[0].longestStreak, 0, 'Invalid durations must not create a streak');
       assert.equal(hist.years[0].phase, 'HIATO', 'Negative/zero study hours must be classified as HIATO');
 
       // Heatmap with zero/negative duration: must not count as active days
@@ -315,7 +334,7 @@ describe('Adversarial Stress Test Suite: Historical Study Patterns Engine', () =
       }
 
       const t0 = performance.now();
-      const patterns = computeHistoricalPatterns(massiveActivities, subjects, { heatmapYear: 2024 });
+      const patterns = computeHistoricalPatterns(massiveActivities, subjects, { endYear: 2026, heatmapYear: 2024 });
       const durationMs = performance.now() - t0;
 
       // Performance assertion: must complete under 500ms (typically ~60ms)

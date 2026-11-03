@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 import {
   computeMultiannualHistory,
@@ -22,10 +23,27 @@ const FIXTURE_PATH = path.join(__dirname, 'fixtures', 'multiannual_mock_2016_202
 const mockSnapshot = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf-8'));
 const activities = mockSnapshot.atividades;
 
+// Keep clock-dependent tests deterministic without relying on Node 20+ timer mocks.
+function withFixedDate(isoDate, run) {
+  const NativeDate = Date;
+  const timestamp = new NativeDate(isoDate).getTime();
+  globalThis.Date = class extends NativeDate {
+    constructor(...args) {
+      super(...(args.length ? args : [timestamp]));
+    }
+    static now() { return timestamp; }
+  };
+  try {
+    return run();
+  } finally {
+    globalThis.Date = NativeDate;
+  }
+}
+
 describe('Multiannual History & Phase Classification Test Suite', () => {
   describe('Tier 1: Multiannual Comparative Engine (F2)', () => {
-    it('aggregates activities across default 11 years (2016–2026)', () => {
-      const result = computeMultiannualHistory(activities);
+    it('aggregates activities across an explicit 11-year range (2016–2026)', () => {
+      const result = computeMultiannualHistory(activities, 2016, 2026);
 
       assert.equal(result.startYear, 2016);
       assert.equal(result.endYear, 2026);
@@ -39,7 +57,7 @@ describe('Multiannual History & Phase Classification Test Suite', () => {
     });
 
     it('calculates cumulative metrics accurately across all years', () => {
-      const result = computeMultiannualHistory(activities);
+      const result = computeMultiannualHistory(activities, 2016, 2026);
 
       assert.ok(result.totalCumulativeHours > 4000, 'Cumulative hours should be substantial (>4000h)');
       assert.equal(result.totalCumulativeSessions, activities.length);
@@ -54,7 +72,7 @@ describe('Multiannual History & Phase Classification Test Suite', () => {
     });
 
     it('identifies peak study year correctly', () => {
-      const result = computeMultiannualHistory(activities);
+      const result = computeMultiannualHistory(activities, 2016, 2026);
 
       assert.ok(result.peakYear !== null);
       assert.ok([2018, 2019, 2024, 2025].includes(result.peakYear.year), 'Peak year should be an intensive year');
@@ -66,7 +84,7 @@ describe('Multiannual History & Phase Classification Test Suite', () => {
     });
 
     it('formats duration strings correctly for each year', () => {
-      const result = computeMultiannualHistory(activities);
+      const result = computeMultiannualHistory(activities, 2016, 2026);
 
       for (const yr of result.years) {
         assert.ok(typeof yr.formattedDuration === 'string');
@@ -78,7 +96,7 @@ describe('Multiannual History & Phase Classification Test Suite', () => {
     });
 
     it('computes daily averages (active days vs total year days)', () => {
-      const result = computeMultiannualHistory(activities);
+      const result = computeMultiannualHistory(activities, 2016, 2026);
 
       for (const yr of result.years) {
         if (yr.activeDaysCount > 0) {
@@ -123,7 +141,7 @@ describe('Multiannual History & Phase Classification Test Suite', () => {
     });
 
     it('correctly classifies fixture historical years according to planned phases', () => {
-      const result = computeMultiannualHistory(activities);
+      const result = computeMultiannualHistory(activities, 2016, 2026);
       const yearMap = Object.fromEntries(result.years.map(y => [y.year, y]));
 
       // 2020 was explicitly planned as Hiatus (<50h and <20 active days)
@@ -142,8 +160,70 @@ describe('Multiannual History & Phase Classification Test Suite', () => {
   });
 
   describe('Tier 2: Boundary & Corner Cases', () => {
+    it('includes the current year by default after 2026 while preserving the 2016 start', () => {
+      const result = withFixedDate('2028-03-01T12:00:00', () => computeMultiannualHistory([
+        { Inicio: '2028-02-29T12:00:00', Duracao: 3600000 }
+      ]));
+
+      assert.equal(result.startYear, 2016);
+      assert.equal(result.endYear, 2028);
+      assert.equal(result.totalYearsCount, 13);
+      assert.equal(result.totalCumulativeSessions, 1);
+      assert.equal(result.years.at(-1).totalHours, 1);
+      assert.equal(result.years.at(-1).isCurrentYear, true);
+    });
+
+    it('uses calendar days rather than elapsed 24-hour intervals for current-year projection across DST', () => {
+      const analyticsUrl = new URL('../shared/analytics.js', import.meta.url).href;
+      const script = `
+        import { computeMultiannualHistory } from ${JSON.stringify(analyticsUrl)};
+        // São Paulo left summer time in February. At 23:30 on March 10,
+        // 70 calendar days have begun, but elapsed milliseconds round up to 71.
+        ${withFixedDate.toString()}
+        const activities = Array.from({ length: 20 }, (_, i) => ({
+          Inicio: '2016-01-' + String(i + 1).padStart(2, '0') + 'T12:00:00',
+          Duracao: 3.36 * 3600000
+        }));
+        const year = withFixedDate('2016-03-10T23:30:00', () => computeMultiannualHistory(activities, 2016, 2016).years[0]);
+        process.stdout.write(JSON.stringify({ phase: year.phase, hours: year.totalHours }));
+      `;
+      for (const timezone of ['UTC', 'America/Sao_Paulo']) {
+        const result = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], {
+          env: { ...process.env, TZ: timezone }, encoding: 'utf8'
+        }));
+        assert.equal(result.hours, 67.2);
+        // 67.2 / 70 * 365 = 350.4 projected hours, above the 350-hour threshold.
+        assert.equal(result.phase, 'ALTA_INTENSIDADE', timezone);
+      }
+    });
+
+    for (const [label, duration] of [
+      ['zero', 0], ['negative', -3600000], ['missing', undefined], ['null', null],
+      ['NaN', NaN], ['infinite', Infinity], ['negative infinity', -Infinity],
+      ['numeric string', '3600000'], ['nonnumeric string', 'invalid']
+    ]) {
+      it(`does not count ${label} duration as study time, an active day, or a streak day`, () => {
+        const result = computeMultiannualHistory([
+          { Inicio: '2024-01-01T12:00:00', Duracao: 3600000, ExercicioQuantidade: 10, ExercicioAcerto: 8 },
+          { Inicio: '2024-01-02T12:00:00', Duracao: duration, ExercicioQuantidade: 5, ExercicioAcerto: 4 }
+        ], 2024, 2024);
+        const year = result.years[0];
+
+        assert.equal(year.totalDurationMs, 3600000);
+        assert.equal(year.totalHours, 1);
+        assert.equal(result.totalCumulativeHours, 1);
+        assert.equal(year.activeDaysCount, 1);
+        assert.equal(year.longestStreak, 1);
+        assert.equal(year.avgDailyHoursActive, 1);
+        // Recorded sessions and question results remain useful even without a duration.
+        assert.equal(year.sessionsCount, 2);
+        assert.equal(year.totalQuestions, 15);
+        assert.equal(year.totalCorrect, 12);
+      });
+    }
+
     it('handles empty activities array gracefully', () => {
-      const result = computeMultiannualHistory([]);
+      const result = computeMultiannualHistory([], 2016, 2026);
 
       assert.equal(result.totalYearsCount, 11);
       assert.equal(result.totalCumulativeHours, 0);
@@ -226,7 +306,7 @@ describe('Multiannual History & Phase Classification Test Suite', () => {
       assert.equal(Math.round(resNonLeap.years[0].avgDailyHoursYear * 10) / 10, 1.0);
     });
 
-    it('supports custom custom startYear and endYear boundaries', () => {
+    it('supports custom startYear and endYear boundaries', () => {
       const sliceResult = computeMultiannualHistory(activities, 2018, 2020);
 
       assert.equal(sliceResult.startYear, 2018);
@@ -234,6 +314,16 @@ describe('Multiannual History & Phase Classification Test Suite', () => {
       assert.equal(sliceResult.totalYearsCount, 3);
       assert.equal(sliceResult.years.length, 3);
       assert.deepEqual(sliceResult.years.map(y => y.year), [2018, 2019, 2020]);
+    });
+
+    it('preserves custom start years and normalizes reversed ranges', () => {
+      const result = computeMultiannualHistory([
+        { Inicio: '2028-02-29T12:00:00', Duracao: 3600000 }
+      ], 2028, 2027);
+      assert.equal(result.startYear, 2027);
+      assert.equal(result.endYear, 2028);
+      assert.deepEqual(result.years.map(y => y.year), [2027, 2028]);
+      assert.equal(result.totalCumulativeHours, 1);
     });
 
     it('supports single year query (startYear === endYear)', () => {

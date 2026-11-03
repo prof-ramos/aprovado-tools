@@ -3,7 +3,7 @@
  *
  * Comprehensive End-to-End Test Suite for "Padrões Históricos de Estudo".
  * Verifies Tier 3 (Cross-Feature Consistency & Master Consolidator)
- * and Tier 4 (5 Real-World Student Application Scenarios from TEST_INFRA.md).
+ * and Tier 4 (5 Real-World Student Application Scenarios covering the full analytics lifecycle).
  */
 
 import { describe, it } from 'node:test';
@@ -29,10 +29,52 @@ const mockSnapshot = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf-8'));
 const activities = mockSnapshot.atividades;
 const materias = mockSnapshot.materias;
 
+// Keep clock-dependent tests deterministic without relying on Node 20+ timer mocks.
+function withFixedDate(isoDate, run) {
+  const NativeDate = Date;
+  const timestamp = new NativeDate(isoDate).getTime();
+  globalThis.Date = class extends NativeDate {
+    constructor(...args) {
+      super(...(args.length ? args : [timestamp]));
+    }
+    static now() { return timestamp; }
+  };
+  try {
+    return run();
+  } finally {
+    globalThis.Date = NativeDate;
+  }
+}
+
 describe('End-to-End (E2E) Master Suite: Padrões Históricos de Estudo', () => {
   describe('Tier 3: Cross-Feature Integration & Consistency', () => {
+    it('keeps default history and leap-year heatmap aligned in 2028', () => {
+      const result = withFixedDate('2028-03-01T12:00:00', () => computeHistoricalPatterns([
+        { Inicio: '2028-02-29T12:00:00', Duracao: 3600000, TipoEstudo: 'Teoria' }
+      ]));
+
+      assert.equal(result.history.startYear, 2016);
+      assert.equal(result.history.endYear, 2028);
+      assert.equal(result.history.years.length, 13);
+      assert.equal(result.history.totalCumulativeHours, 1);
+      assert.equal(result.heatmap.year, 2028);
+      assert.equal(result.heatmap.totalDays, 366);
+      assert.equal(result.heatmap.totalYearHours, 1);
+      assert.equal(result.heatmap.weeks.flatMap(w => w.days).find(d => d.date === '2028-02-29').hours, 1);
+    });
+
+    it('honors explicit historical and heatmap years independently of the current clock', () => {
+      const result = withFixedDate('2028-03-01T12:00:00', () =>
+        computeHistoricalPatterns(activities, materias, { startYear: 2016, endYear: 2026, heatmapYear: 2025 }));
+      assert.equal(result.history.startYear, 2016);
+      assert.equal(result.history.endYear, 2026);
+      assert.equal(result.history.totalYearsCount, 11);
+      assert.equal(result.heatmap.year, 2025);
+      assert.equal(result.heatmap.totalDays, 365);
+    });
+
     it('executes master computeHistoricalPatterns and returns all 6 integrated modules', () => {
-      const result = computeHistoricalPatterns(activities, materias);
+      const result = computeHistoricalPatterns(activities, materias, { endYear: 2026, heatmapYear: 2024 });
 
       assert.ok(result.history, 'History module must be present');
       assert.ok(result.heatmap, 'Heatmap module must be present');
@@ -51,7 +93,7 @@ describe('End-to-End (E2E) Master Suite: Padrões Históricos de Estudo', () => 
     });
 
     it('cross-validates cumulative duration consistency across history, circadian and mix modules', () => {
-      const patterns = computeHistoricalPatterns(activities, materias);
+      const patterns = computeHistoricalPatterns(activities, materias, { endYear: 2026, heatmapYear: 2024 });
 
       // Duration from Multiannual History
       const historyHours = patterns.history.totalCumulativeHours;
@@ -95,7 +137,7 @@ describe('End-to-End (E2E) Master Suite: Padrões Históricos de Estudo', () => 
     });
 
     it('cross-validates heatmap year hours against multiannual entry for selected years', () => {
-      const patterns = computeHistoricalPatterns(activities, materias);
+      const patterns = computeHistoricalPatterns(activities, materias, { endYear: 2026, heatmapYear: 2024 });
 
       for (const targetYear of [2018, 2020, 2024]) {
         const heatmap = computeActivityHeatmap(activities, targetYear);
@@ -135,7 +177,7 @@ describe('End-to-End (E2E) Master Suite: Padrões Históricos de Estudo', () => 
   describe('Tier 4: Real-World Student Application Scenarios', () => {
     it('Scenario 1: 11-Year Continuous Student (2016-2026) Complete Lifecycle', () => {
       // Exercised: F2, F3, F4, F5, F7, F9, F11, F12
-      const patterns = computeHistoricalPatterns(activities, materias);
+      const patterns = computeHistoricalPatterns(activities, materias, { endYear: 2026, heatmapYear: 2024 });
 
       // Complete lifecycle span
       assert.equal(patterns.history.years.length, 11);
@@ -152,7 +194,8 @@ describe('End-to-End (E2E) Master Suite: Padrões Históricos de Estudo', () => 
       assert.ok(patterns.history.peakYear.hours > 600);
 
       // Heatmap coverage in leap year 2024
-      assert.equal(patterns.heatmap.totalDays, 365); // Default year is non-leap (or 366 for 2024)
+      assert.equal(patterns.heatmap.year, 2024);
+      assert.equal(patterns.heatmap.totalDays, 366);
 
       // Circadian & weekly ranking
       assert.equal(patterns.circadian.hourly.length, 24);
@@ -173,7 +216,7 @@ describe('End-to-End (E2E) Master Suite: Padrões Históricos de Estudo', () => 
     it('Scenario 2: Interrupted Study Journey with Extended Hiatus & Resumption', () => {
       // Exercised: F2, F3, F4, F5, F7, F12
       // 2019 was high intensity, 2020 was a severe Hiatus (<50h), 2021 was resumption (Maintenance)
-      const patterns = computeHistoricalPatterns(activities, materias);
+      const patterns = computeHistoricalPatterns(activities, materias, { endYear: 2026, heatmapYear: 2024 });
       const yearMap = Object.fromEntries(patterns.history.years.map(y => [y.year, y]));
 
       const y2019 = yearMap[2019];

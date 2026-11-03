@@ -126,7 +126,7 @@ describe('Methodological Mix & Rule-Based NLG Insights Test Suite', () => {
 
   describe('Tier 1: Rule-Based NLG Text Insights Synthesizer (F9/F12)', () => {
     // Generate integrated pattern objects
-    const history = computeMultiannualHistory(activities);
+    const history = computeMultiannualHistory(activities, 2016, 2026);
     const circadian = computeCircadianDistribution(activities);
     const mix = computeMethodologicalMix(activities);
 

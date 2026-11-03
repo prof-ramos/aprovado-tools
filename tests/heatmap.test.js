@@ -57,32 +57,32 @@ describe('Activity Heatmap Engine Test Suite', () => {
       const synthetic = [
         {
           Id: 1,
-          Inicio: '2025-01-10T10:00:00.000Z',
+          Inicio: '2025-01-10T10:00:00',
           Duracao: 1.5 * 3600000 // 1.5h -> Level 1
         },
         {
           Id: 2,
-          Inicio: '2025-01-11T10:00:00.000Z',
+          Inicio: '2025-01-11T10:00:00',
           Duracao: 1.6 * 3600000 // 1.6h -> Level 2
         },
         {
           Id: 3,
-          Inicio: '2025-01-12T10:00:00.000Z',
+          Inicio: '2025-01-12T10:00:00',
           Duracao: 3.5 * 3600000 // 3.5h -> Level 2
         },
         {
           Id: 4,
-          Inicio: '2025-01-13T10:00:00.000Z',
+          Inicio: '2025-01-13T10:00:00',
           Duracao: 3.6 * 3600000 // 3.6h -> Level 3
         },
         {
           Id: 5,
-          Inicio: '2025-01-14T10:00:00.000Z',
+          Inicio: '2025-01-14T10:00:00',
           Duracao: 6.0 * 3600000 // 6.0h -> Level 3
         },
         {
           Id: 6,
-          Inicio: '2025-01-15T10:00:00.000Z',
+          Inicio: '2025-01-15T10:00:00',
           Duracao: 6.1 * 3600000 // 6.1h -> Level 4
         }
       ];
@@ -108,14 +108,14 @@ describe('Activity Heatmap Engine Test Suite', () => {
       const multiSession = [
         {
           Id: 10,
-          Inicio: '2025-04-10T09:00:00.000Z',
+          Inicio: '2025-04-10T09:00:00',
           Duracao: 2 * 3600000,
           ExercicioQuantidade: 20,
           ExercicioAcerto: 18
         },
         {
           Id: 11,
-          Inicio: '2025-04-10T15:00:00.000Z',
+          Inicio: '2025-04-10T15:00:00',
           Duracao: 2.5 * 3600000,
           ExercicioQuantidade: 30,
           ExercicioAcerto: 25
@@ -145,8 +145,40 @@ describe('Activity Heatmap Engine Test Suite', () => {
   });
 
   describe('Tier 2: Boundary & Leap Year Tests', () => {
-    it('correctly maps 366 days for leap years (2016, 2020, 2024)', () => {
-      for (const leapYear of [2016, 2020, 2024]) {
+    it('does not let invalid durations cancel valid study time on the same date', () => {
+      const invalidDurations = [-3600000, 0, null, undefined, NaN, Infinity, -Infinity, '3600000', 'invalid'];
+      for (const duration of invalidDurations) {
+        const result = computeActivityHeatmap([
+          { Inicio: '2024-01-01T12:00:00', Duracao: 3600000, ExercicioQuantidade: 10, ExercicioAcerto: 8 },
+          { Inicio: '2024-01-01T13:00:00', Duracao: duration, ExercicioQuantidade: 5, ExercicioAcerto: 4 },
+          { Inicio: '2024-01-02T12:00:00', Duracao: duration }
+        ], 2024);
+        const day = result.weeks.flatMap(w => w.days).find(d => d.date === '2024-01-01');
+
+        assert.equal(result.activeDaysCount, 1, String(duration));
+        assert.equal(result.totalYearHours, 1, String(duration));
+        assert.equal(day.hours, 1, String(duration));
+        assert.equal(day.sessionsCount, 2);
+        assert.equal(day.questions, 15);
+        assert.equal(day.correct, 12);
+      }
+    });
+
+    it('buckets timestamps by their local calendar date when an explicit offset crosses midnight', () => {
+      // Encode a local Jan 1 session as a real UTC instant, preserving its local date
+      // in every runner timezone instead of assuming Z means local time.
+      const localMidnight = new Date(2024, 0, 1, 0, 30);
+      const result = computeActivityHeatmap([
+        { Inicio: localMidnight.toISOString(), Duracao: 3600000 }
+      ], 2024);
+      const firstDay = result.weeks.flatMap(w => w.days).find(d => d.date === '2024-01-01');
+      assert.equal(firstDay.hours, 1);
+      assert.equal(result.activeDaysCount, 1);
+      assert.equal(result.totalYearHours, 1);
+    });
+
+    it('correctly maps 366 days for leap years (2016, 2020, 2024, 2028)', () => {
+      for (const leapYear of [2016, 2020, 2024, 2028]) {
         const res = computeActivityHeatmap(activities, leapYear);
         assert.equal(res.totalDays, 366, `Year ${leapYear} must report 366 total days`);
 
@@ -223,7 +255,7 @@ describe('Activity Heatmap Engine Test Suite', () => {
       const mixedDateActivities = [
         {
           Id: 101,
-          Inicio: '2023-08-15T14:00:00.000Z',
+          Inicio: '2023-08-15T14:00:00',
           Duracao: 3600000
         },
         {
