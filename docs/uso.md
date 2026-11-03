@@ -18,7 +18,7 @@ Atualizações manuais não são automáticas: substitua o conteúdo da mesma pa
 
 ## Conectar e sincronizar
 
-Faça login em [aprovadoapp.com](https://aprovadoapp.com) no mesmo perfil do Chrome usado pela extensão. Não há campo de senha na extensão. Em seguida, abra o popup e use a atualização dos dados; no dashboard, clique em **Sincronizar**.
+Faça login em [aprovadoapp.com](https://aprovadoapp.com) no mesmo perfil do Chrome usado pela extensão. Não há campo de senha na extensão. Em seguida, abra o popup e use **Atualizar**; no painel lateral, **Sincronizar**; no dashboard, **Sincronizar**. O popup e o painel mostram primeiro os dados salvos da sua conta, com o horário da última atualização ("Atualizado há 3 min"), e sincronizam em seguida. Sem sessão, eles pedem para entrar no AprovadoApp neste navegador.
 
 O cliente consulta `https://aprovadoapp.com/service`. Embora os atalhos também sejam injetados em páginas `.com.br` e subdomínios permitidos pelo manifesto, isso não comprova que uma sessão exclusiva desses outros domínios autentique a API `.com`.
 
@@ -28,9 +28,23 @@ Uma aba já carregada pode continuar mostrando seu snapshot após logout, até u
 
 ## Filtrar e analisar
 
-Na visão geral do dashboard, selecione **Tudo**, **30 dias**, **7 dias** ou **Personalizado**, e combine matéria, modalidade e busca. Os indicadores e exportações do recorte usam essa seleção; a paginação limita as linhas exibidas, não o conjunto exportado.
+O dashboard tem três seções, no topo da página, cada uma com seu endereço: **Visão geral** (`#visao-geral`), **Histórico** (`#historico`) e **Atividades** (`#atividades`). Os botões Voltar e Avançar do navegador percorrem as seções, e um link com o endereço abre direto na seção.
 
-Ao entrar em **Análise histórica**, os filtros da visão geral ficam ocultos e os gráficos usam todo o histórico carregado. Para voltar ao recorte, selecione um período da visão geral. O seletor Semestres/Anos altera o ranking; o seletor do mapa anual altera o ano exibido nesse mapa.
+Quais filtros valem em cada seção:
+
+| Seção | Período, datas, matéria e modalidade | O que mostra |
+|---|---|---|
+| Visão geral | Valem | Indicadores, evolução, ciclo, matérias, modalidades e turnos do recorte. |
+| Atividades | Valem, mais a busca por texto | Tabela de sessões, da mais recente para a mais antiga, com paginação. |
+| Histórico | Não valem: ficam visíveis, esmaecidos e desabilitados, com um aviso | Padrões de todo o histórico carregado. |
+
+Selecione **Tudo**, **Este ano**, **90 dias**, **30 dias**, **7 dias** ou **Personalizado**, e combine matéria, modalidade e busca. Os indicadores e exportações do recorte usam essa seleção; a paginação limita as linhas exibidas, não o conjunto exportado.
+
+O gráfico **Evolução cronológica** cobre o período escolhido e agrupa as barras conforme o tamanho dele: por dia até 45 dias, por semana (segunda a domingo) até um ano e por mês acima disso. Dias, semanas e meses sem estudo aparecem como barras vazias, e o tooltip de cada barra traz horas, sessões e dias com estudo.
+
+Em **Modalidades e hábitos**, os tipos de estudo são agrupados em Teoria, Questões, Revisão e Outros, com a mesma regra do mix metodológico do Histórico. Por isso a porcentagem de Teoria é igual nos dois lugares. O filtro **Modalidade** continua listando os tipos de estudo originais do AprovadoApp.
+
+Com `?mock=true`, uma faixa amarela avisa que os dados são de exemplo, e o nome da conta e o status de sincronização ficam ocultos. No Histórico, o seletor Semestres/Anos altera o ranking; o seletor do mapa anual altera o ano exibido nesse mapa.
 
 | Indicador | Interpretação |
 |---|---|
@@ -48,10 +62,12 @@ Os indicadores multianuais abrangem 2016 até o ano corrente; o ranking de perí
 
 | Ação | Alcance |
 |---|---|
-| CSV atividades | Todas as atividades do recorte, incluindo a busca no dashboard, sem limitar à página da tabela. |
-| CSV matérias | Agregação por disciplina sobre o mesmo recorte; disponível no popup e no dashboard. |
-| Backup JSON | Snapshot completo, incluindo perfil, listas, ciclo e revisões; ignora os filtros. |
-| Copiar Markdown | Métricas do recorte e nome do usuário na área de transferência. |
+| Atividades (CSV) | Todas as atividades do recorte, incluindo a busca no dashboard, sem limitar à página da tabela. |
+| Resumo por matéria (CSV) | Agregação por matéria sobre o mesmo recorte; disponível no popup, no painel lateral e no dashboard. |
+| Backup completo (JSON) | Snapshot completo, incluindo perfil, listas, ciclo e revisões; ignora os filtros. |
+| Copiar relatório (Markdown) | Métricas do recorte e nome do usuário na área de transferência. |
+
+Os quatro nomes são os mesmos no popup, no painel lateral e no dashboard.
 
 O CSV usa `;`, UTF-8 com BOM e quebras de linha CRLF. Se a planilha não separar as colunas, importe o arquivo selecionando o separador e a codificação. O exportador preserva o texto das células, inclusive prefixos interpretáveis como fórmulas por planilhas.
 

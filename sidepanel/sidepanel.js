@@ -1,11 +1,13 @@
 import { escapeHtml, sanitizeColor } from '../shared/ui.js';
 import { AprovadoApi } from '../shared/api.js';
-import { computeStudyMetrics, filterActivitiesByPeriod } from '../shared/analytics.js';
+import { computeStudyMetrics, filterActivitiesByPeriod, isCycleNotStarted } from '../shared/analytics.js';
 import { AprovadoExport } from '../shared/export.js';
-import { formatNumber } from '../shared/format.js';
+import { formatNumber, formatSyncLabel, getSnapshotSyncedAt } from '../shared/format.js';
 
 let currentSnapshot = null;
 let currentPeriod = 'all';
+// Sync note appended to the "Atualizado há…" label while a refresh runs or after it fails.
+let syncNote = '';
 
 // DOM Elements
 const panelLoading = document.getElementById('panel-loading');
@@ -39,6 +41,18 @@ const reviewsList = document.getElementById('reviews-list');
 
 const subjectsBars = document.getElementById('subjects-bars');
 
+const syncStatus = document.getElementById('sync-status');
+const todayTime = document.getElementById('today-time');
+const todaySessions = document.getElementById('today-sessions');
+const todayQuestions = document.getElementById('today-questions');
+const todayEmpty = document.getElementById('today-empty');
+const weekTime = document.getElementById('week-time');
+const weekSessions = document.getElementById('week-sessions');
+const weekDays = document.getElementById('week-days');
+const cicloEmptyNote = document.getElementById('ciclo-empty-note');
+const reviewsEmpty = document.getElementById('reviews-empty');
+
+const btnExportSubjectsCsv = document.getElementById('btn-export-subjects-csv');
 const btnExportCsv = document.getElementById('btn-export-csv');
 const btnExportJson = document.getElementById('btn-export-json');
 const btnCopyMd = document.getElementById('btn-copy-md');
@@ -46,21 +60,47 @@ const copyText = document.getElementById('copy-text');
 
 const pillButtons = document.querySelectorAll('.pill-btn');
 
+function renderSyncStatus() {
+  const label = formatSyncLabel(getSnapshotSyncedAt(currentSnapshot));
+  syncStatus.textContent = syncNote ? `${label} · ${syncNote}` : label;
+}
+
 async function loadData(force = false) {
   setLoading(true);
+  let showedCache = false;
 
   try {
-    const auth = await AprovadoApi.checkAuth();
-    if (!auth.isAuthenticated) {
-      showDisconnected();
-      return;
+    if (force) {
+      const auth = await AprovadoApi.checkAuth();
+      if (!auth.isAuthenticated) {
+        showDisconnected();
+        return;
+      }
+      currentSnapshot = await AprovadoApi.fetchCompleteSnapshot(true);
+    } else {
+      // The account is confirmed first; only then is its saved snapshot shown right away
+      // while the refresh runs in the background.
+      currentSnapshot = await AprovadoApi.loadSnapshotProgressive({
+        onCached: cached => {
+          showedCache = true;
+          currentSnapshot = cached;
+          syncNote = 'atualizando…';
+          renderPanel(cached);
+          setLoading(false);
+        }
+      });
     }
-
-    currentSnapshot = await AprovadoApi.fetchCompleteSnapshot(force);
+    syncNote = '';
     renderPanel(currentSnapshot);
   } catch (err) {
     console.error('Falha ao carregar dados no painel lateral:', err);
-    showDisconnected();
+    if (showedCache && err.status !== 401) {
+      // Identity was confirmed and the saved data belongs to this account: keep it, say it is old.
+      syncNote = 'não foi possível atualizar';
+      renderSyncStatus();
+    } else {
+      showDisconnected();
+    }
   } finally {
     setLoading(false);
   }
@@ -78,7 +118,8 @@ function setLoading(isLoading) {
 
 function showDisconnected() {
   currentSnapshot = null;
-  for (const el of [userAvatar, userName, kpiTime, kpiAvg, kpiSessions, kpiDays,
+  syncNote = '';
+  for (const el of [syncStatus, todayTime, todaySessions, todayQuestions, weekTime, weekSessions, weekDays, userAvatar, userName, kpiTime, kpiAvg, kpiSessions, kpiDays,
     kpiQuestions, kpiAccuracy, kpiStreak, kpiLongest, cicloPct, reviewsCountBadge]) {
     el.textContent = '';
   }
@@ -98,7 +139,22 @@ function renderPanel(snapshot) {
   userAvatar.textContent = (user.Nome || 'E').charAt(0).toUpperCase();
   userName.textContent = `${user.Nome || ''} ${user.Sobrenome || ''}`.trim() || 'Estudante';
 
+  renderSyncStatus();
   updateView();
+}
+
+function renderDaily() {
+  const today = computeStudyMetrics(filterActivitiesByPeriod(currentSnapshot.atividades, 'today'), currentSnapshot.materias);
+  todayTime.textContent = today.formattedTotalDuration;
+  todaySessions.textContent = formatNumber(today.totalSessions, 0);
+  todayQuestions.textContent = today.totalQuestions > 0 ? formatNumber(today.totalQuestions, 0) : '—';
+  if (today.totalSessions === 0) todayEmpty.classList.remove('hidden');
+  else todayEmpty.classList.add('hidden');
+
+  const week = computeStudyMetrics(filterActivitiesByPeriod(currentSnapshot.atividades, '7d'), currentSnapshot.materias);
+  weekTime.textContent = week.formattedTotalDuration;
+  weekSessions.textContent = formatNumber(week.totalSessions, 0);
+  weekDays.textContent = formatNumber(week.distinctDaysCount, 0);
 }
 
 function updateView() {
@@ -112,6 +168,8 @@ function updateView() {
     currentSnapshot.revisoesPendentes
   );
 
+  renderDaily();
+
   // Render KPIs
   kpiTime.textContent = metrics.formattedTotalHours;
   kpiAvg.textContent = `${metrics.avgDailyDuration}/dia`;
@@ -122,8 +180,8 @@ function updateView() {
     kpiQuestions.textContent = `${formatNumber(metrics.totalQuestions, 0)} questões`;
     kpiAccuracy.textContent = `${formatNumber(Number(metrics.overallAccuracy), 1)}% de acertos`;
   } else {
-    kpiQuestions.textContent = '0 questões';
-    kpiAccuracy.textContent = '0% acertos';
+    kpiQuestions.textContent = '—';
+    kpiAccuracy.textContent = 'Nenhuma questão registrada ainda';
   }
 
   kpiStreak.textContent = `${metrics.streak.current}d`;
@@ -134,6 +192,8 @@ function updateView() {
     sectionCiclo.classList.remove('hidden');
     cicloPct.textContent = `${formatNumber(Number(metrics.ciclo.porcentagem), 1)}%`;
     cicloProgressBar.style.width = `${Math.min(100, Math.max(0, metrics.ciclo.porcentagem))}%`;
+    if (isCycleNotStarted(metrics.ciclo)) cicloEmptyNote.classList.remove('hidden');
+    else cicloEmptyNote.classList.add('hidden');
 
     cicloSubjectsList.innerHTML = '';
     const items = (metrics.ciclo.materias || []).slice(0, 5);
@@ -151,10 +211,11 @@ function updateView() {
 
   // Render Pending Reviews
   const reviews = currentSnapshot.revisoesPendentes || [];
+  sectionReviews.classList.remove('hidden');
+  reviewsCountBadge.textContent = reviews.length;
+  reviewsList.innerHTML = '';
   if (reviews.length > 0) {
-    sectionReviews.classList.remove('hidden');
-    reviewsCountBadge.textContent = reviews.length;
-    reviewsList.innerHTML = '';
+    reviewsEmpty.classList.add('hidden');
 
     reviews.slice(0, 4).forEach(r => {
       const item = document.createElement('div');
@@ -170,7 +231,7 @@ function updateView() {
       reviewsList.appendChild(item);
     });
   } else {
-    sectionReviews.classList.add('hidden');
+    reviewsEmpty.classList.remove('hidden');
   }
 
   // Render Subjects bars
@@ -188,7 +249,7 @@ function updateView() {
             <span class="subject-color-dot" style="background-color: ${sanitizeColor(s.color)};"></span>
             <span>${escapeHtml(s.name)}</span>
           </span>
-          <span class="subject-bar-stats">${s.formattedHours} (${s.percentage.toFixed(0)}%)</span>
+          <span class="subject-bar-stats">${s.formattedHours} (${formatNumber(s.percentage, 0)}%)</span>
         </div>
         <div class="progress-bar-bg" style="height: 5px;">
           <div class="progress-bar-fill" style="width: ${s.percentage}%; background-color: ${sanitizeColor(s.color)};"></div>
@@ -202,8 +263,12 @@ function updateView() {
 // Event Listeners
 pillButtons.forEach(btn => {
   btn.addEventListener('click', () => {
-    pillButtons.forEach(b => b.classList.remove('active'));
+    pillButtons.forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-pressed', 'false');
+    });
     btn.classList.add('active');
+    btn.setAttribute('aria-pressed', 'true');
     currentPeriod = btn.dataset.period;
     updateView();
   });
@@ -225,6 +290,13 @@ btnExportCsv.addEventListener('click', () => {
   AprovadoExport.exportActivitiesCSV(filtered);
 });
 
+btnExportSubjectsCsv.addEventListener('click', () => {
+  if (!currentSnapshot) return;
+  const filtered = filterActivitiesByPeriod(currentSnapshot.atividades, currentPeriod);
+  const metrics = computeStudyMetrics(filtered, currentSnapshot.materias);
+  AprovadoExport.exportSubjectsSummaryCSV(metrics.subjects);
+});
+
 btnExportJson.addEventListener('click', () => {
   if (!currentSnapshot) return;
   AprovadoExport.exportFullBackupJSON(currentSnapshot);
@@ -241,15 +313,20 @@ btnCopyMd.addEventListener('click', async () => {
   );
   try {
     await AprovadoExport.copyReportToClipboard(metrics, currentSnapshot.user);
-    copyText.textContent = 'Copiado para Área de Transferência! ✓';
+    copyText.textContent = 'Copiado! ✓';
   } catch (err) {
     console.error('Falha ao copiar:', err);
     copyText.textContent = 'Falha ao copiar. Tente novamente.';
   }
   setTimeout(() => {
-    copyText.textContent = '📋 Copiar Resumo em Markdown';
+    copyText.textContent = 'Copiar relatório (Markdown)';
   }, 2000);
 });
+
+// Keep "Atualizado há…" honest while the panel stays open.
+if (typeof setInterval === 'function') {
+  setInterval(() => { if (currentSnapshot) renderSyncStatus(); }, 30000);
+}
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => loadData(false));

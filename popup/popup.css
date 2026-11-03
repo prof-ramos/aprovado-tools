@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark;
   --bg-color: #0d0d0f;
   --surface-bg: #141417;
   --surface-hover: #1c1c21;
@@ -6,7 +7,7 @@
   --card-border: rgba(255, 255, 255, 0.08);
   --text-main: #f0f0f2;
   --text-muted: #9fa0a6;
-  --text-faint: #6e6f76;
+  --text-faint: #90919a;
   --accent: #10b981;
   --accent-hover: #059669;
   --font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -429,4 +430,66 @@ button:focus-visible {
   font-size: 10px;
   color: var(--text-faint);
   padding-top: 2px;
+}
+
+/* Sync status row */
+.sync-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sync-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 0 10px;
+  background: var(--surface-raised);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-refresh:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Touch targets: at least 32px high */
+.btn-export {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.pill-btn {
+  min-height: 32px;
+}
+
+.empty-note {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
 }

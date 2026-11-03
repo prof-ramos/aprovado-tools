@@ -248,6 +248,6 @@ describe('computeHistoricalPatterns with the multiannual fixture', () => {
     assert.match(patterns.insights.fullFormattedText, /### 6\. Tamanho de Sessão/);
     assert.match(patterns.insights.fullFormattedText, /### 7\. Horário Mais Eficiente/);
     assert.match(patterns.insights.fullFormattedText, /### 8\. Melhor Semestre e Ano/);
-    assert.match(patterns.insights.periodInsights, /Seu melhor semestre no conjunto foi \d{4}\.[12]/);
+    assert.match(patterns.insights.periodInsights, /Seu melhor semestre no conjunto foi \d{4} · [12]º sem\./);
   });
 });

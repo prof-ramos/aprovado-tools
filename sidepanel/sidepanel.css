@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark;
   --bg-color: #0d0d0f;
   --surface-bg: #141417;
   --surface-hover: #1c1c21;
@@ -7,7 +8,7 @@
   --card-border-subtle: rgba(255, 255, 255, 0.04);
   --text-main: #f0f0f2;
   --text-muted: #9fa0a6;
-  --text-faint: #6e6f76;
+  --text-faint: #90919a;
   --accent: #10b981;
   --accent-light: rgba(16, 185, 129, 0.12);
   --danger: #ef4444;
@@ -464,4 +465,79 @@ button:focus-visible {
 
 .hidden {
   display: none !important;
+}
+
+/* Header buttons with visible text (32px touch target) */
+.btn-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  background: var(--surface-raised);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-header:hover {
+  background: var(--surface-hover);
+}
+
+.panel-header {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Today / last 7 days */
+.today-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.today-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  padding: 8px;
+  min-width: 0;
+}
+
+.today-val {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.today-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.empty-note {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.filter-pills + .kpi-grid {
+  margin-top: 8px;
+}
+
+.pill-btn {
+  min-height: 32px;
+}
+
+.btn {
+  min-height: 32px;
 }

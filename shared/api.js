@@ -3,6 +3,8 @@
  * Reverse-engineered and documented in prof-ramos/aprovado.
  */
 
+import { getSnapshotSyncedAt } from './format.js';
+
 const BASE_URL = 'https://aprovadoapp.com/service';
 
 const DEFAULT_HEADERS = {
@@ -168,6 +170,48 @@ export const AprovadoApi = {
   },
 
   /**
+   * Instante (ms) da última sincronização bem-sucedida de um snapshot, ou null.
+   * Puro: o instante vive no próprio snapshot, portanto nunca cruza contas.
+   */
+  getSyncedAt(snapshot) {
+    return getSnapshotSyncedAt(snapshot);
+  },
+
+  /**
+   * Snapshot em cache, de qualquer idade, somente se pertencer à conta já confirmada
+   * (`user` vem de uma consulta de identidade recente). Cache sem dono ou de outra
+   * conta retorna null. Caches antigos sem `syncedAt` usam o marcador de última sincronização.
+   */
+  async getCachedSnapshotForUser(user) {
+    if (!user?.Id) return null;
+    const cached = await chrome.storage.local.get(['aprovado_data_snapshot', 'aprovado_last_sync']);
+    const snapshot = cached.aprovado_data_snapshot;
+    if (!snapshot?.user?.Id || String(snapshot.user.Id) !== String(user.Id)) return null;
+    const lastSync = Number(cached.aprovado_last_sync);
+    const syncedAt = snapshot.syncedAt || (lastSync > 0 ? new Date(lastSync).toISOString() : undefined);
+    return { ...snapshot, user, syncedAt };
+  },
+
+  /**
+   * Carrega o snapshot em duas etapas: confirma a identidade, entrega o cache da mesma
+   * conta em `onCached` (para exibir de imediato) e só então sincroniza. Rejeita com
+   * `status` 401 quando a sessão expirou, sem nunca chamar `onCached`.
+   */
+  async loadSnapshotProgressive({ forceRefresh = false, onCached } = {}) {
+    const user = await this.getUser();
+    if (!user || !user.Id) {
+      const error = new Error('Sessão expirada ou não autenticado.');
+      error.status = 401;
+      throw error;
+    }
+    if (!forceRefresh && typeof onCached === 'function') {
+      const cached = await this.getCachedSnapshotForUser(user);
+      if (cached) onCached(cached);
+    }
+    return this.fetchCompleteSnapshot(forceRefresh);
+  },
+
+  /**
    * Carrega um snapshot completo dos dados da conta com cache local
    */
   async fetchCompleteSnapshot(forceRefresh = false) {
@@ -183,7 +227,7 @@ export const AprovadoApi = {
       const snapshot = cached.aprovado_data_snapshot;
       const belongsToUser = snapshot?.user?.Id && String(snapshot.user.Id) === String(user.Id);
       if (isFresh && belongsToUser) {
-        return { ...snapshot, user };
+        return { ...snapshot, user, syncedAt: snapshot.syncedAt || new Date(cached.aprovado_last_sync).toISOString() };
       }
     }
 

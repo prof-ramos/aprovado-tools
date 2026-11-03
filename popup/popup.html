@@ -19,7 +19,7 @@
           <span class="brand-subtitle">Métricas e exportação</span>
         </div>
       </div>
-      <div id="auth-badge" class="auth-badge loading">
+      <div id="auth-badge" class="auth-badge loading" role="status">
         <span class="status-dot"></span>
         <span id="auth-status-text">Conectando...</span>
       </div>
@@ -28,9 +28,9 @@
     <!-- Disconnected View -->
     <div id="disconnected-state" class="state-container hidden">
       <h2>Sessão desconectada</h2>
-      <p>Acesse o AprovadoApp no navegador para sincronizar e exportar suas métricas.</p>
+      <p>Entre no AprovadoApp neste navegador para ver seus dados.</p>
       <button id="btn-login-aprovado" class="btn btn-primary btn-full">
-        <span>Fazer login no AprovadoApp</span>
+        <span>Entrar no AprovadoApp</span>
       </button>
       <button id="btn-retry-auth" class="btn btn-secondary btn-full mt-2">
         <span>Verificar conexão</span>
@@ -38,7 +38,7 @@
     </div>
 
     <!-- Loading View -->
-    <div id="loading-state" class="state-container">
+    <div id="loading-state" class="state-container" role="status">
       <div class="spinner"></div>
       <p>Carregando métricas de estudo...</p>
     </div>
@@ -47,23 +47,29 @@
     <main id="connected-content" class="connected-content hidden">
       <!-- User profile header -->
       <div class="user-strip">
-        <div class="user-avatar" id="user-avatar">E</div>
+        <div class="user-avatar" id="user-avatar" aria-hidden="true">E</div>
         <div class="user-info">
           <div class="user-name" id="user-name">Estudante</div>
           <div class="user-email" id="user-email">email@exemplo.com</div>
         </div>
-        <button id="btn-refresh" class="btn-icon" title="Atualizar dados">
-          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      </div>
+
+      <!-- Last sync + manual refresh -->
+      <div class="sync-row">
+        <span id="sync-status" class="sync-status" role="status" aria-live="polite">Ainda não sincronizado</span>
+        <button id="btn-refresh" class="btn-refresh" type="button" aria-label="Atualizar dados agora">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M14 8A6 6 0 1 1 8 2M14 2v6h-6"/>
           </svg>
+          <span>Atualizar</span>
         </button>
       </div>
 
       <!-- Quick Period Filter -->
-      <div class="filter-pills">
-        <button class="pill-btn active" data-period="all">Tudo</button>
-        <button class="pill-btn" data-period="30d">30 dias</button>
-        <button class="pill-btn" data-period="7d">7 dias</button>
+      <div class="filter-pills" role="group" aria-label="Período">
+        <button class="pill-btn active" type="button" data-period="all" aria-pressed="true">Tudo</button>
+        <button class="pill-btn" type="button" data-period="30d" aria-pressed="false">30 dias</button>
+        <button class="pill-btn" type="button" data-period="7d" aria-pressed="false">7 dias</button>
       </div>
 
       <!-- KPI Grid -->
@@ -99,36 +105,37 @@
         <div class="progress-bar-bg">
           <div id="cycle-progress-fill" class="progress-bar-fill" style="width: 0%"></div>
         </div>
+        <p id="cycle-empty-note" class="empty-note hidden">Rodada nova: nada estudado desde o reinício do ciclo.</p>
       </div>
 
       <!-- Main Open Buttons -->
       <div class="action-buttons">
-        <button id="btn-open-dashboard" class="btn btn-primary btn-full">
+        <button id="btn-open-dashboard" class="btn btn-primary btn-full" type="button">
           <span>Abrir dashboard completo</span>
-          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M3 8h10M9 4l4 4-4 4"/>
           </svg>
         </button>
-        <button id="btn-open-sidepanel" class="btn btn-secondary btn-full">
+        <button id="btn-open-sidepanel" class="btn btn-secondary btn-full" type="button">
           <span>Abrir painel lateral</span>
         </button>
       </div>
 
-      <!-- Export Actions Accordion -->
+      <!-- Export Actions -->
       <div class="export-box">
-        <div class="export-title">Exportações</div>
+        <div class="export-title">Exportar</div>
         <div class="export-grid">
-          <button id="btn-export-activities-csv" class="btn-export" title="Exportar todas as sessões para CSV (Excel)">
-            <span>CSV Atividades</span>
+          <button id="btn-export-activities-csv" class="btn-export" type="button" title="Histórico completo compatível com Excel">
+            <span>Atividades (CSV)</span>
           </button>
-          <button id="btn-export-subjects-csv" class="btn-export" title="Exportar resumo de matérias para CSV">
-            <span>CSV Matérias</span>
+          <button id="btn-export-subjects-csv" class="btn-export" type="button" title="Horas e questões consolidadas">
+            <span>Resumo por matéria (CSV)</span>
           </button>
-          <button id="btn-export-backup-json" class="btn-export" title="Backup completo dos dados em formato JSON">
-            <span>Backup JSON</span>
+          <button id="btn-export-backup-json" class="btn-export" type="button" title="Snapshot integral compatível com CLI">
+            <span>Backup completo (JSON)</span>
           </button>
-          <button id="btn-copy-markdown" class="btn-export" title="Copiar resumo de métricas formatado para Notion/Obsidian">
-            <span id="copy-btn-text">Copiar Markdown</span>
+          <button id="btn-copy-markdown" class="btn-export" type="button" title="Texto formatado para Notion ou Obsidian">
+            <span id="copy-btn-text">Copiar relatório (Markdown)</span>
           </button>
         </div>
       </div>
