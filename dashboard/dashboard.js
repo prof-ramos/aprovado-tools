@@ -14,7 +14,7 @@ import {
 } from '../shared/analytics.js';
 import { AprovadoExport } from '../shared/export.js';
 import { escapeHtml, sanitizeColor } from '../shared/ui.js';
-import { formatNumber, formatValue } from '../shared/format.js';
+import { formatNumber, formatValue, formatSyncLabel, getSnapshotSyncedAt } from '../shared/format.js';
 
 let fullSnapshot = null;
 let currentPeriod = 'all';
@@ -57,6 +57,7 @@ const footerSource = document.getElementById('footer-source');
 const timelineCaption = document.getElementById('timeline-caption');
 let currentView = 'overview';
 let usingMockData = false;
+let backgroundRefresh = false;
 
 /* Sections and their addresses. Filter rules per section:
    - overview and activities: period, subject, modality and custom dates apply;
@@ -137,19 +138,32 @@ async function init() {
         return;
       }
       usingMockData = false;
-      fullSnapshot = await AprovadoApi.fetchCompleteSnapshot();
+      // Show the cached snapshot of this account right away, then refresh in the background.
+      fullSnapshot = await AprovadoApi.loadSnapshotProgressive({
+        onCached: cached => {
+          fullSnapshot = cached;
+          backgroundRefresh = true;
+          applySnapshot();
+          setLoading(false);
+        }
+      });
+      backgroundRefresh = false;
     }
 
-    renderUserHeader(fullSnapshot.user);
-    populateFilterSelects(fullSnapshot);
-    updateDashboard();
-    renderHistoricalPatternsTab(fullSnapshot.atividades, fullSnapshot.materias);
+    applySnapshot();
   } catch (err) {
     console.error('Falha ao inicializar dashboard:', err);
     showDisconnected();
   } finally {
     setLoading(false);
   }
+}
+
+function applySnapshot() {
+  renderUserHeader(fullSnapshot.user);
+  populateFilterSelects(fullSnapshot);
+  updateDashboard();
+  renderHistoricalPatternsTab(fullSnapshot.atividades, fullSnapshot.materias);
 }
 
 function setLoading(isLoading) {
@@ -203,9 +217,17 @@ function renderUserHeader(user) {
   if (!user || usingMockData) return;
   userAvatar.textContent = (user.Nome || 'E').charAt(0).toUpperCase();
   userDisplayName.textContent = `${user.Nome || ''} ${user.Sobrenome || ''}`.trim() || 'Estudante';
-  userStatusText.textContent = 'Sincronizado via AprovadoApp';
+  renderSyncStatus();
   userStatusText.style.color = '#34d399';
 }
+
+/** Shows when the loaded snapshot was synchronized ("Atualizado há 3 min"); refreshed while the page is open. */
+function renderSyncStatus() {
+  if (usingMockData || !fullSnapshot) return;
+  const label = formatSyncLabel(getSnapshotSyncedAt(fullSnapshot));
+  userStatusText.textContent = backgroundRefresh ? `${label} · atualizando…` : label;
+}
+globalThis.setInterval?.(renderSyncStatus, 30000);
 
 function populateFilterSelects(snapshot) {
   // Populate Subjects
@@ -1262,7 +1284,7 @@ function renderQuadrants(quadrantsData) {
       <line x1="${left}" y1="${cutoffY}" x2="${left + plotWidth}" y2="${cutoffY}" class="matrix-cutoff-line" />
 
       <text x="${cutoffX + 5}" y="${top + 34}" class="matrix-cutoff-label">Mediana ${formatNumber(quadrantsData.medianHours, 1)}h</text>
-      <text x="${left + plotWidth - 5}" y="${cutoffY - 5}" text-anchor="end" class="matrix-cutoff-label">Corte ${formatNumber(quadrantsData.accuracyCutoff, 1)}%</text>
+      <text x="${left + 5}" y="${cutoffY + 13}" text-anchor="start" class="matrix-cutoff-label">Corte ${formatNumber(quadrantsData.accuracyCutoff, 1)}%</text>
 
       <line x1="${left}" y1="${top + plotHeight}" x2="${left + plotWidth}" y2="${top + plotHeight}" stroke="#334155" stroke-width="1.5" />
       <line x1="${left}" y1="${top}" x2="${left}" y2="${top + plotHeight}" stroke="#334155" stroke-width="1.5" />

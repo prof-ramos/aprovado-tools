@@ -258,11 +258,11 @@ describe('Dashboard rendering regressions', () => {
     assert.equal(page.get('user-display-name').textContent, '');
     assert.doesNotMatch(page.get('user-status-text').textContent, /Sincronizado via AprovadoApp/);
     assert.match(page.get('footer-source').textContent, /exemplo/);
-    page.run("usingMockData = false; renderUserHeader({ Nome: 'Ana', Sobrenome: 'Silva' })");
+    page.run(`usingMockData = false; fullSnapshot = { syncedAt: '${new Date(Date.now() - 180000).toISOString()}' }; renderUserHeader({ Nome: 'Ana', Sobrenome: 'Silva' })`);
     assert.equal(page.get('mock-banner').classList.contains('hidden'), true);
     assert.equal(page.get('user-badge').classList.contains('hidden'), false);
     assert.equal(page.get('user-display-name').textContent, 'Ana Silva');
-    assert.equal(page.get('user-status-text').textContent, 'Sincronizado via AprovadoApp');
+    assert.equal(page.get('user-status-text').textContent, 'Atualizado há 3 min');
   });
 
   it('draws the evolution chart for the selected period with empty days kept at zero', () => {
@@ -357,6 +357,40 @@ describe('Dashboard rendering regressions', () => {
     const panels = page.get('quadrants-breakdown-container').innerHTML;
     assert.equal((panels.match(/class="quadrant-reco"/g) || []).length, 4);
     assert.ok(!panels.includes('engenharia reversa') && !panels.includes('method-alert-box'));
+  });
+
+  it('lists the most recent activities first, even when the snapshot arrives oldest first', () => {
+    const page = dashboard('2026-09-15T12:00:00');
+    const row = (date, time) => ({ ...activity(), DataInicio: date, HoraInicio: time });
+    page.run(`fullSnapshot = { atividades: ${JSON.stringify([
+      row('03/01/2016', '08:00'), row('15/09/2026', '07:30'), row('15/09/2026', '21:10'), row('02/05/2024', '10:00')
+    ])}, materias: [] }; renderActivitiesTable(fullSnapshot.atividades)`);
+    const dates = page.get('tbody-activities-list').children.map(tr => tr.innerHTML.match(/<td>([\d/]+)<\/td>\s*<td[^>]*>([\d:]+)/).slice(1).join(' '));
+    assert.deepEqual(dates, ['15/09/2026 21:10', '15/09/2026 07:30', '02/05/2024 10:00', '03/01/2016 08:00']);
+  });
+
+  it('shows the cached snapshot immediately and refreshes it in the background', async () => {
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    const snapshot = count => ({ user: { Nome: 'Ana', Sobrenome: 'Silva' }, materias: [activity().Materia],
+      atividades: Array.from({ length: count }, () => activity()), syncedAt: new Date(Date.now() - 180000).toISOString() });
+    const page = dashboard(undefined, { AprovadoApi: {
+      checkAuth: async () => ({ isAuthenticated: true }),
+      loadSnapshotProgressive: async ({ onCached }) => {
+        onCached(snapshot(1));
+        await gate;
+        return snapshot(2);
+      } } });
+    page.context.window.chrome = { storage: { local: {} } };
+    const started = page.run('init()');
+    for (let i = 0; i < 5; i++) await Promise.resolve();
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 1);
+    assert.equal(page.get('dashboard-loading').classList.contains('hidden'), true);
+    assert.match(page.get('user-status-text').textContent, /Atualizado há 3 min · atualizando…/);
+    release();
+    await started;
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 2);
+    assert.doesNotMatch(page.get('user-status-text').textContent, /atualizando/);
   });
 
   it('ranking toggle clicks regroup data without changing the selected view or period', () => {
