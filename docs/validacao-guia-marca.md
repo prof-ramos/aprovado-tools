@@ -19,5 +19,4 @@
   ícones em `icons/` continuam os publicados.
 - CI: sem commit ou push nesta tarefa.
 - Limpeza: espaço de tarefa do ego-browser encerrado sem abas mantidas.
-- Pendências: pesquisa de marca registrada, aplicação dos ícones numa branch
-  própria e novas capturas da Chrome Web Store.
+- Pendências: aplicação dos ícones numa branch própria e novas capturas da Chrome Web Store.

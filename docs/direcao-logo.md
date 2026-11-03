@@ -95,8 +95,9 @@ tipografia, assinaturas, regras de uso e as artes em SVG e PNG.
 
 Testes feitos nos desenhos: leitura em 16 px ampliada pixel a pixel, versões de
 uma cor e invertidas, contraste das cores e comparação com marcas de educação da
-biblioteca da skill de logo. Não houve teste de reconhecimento com usuários nem
-pesquisa de marca registrada.
+biblioteca da skill de logo. Não houve teste de reconhecimento com usuários. O
+projeto é pessoal e sem fins comerciais, então não houve pesquisa de marca
+registrada.
 
 ## Limites e retomada
 

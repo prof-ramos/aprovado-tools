@@ -35,6 +35,7 @@ Os recibos abaixo descrevem o commit, a data e o ambiente da execução registra
 - [UX etapa 3: Análise histórica](validacao-ux-etapa-3-historico.md): conclusões, blocos recolhíveis, matriz, ranking e contraste.
 - [UX etapa 3: popup e painel lateral](validacao-ux-etapa-3-popup-painel.md): sincronização, estados vazios e contraste.
 - [UX etapas 2 e 3, integração](validacao-ux-etapas-2-3-integracao.md): união das três frentes, carga com cache e conferência no Chrome.
+- [Capturas da loja](validacao-capturas-loja.md): quatro capturas 1280×800 com a nova identidade.
 - [Revisão da documentação](validacao-documentacao.md): links e conferência factual dos guias.
 - [Otimização de memória e delegação](validacao-memoria-delegacao.md): redução de listeners e teste de estresse de heap.
 - [Retrospectiva de 03/11/2026](retro-20261103.md): decisões e aprendizados da rodada.

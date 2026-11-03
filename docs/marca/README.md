@@ -97,9 +97,11 @@ Os desenhos foram feitos com a skill
 [logo-design](https://github.com/kaankiziltug/logo-design-skill) e revisados
 em 16, 32, 48 e 128 px, em uma cor e invertidos.
 
-1. **Pesquisa de marca registrada** no INPI e busca reversa de imagem antes de
-   publicar. Este guia não substitui essa checagem.
-2. **Aplicação na extensão:** feita. `icons/` usa os PNGs de `png/` e o
+O Aprovado Tools é um projeto pessoal e sem fins comerciais, então não há
+pesquisa de marca registrada prevista.
+
+1. **Aplicação na extensão:** feita. `icons/` usa os PNGs de `png/` e o
    `scripts/generate_icons.py` foi removido. Veja o
    [recibo](../validacao-icones-a-grifado.md).
-3. **Atualizar as capturas da Chrome Web Store** com a nova identidade.
+2. **Capturas da Chrome Web Store:** refeitas com a nova identidade em
+   `store-assets/`.
