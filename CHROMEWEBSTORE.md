@@ -44,7 +44,7 @@ SUPORTE
 Encontrou algum problema ou tem sugestões? Visite o repositório do projeto no GitHub:
 https://github.com/prof-ramos/aprovado-tools/issues
 
-Versão 1.0.0 — Lançamento estável inicial com dashboard analítico, histórico plurianual, matriz de rendimento, painel lateral e exportações completas.
+Versão 1.0.1 — Lançamento estável inicial com dashboard analítico, histórico plurianual, matriz de rendimento, painel lateral e exportações completas.
 
 <!-- CWS remove markdown na renderização pública da loja; o formato usa quebras de linha e marcadores •. -->
 
@@ -85,7 +85,7 @@ Todas as permissões declaradas no `manifest.json` foram estritamente minimizada
 
 | Permissão | Tipo | Justificativa para a equipe de revisão da CWS |
 |---|---|---|
-| `storage` | permissions | Salvar snapshot local do histórico de estudos, data da sincronização e ID de conta para acesso rápido e funcionamento offline. |
+| `storage` | permissions | Salvar snapshot local do histórico de estudos, data da sincronização e ID de conta para acesso rápido após confirmação online da identidade da conta. |
 | `unlimitedStorage` | permissions | Armazenar localmente históricos plurianuais volumosos (milhares de sessões e atividades) sem interrupção por limite de cota do navegador. |
 | `sidePanel` | permissions | Exibir a interface lateral nativa do navegador com o progresso do ciclo de estudos e lista de revisões pendentes ao lado da navegação. |
 | `contextMenus` | permissions | Fornecer atalhos de clique com o botão direito para abrir o painel lateral e o dashboard analítico. |
@@ -130,7 +130,7 @@ https://github.com/prof-ramos/aprovado-tools/blob/main/PRIVACY.md
 
 ## Informações do Desenvolvedor (Developer Info)
 
-- **Nome do Publicador:** prof-ramos
+- **Nome do Publicador:** profgabrielramos
 - **Email de Contato:** [Preencher com o endereço de email de desenvolvedor cadastrado no Chrome Web Store Developer Dashboard]
 - **URL de Suporte:** https://github.com/prof-ramos/aprovado-tools/issues
 - **URL da Página Inicial / Repositório:** https://github.com/prof-ramos/aprovado-tools

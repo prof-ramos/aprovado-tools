@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Aprovado Tools — Métricas & Exportação",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Exporte e analise métricas completas de estudo, histórico de atividades, ciclo e revisões do AprovadoApp.",
   "icons": {
     "16": "icons/icon-16.png",
