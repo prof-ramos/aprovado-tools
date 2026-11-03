@@ -885,41 +885,45 @@ function renderHeatmap(activities, selectedYear) {
   svgHtml += `</svg>`;
   container.innerHTML = svgHtml;
 
-  // Tooltip listeners
-  if (tooltip) {
-    const cells = container.querySelectorAll('.heatmap-cell');
-    cells.forEach(cell => {
-      const inYear = cell.getAttribute('data-in-year') === 'true';
-      if (!inYear) return;
+  // Tooltip event delegation on container (registered once)
+  if (tooltip && !container.dataset.hasDelegatedTooltip) {
+    container.dataset.hasDelegatedTooltip = 'true';
 
-      cell.addEventListener('mouseenter', (e) => {
-        const date = cell.getAttribute('data-date');
-        const hours = parseFloat(cell.getAttribute('data-hours') || '0');
-        const duration = cell.getAttribute('data-duration') || '0h 0m';
-        const sessions = parseInt(cell.getAttribute('data-sessions') || '0', 10);
-        const questions = parseInt(cell.getAttribute('data-questions') || '0', 10);
-        const correct = parseInt(cell.getAttribute('data-correct') || '0', 10);
-        const acc = questions > 0 ? ((correct / questions) * 100).toFixed(1) + '%' : 'N/A';
+    container.addEventListener('mouseover', (e) => {
+      const cell = e.target?.closest?.('.heatmap-cell');
+      if (!cell || cell.getAttribute('data-in-year') !== 'true') return;
 
-        tooltip.innerHTML = `
-          <div class="tooltip-title">${formatDateBR(date)}</div>
-          <div class="tooltip-row"><span>Duração:</span><strong>${duration} (${hours.toFixed(1)}h)</strong></div>
-          <div class="tooltip-row"><span>Sessões:</span><strong>${sessions}</strong></div>
-          <div class="tooltip-row"><span>Questões:</span><strong>${questions > 0 ? `${correct}/${questions} (${acc})` : 'Nenhuma'}</strong></div>
-        `;
-        tooltip.classList.remove('hidden');
-        tooltip.setAttribute('aria-hidden', 'false');
+      const date = cell.getAttribute('data-date');
+      const hours = parseFloat(cell.getAttribute('data-hours') || '0');
+      const duration = cell.getAttribute('data-duration') || '0h 0m';
+      const sessions = parseInt(cell.getAttribute('data-sessions') || '0', 10);
+      const questions = parseInt(cell.getAttribute('data-questions') || '0', 10);
+      const correct = parseInt(cell.getAttribute('data-correct') || '0', 10);
+      const acc = questions > 0 ? ((correct / questions) * 100).toFixed(1) + '%' : 'N/A';
+
+      tooltip.innerHTML = `
+        <div class="tooltip-title">${formatDateBR(date)}</div>
+        <div class="tooltip-row"><span>Duração:</span><strong>${duration} (${hours.toFixed(1)}h)</strong></div>
+        <div class="tooltip-row"><span>Sessões:</span><strong>${sessions}</strong></div>
+        <div class="tooltip-row"><span>Questões:</span><strong>${questions > 0 ? `${correct}/${questions} (${acc})` : 'Nenhuma'}</strong></div>
+      `;
+      tooltip.classList.remove('hidden');
+      tooltip.setAttribute('aria-hidden', 'false');
+      positionTooltip(e, tooltip);
+    });
+
+    container.addEventListener('mousemove', (e) => {
+      const cell = e.target?.closest?.('.heatmap-cell');
+      if (cell && cell.getAttribute('data-in-year') === 'true') {
         positionTooltip(e, tooltip);
-      });
+      }
+    });
 
-      cell.addEventListener('mousemove', (e) => {
-        positionTooltip(e, tooltip);
-      });
-
-      cell.addEventListener('mouseleave', () => {
-        tooltip.classList.add('hidden');
-        tooltip.setAttribute('aria-hidden', 'true');
-      });
+    container.addEventListener('mouseout', (e) => {
+      const cell = e.target?.closest?.('.heatmap-cell');
+      if (!cell || cell.contains(e.relatedTarget)) return;
+      tooltip.classList.add('hidden');
+      tooltip.setAttribute('aria-hidden', 'true');
     });
   }
 }
@@ -1511,33 +1515,45 @@ function renderHourWeekdayHeatmap(matrix) {
     matrix.cells[day].forEach(cell => {
       svg += `<rect x="${left + cell.hour * step}" y="${y}" width="${size}" height="${size}" rx="3" ry="3"
         class="heatmap-cell hw-cell level-${heatLevel(cell.hours, matrix.maxHours)}"
-        data-day="${day}" data-hour="${cell.hour}" data-hours="${cell.hours}" data-sessions="${cell.sessions}" />`;
+        data-day-name="${escapeHtml(matrix.days[day].name)}" data-hour="${cell.hour}" data-hours="${cell.hours}" data-sessions="${cell.sessions}" />`;
     });
   });
   svg += '</svg>';
   container.innerHTML = svg;
 
-  if (!tooltip) return;
-  container.querySelectorAll('.hw-cell').forEach(rect => {
-    rect.addEventListener('mouseenter', (e) => {
-      const day = matrix.days[parseInt(rect.getAttribute('data-day'), 10)];
+  if (tooltip && !container.dataset.hasDelegatedTooltip) {
+    container.dataset.hasDelegatedTooltip = 'true';
+
+    container.addEventListener('mouseover', (e) => {
+      const rect = e.target?.closest?.('.hw-cell');
+      if (!rect) return;
+      const dayName = rect.getAttribute('data-day-name') || '';
       const hour = parseInt(rect.getAttribute('data-hour'), 10);
       const hours = parseFloat(rect.getAttribute('data-hours') || '0');
       const sessions = parseInt(rect.getAttribute('data-sessions') || '0', 10);
+
       tooltip.innerHTML = `
-        <div class="tooltip-title">${escapeHtml(day.name)}, ${String(hour).padStart(2, '0')}h</div>
+        <div class="tooltip-title">${escapeHtml(dayName)}, ${String(hour).padStart(2, '0')}h</div>
         <div class="tooltip-row"><span>Horas:</span><strong>${hours.toFixed(1)}h</strong></div>
         <div class="tooltip-row"><span>Sessões:</span><strong>${sessions}</strong></div>`;
       tooltip.classList.remove('hidden');
       tooltip.setAttribute('aria-hidden', 'false');
       positionTooltip(e, tooltip);
     });
-    rect.addEventListener('mousemove', (e) => positionTooltip(e, tooltip));
-    rect.addEventListener('mouseleave', () => {
+
+    container.addEventListener('mousemove', (e) => {
+      if (e.target?.closest?.('.hw-cell')) {
+        positionTooltip(e, tooltip);
+      }
+    });
+
+    container.addEventListener('mouseout', (e) => {
+      const rect = e.target?.closest?.('.hw-cell');
+      if (!rect || rect.contains(e.relatedTarget)) return;
       tooltip.classList.add('hidden');
       tooltip.setAttribute('aria-hidden', 'true');
     });
-  });
+  }
 }
 
 function renderSessionProfile(profile) {
