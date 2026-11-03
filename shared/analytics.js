@@ -30,6 +30,11 @@ export function parseDateString(str) {
     const [d, m, y] = str.split('/');
     return new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
   }
+  const isoDateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str);
+  if (isoDateOnly) {
+    const [, y, m, d] = isoDateOnly;
+    return new Date(Number(y), Number(m) - 1, Number(d));
+  }
   return new Date(str);
 }
 
@@ -51,10 +56,10 @@ export function filterActivitiesByPeriod(activities, period, customStart = null,
   } else if (period === 'this_year') {
     minDate = new Date(now.getFullYear(), 0, 1);
   } else if (period === 'custom' && customStart) {
-    minDate = new Date(customStart);
+    minDate = parseDateString(customStart);
   }
 
-  const maxDate = (period === 'custom' && customEnd) ? new Date(customEnd) : now;
+  const maxDate = (period === 'custom' && customEnd) ? parseDateString(customEnd) : now;
   // End of day for maxDate
   maxDate.setHours(23, 59, 59, 999);
   minDate.setHours(0, 0, 0, 0);
@@ -105,7 +110,7 @@ export function computeStudyMetrics(activities = [], materias = [], ciclo = null
     // Date calculations
     const d = atv.Inicio ? new Date(atv.Inicio) : parseDateString(atv.DataInicio);
     if (d && !isNaN(d.getTime())) {
-      const dateKey = d.toISOString().slice(0, 10);
+      const dateKey = formatLocalDate(d);
       distinctDates.add(dateKey);
 
       // Daily history
@@ -272,9 +277,9 @@ function calculateStreak(sortedDateKeys) {
   if (!sortedDateKeys.length) return { current: 0, longest: 0 };
 
   const today = new Date();
-  const todayKey = today.toISOString().slice(0, 10);
+  const todayKey = formatLocalDate(today);
   today.setDate(today.getDate() - 1);
-  const yesterdayKey = today.toISOString().slice(0, 10);
+  const yesterdayKey = formatLocalDate(today);
 
   const dateSet = new Set(sortedDateKeys);
 
@@ -292,7 +297,7 @@ function calculateStreak(sortedDateKeys) {
 
   if (checkDate) {
     while (true) {
-      const key = checkDate.toISOString().slice(0, 10);
+      const key = formatLocalDate(checkDate);
       if (dateSet.has(key)) {
         currentStreak++;
         checkDate.setDate(checkDate.getDate() - 1);
@@ -309,8 +314,8 @@ function calculateStreak(sortedDateKeys) {
     if (i === 0) {
       running = 1;
     } else {
-      const prev = new Date(sortedDateKeys[i - 1]);
-      const curr = new Date(sortedDateKeys[i]);
+      const prev = new Date(sortedDateKeys[i - 1] + 'T00:00:00');
+      const curr = new Date(sortedDateKeys[i] + 'T00:00:00');
       const diffDays = Math.round((curr - prev) / (1000 * 60 * 60 * 24));
       if (diffDays === 1) {
         running++;
