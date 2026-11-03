@@ -13,6 +13,9 @@ Use sempre a forma da coluna "Use" ao criar ou alterar um texto.
 | Tempo de estudo sem pausas | **horas líquidas** | horas efetivas |
 | Um registro de estudo | **sessão** (na tela) e **atividade** (na lista e nos arquivos) | — |
 | Horário em que se estuda | **horário de estudo**, **estudo por hora do dia** | cronotipo, distribuição circadiana |
+| Semestre de um ano | **2019 · 1º sem.** | 2019.1 |
+| Posição de um período no conjunto | **ranking do semestre** (1º, 2º…) | posição geral, média de posição |
+| Fase de um ano de estudo | **alta intensidade**, **manutenção**, **hiato** | inatividade |
 | Gravidade de uma recomendação | **Ponto forte**, **Informação**, **Atenção**, **Prioridade** | success, warning, critical |
 
 ## Formatos de exibição

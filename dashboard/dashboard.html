@@ -314,6 +314,11 @@
       <!-- Tab Pane 2: Padrões Históricos de Estudo -->
       <div id="tab-historical-patterns" class="dash-tab-pane hidden" role="region" aria-label="Análise histórica">
         <!-- Multiannual KPIs -->
+        <section class="hist-conclusions" id="hist-conclusions" aria-label="Conclusões do histórico">
+          <h3 class="hist-conclusions-title">O que seu histórico mostra</h3>
+          <div id="hist-conclusions-list" class="hist-conclusions-list"></div>
+        </section>
+
         <section class="kpi-banner hist-kpi-banner">
           <div class="metric-card">
             <span class="metric-title">Anos analisados</span>
@@ -347,8 +352,8 @@
         </section>
 
         <!-- Best Year & Semester -->
-        <section class="chart-card chart-full-width">
-          <div class="card-title-bar">
+        <details class="chart-card chart-full-width hist-collapsible" open>
+          <summary class="card-title-bar">
             <div>
               <h3>Melhor ano e semestre</h3>
               <span class="card-caption">Volume, consistência (dias com estudo) e assertividade por período</span>
@@ -357,7 +362,7 @@
               <button class="seg-btn active" data-granularity="semester" aria-pressed="true">Semestres</button>
               <button class="seg-btn" data-granularity="year" aria-pressed="false">Anos</button>
             </div>
-          </div>
+          </summary>
           <div id="period-highlights" class="period-highlights"></div>
           <div class="table-container period-ranking-table-wrap">
             <table class="data-table" id="table-period-ranking">
@@ -370,28 +375,32 @@
                   <th>Consistência</th>
                   <th>Maior sequência</th>
                   <th>Assertividade</th>
-                  <th>Posição geral</th>
+                  <th title="Média das posições do período em horas, consistência e assertividade. Menor é melhor; empates dividem a posição.">Ranking do semestre</th>
                 </tr>
               </thead>
               <tbody id="tbody-period-ranking"></tbody>
             </table>
           </div>
-        </section>
+        </details>
 
         <!-- Multiannual Comparative Section -->
-        <section class="chart-card chart-full-width">
-          <div class="card-title-bar">
+        <details class="chart-card chart-full-width hist-collapsible" open>
+          <summary class="card-title-bar">
             <div>
               <h3 id="historical-section-title">Histórico multianual e fases de estudo</h3>
               <span class="card-caption">Classificação em alta intensidade, manutenção e hiato</span>
             </div>
-          </div>
+          </summary>
+          <p class="phase-legend" id="phase-legend">
+            <strong>Alta intensidade:</strong> 350h ou mais no ano (ou 150 dias com 250h). <strong>Manutenção:</strong> de 50h a 350h.
+            <strong>Hiato:</strong> menos de 50h ou menos de 20 dias com estudo. O ano em andamento é projetado para 12 meses.
+          </p>
           <div id="multiannual-cards-grid" class="multiannual-grid"></div>
-        </section>
+        </details>
 
         <!-- Activity Heatmap -->
-        <section class="chart-card chart-full-width">
-          <div class="card-title-bar">
+        <details class="chart-card chart-full-width hist-collapsible">
+          <summary class="card-title-bar">
             <div>
               <h3>Mapa anual de atividade</h3>
               <span class="card-caption">Frequência e volume diário (53 semanas)</span>
@@ -400,7 +409,7 @@
               <label for="heatmap-year-select">Ano:</label>
               <select id="heatmap-year-select" class="select-input select-sm" aria-label="Selecione o ano"></select>
             </div>
-          </div>
+          </summary>
 
           <div class="heatmap-kpis-bar">
             <div class="heatmap-kpi-item">
@@ -433,67 +442,66 @@
             <span class="legend-text">Mais</span>
           </div>
 
-          <div id="heatmap-tooltip" class="heatmap-tooltip hidden" role="tooltip" aria-hidden="true"></div>
-        </section>
+        </details>
 
         <!-- Circadian & Temporal Patterns -->
         <div class="analytics-grid">
-          <div class="chart-card chart-large">
-            <div class="card-title-bar">
+          <details class="chart-card chart-large hist-collapsible">
+            <summary class="card-title-bar">
               <div>
                 <h3>Estudo por hora do dia (00h às 23h)</h3>
                 <span class="card-caption">Volume em horas líquidas ao longo do dia</span>
               </div>
-            </div>
+            </summary>
             <div id="circadian-histogram-chart" class="circadian-histogram-container"></div>
             <div id="circadian-peak-note" class="circadian-peak-note"></div>
             <div id="circadian-efficiency-note" class="circadian-peak-note"></div>
-          </div>
+          </details>
 
-          <div class="chart-card">
-            <div class="card-title-bar">
+          <details class="chart-card hist-collapsible">
+            <summary class="card-title-bar">
               <div>
                 <h3>Produtividade por turno</h3>
                 <span class="card-caption">Proporção dos períodos</span>
               </div>
-            </div>
+            </summary>
             <div id="circadian-shifts-container" class="shifts-detailed-grid"></div>
-          </div>
+          </details>
         </div>
 
         <!-- Hour × Weekday Heatmap -->
-        <section class="chart-card chart-full-width">
-          <div class="card-title-bar">
+        <details class="chart-card chart-full-width hist-collapsible">
+          <summary class="card-title-bar">
             <div>
               <h3>Quando você estuda: hora × dia da semana</h3>
               <span class="card-caption">Horas líquidas acumuladas em cada combinação de dia e horário de início</span>
             </div>
-          </div>
+          </summary>
           <div class="hour-weekday-layout">
             <div id="hour-weekday-container" class="heatmap-svg-wrapper"></div>
             <div id="hour-weekday-top" class="hour-weekday-top"></div>
           </div>
-        </section>
+        </details>
 
         <!-- Weekday Ranking -->
-        <div class="chart-card chart-full-width">
-          <div class="card-title-bar">
+        <details class="chart-card chart-full-width hist-collapsible">
+          <summary class="card-title-bar">
             <div>
               <h3>Cadência semanal por volume e consistência</h3>
               <span class="card-caption">Ordenação por horas totais investidas</span>
             </div>
-          </div>
+          </summary>
           <div id="weekday-ranking-container" class="weekday-ranking-wrap"></div>
-        </div>
+        </details>
 
         <!-- Session Length Profile -->
-        <section class="chart-card chart-full-width">
-          <div class="card-title-bar">
+        <details class="chart-card chart-full-width hist-collapsible">
+          <summary class="card-title-bar">
             <div>
               <h3>Tamanho das sessões</h3>
               <span class="card-caption">Duração típica e assertividade por faixa de duração</span>
             </div>
-          </div>
+          </summary>
           <div id="session-kpis" class="heatmap-kpis-bar"></div>
           <div class="session-profile-grid">
             <div id="session-buckets-container" class="session-buckets"></div>
@@ -503,51 +511,53 @@
             </div>
           </div>
           <div id="session-ideal-note" class="circadian-peak-note"></div>
-        </section>
+        </details>
 
         <!-- Yield Quadrant Matrix -->
-        <section class="chart-card chart-full-width">
-          <div class="card-title-bar">
+        <details class="chart-card chart-full-width hist-collapsible" open>
+          <summary class="card-title-bar">
             <div>
-              <h3>Matriz de rendimento (tempo investido vs. assertividade)</h3>
+              <h3>Matriz de rendimento: tempo investido × assertividade</h3>
               <span class="card-caption">Pontos fortes, gargalos críticos, base sólida e zona de risco</span>
             </div>
-          </div>
+          </summary>
           <div id="quadrants-cutoff-info" class="quadrants-cutoff-info"></div>
           <div id="quadrants-matrix-container" class="quadrant-matrix-container">
             <div id="quadrants-svg-container" class="quadrant-svg-wrap"></div>
             <div id="quadrants-breakdown-container" class="quadrant-breakdown-wrap"></div>
           </div>
           <div id="quadrants-sem-exercicios-container" class="sem-exercicios-wrap hidden"></div>
-        </section>
+        </details>
 
         <!-- Methodological Mix & Insights -->
-        <div class="analytics-grid">
-          <div class="chart-card">
-            <div class="card-title-bar">
+        <div class="hist-stack">
+          <details class="chart-card hist-collapsible" open>
+            <summary class="card-title-bar">
               <div>
                 <h3>Mix metodológico de estudo</h3>
                 <span class="card-caption">Teoria, questões e revisão</span>
               </div>
-            </div>
+            </summary>
             <div class="mix-segmented-bar-wrapper">
               <div id="mix-segmented-bar" class="mix-segmented-bar"></div>
               <div id="mix-legend" class="mix-legend"></div>
             </div>
             <h4 class="sub-heading mt-4">Recomendações metodológicas</h4>
             <div id="mix-recommendations-container" class="mix-recommendations-container"></div>
-          </div>
+          </details>
 
-          <div class="chart-card chart-large">
-            <div class="card-title-bar">
+          <details class="chart-card hist-collapsible">
+            <summary class="card-title-bar">
               <div>
                 <h3>Síntese analítica de padrões</h3>
-                <span class="card-caption">Diagnóstico determinístico baseado no histórico</span>
+                <span class="card-caption">Texto completo gerado a partir dos seus dados</span>
               </div>
-            </div>
+            </summary>
             <div id="insights-synthesis-container" class="executive-synthesis-card"></div>
-          </div>
+          </details>
         </div>
+
+        <div id="heatmap-tooltip" class="heatmap-tooltip hidden" role="tooltip" aria-hidden="true"></div>
       </div>
     </main>
 

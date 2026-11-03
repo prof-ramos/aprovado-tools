@@ -7,7 +7,7 @@
   --card-border-subtle: rgba(255, 255, 255, 0.04);
   --text-main: #f0f0f2;
   --text-muted: #9fa0a6;
-  --text-faint: #6e6f76;
+  --text-faint: #8a8b92;
   --accent: #10b981;
   --accent-hover: #059669;
   --accent-light: rgba(16, 185, 129, 0.12);
@@ -1060,7 +1060,7 @@ body {
 }
 
 .phase-badge {
-  font-size: 9px;
+  font-size: 11px;
   padding: 2px 6px;
   border-radius: 3px;
   font-weight: 500;
@@ -1081,7 +1081,7 @@ body {
 
 .phase-badge.phase-hiato {
   background: rgba(255, 255, 255, 0.04);
-  color: var(--text-faint);
+  color: var(--text-muted);
   border: 1px solid var(--card-border);
 }
 
@@ -1420,17 +1420,6 @@ body {
 .text-blue { color: #60a5fa; }
 .text-warning { color: #fbbf24; }
 
-.method-alert-box {
-  background: rgba(248, 113, 113, 0.08);
-  border: 1px solid rgba(248, 113, 113, 0.2);
-  border-radius: 4px;
-  padding: 6px 8px;
-  color: #fca5a5;
-  font-size: 10px;
-  line-height: 1.4;
-  margin-bottom: 6px;
-}
-
 .subject-pills-list {
   display: flex;
   flex-direction: column;
@@ -1749,4 +1738,180 @@ body {
   .shifts-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* ==========================================================================
+   Análise histórica: conclusões, blocos recolhíveis, matriz, legenda de fases
+   ========================================================================== */
+.hist-conclusions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hist-conclusions-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.hist-conclusions-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .hist-conclusions-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.hist-conclusion {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  background: var(--surface-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.hist-conclusion-title {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.hist-conclusion-headline {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hist-conclusion-text {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+details.hist-collapsible {
+  display: block;
+}
+
+details.hist-collapsible > summary {
+  position: relative;
+  padding-right: 28px;
+  cursor: pointer;
+  list-style: none;
+}
+
+details.hist-collapsible > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.hist-collapsible > summary::after {
+  content: "";
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -6px;
+  border-right: 1.5px solid var(--text-muted);
+  border-bottom: 1.5px solid var(--text-muted);
+  transform: rotate(45deg);
+  transition: transform 120ms ease-out;
+}
+
+details.hist-collapsible[open] > summary::after {
+  margin-top: -2px;
+  transform: rotate(-135deg);
+}
+
+details.hist-collapsible > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+details.hist-collapsible[open] > summary {
+  margin-bottom: 14px;
+}
+
+details.hist-collapsible > :not(summary) + :not(summary) {
+  margin-top: 14px;
+}
+
+.hist-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.analytics-grid {
+  align-items: start;
+}
+
+.phase-legend {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.matrix-quadrant-bg { fill: transparent; }
+.q-solida { fill: rgba(59, 130, 246, 0.07); }
+.q-fortes { fill: rgba(16, 185, 129, 0.08); }
+.q-risco { fill: rgba(245, 158, 11, 0.07); }
+.q-gargalos { fill: rgba(239, 68, 68, 0.07); }
+
+.quadrant-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-width: 420px;
+}
+
+.matrix-quadrant-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ql-solida { fill: #60a5fa; }
+.ql-fortes { fill: #34d399; }
+.ql-risco { fill: #fbbf24; }
+.ql-gargalos { fill: #f87171; }
+
+.matrix-cutoff-line {
+  stroke: rgba(245, 158, 11, 0.55);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.matrix-cutoff-label {
+  font-size: 10px;
+  fill: #fbbf24;
+}
+
+.matrix-dot { cursor: pointer; }
+
+.matrix-dot-label {
+  font-size: 10px;
+  fill: var(--text-main);
+  paint-order: stroke;
+  stroke: var(--surface-bg);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.quadrant-reco {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  margin-bottom: 6px;
 }

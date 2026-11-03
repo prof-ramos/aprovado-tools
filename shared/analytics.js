@@ -23,6 +23,12 @@ export function formatDurationHours(ms) {
   return formatHours(ms / (1000 * 60 * 60));
 }
 
+/** Semester keys look like "2019.1"; show them as "2019 · 1º sem.". Years and other labels pass through. */
+export function formatPeriodLabel(label) {
+  const match = /^(\d{4})\.([12])$/.exec(String(label ?? ''));
+  return match ? `${match[1]} · ${match[2]}º sem.` : String(label ?? '');
+}
+
 /** Portuguese label for a recommendation severity ('success' -> 'Ponto forte'). */
 export function severityLabel(severity) {
   return { success: 'Ponto forte', info: 'Informação', warning: 'Atenção', critical: 'Prioridade' }[severity] || 'Informação';
@@ -1174,7 +1180,7 @@ export function generateStudyInsights(metrics, patterns) {
   if (eff?.mostEfficientHour) {
     const effParts = [`Sua melhor assertividade acontece às ${eff.mostEfficientHour.label} (${formatValue(eff.mostEfficientHour.accuracy)}%).`];
     if (eff.volumePeakHour && eff.volumePeakHour.hour !== eff.mostEfficientHour.hour && eff.gapPoints !== null) {
-      effParts.push(`Você estuda mais às ${eff.volumePeakHour.label}, onde acerta ${eff.gapPoints} p.p. a menos.`);
+      effParts.push(`Você estuda mais às ${eff.volumePeakHour.label}, onde acerta ${formatValue(eff.gapPoints)} p.p. a menos.`);
     }
     efficiencyInsights = effParts.join(' ');
   }
@@ -1190,9 +1196,9 @@ export function generateStudyInsights(metrics, patterns) {
   let periodInsights = 'Histórico insuficiente para comparar semestres.';
   if (sem?.semesterHighlights?.overallBest) {
     const h = sem.semesterHighlights;
-    const periodParts = [`Seu melhor semestre no conjunto foi ${h.overallBest.label} (${formatValue(h.overallBest.totalHours)}h, ${formatValue(h.overallBest.consistency)}% dos dias com estudo${h.overallBest.accuracy !== null ? `, ${formatValue(h.overallBest.accuracy)}% de acertos` : ''}).`];
-    if (h.bestByHours && h.bestByHours !== h.overallBest) periodParts.push(`Maior volume: ${h.bestByHours.label} (${formatValue(h.bestByHours.totalHours)}h).`);
-    if (h.bestByAccuracy && h.bestByAccuracy !== h.overallBest) periodParts.push(`Maior assertividade: ${h.bestByAccuracy.label} (${formatValue(h.bestByAccuracy.accuracy)}%).`);
+    const periodParts = [`Seu melhor semestre no conjunto foi ${formatPeriodLabel(h.overallBest.label)} (${formatValue(h.overallBest.totalHours)}h, ${formatValue(h.overallBest.consistency)}% dos dias com estudo${h.overallBest.accuracy !== null ? `, ${formatValue(h.overallBest.accuracy)}% de acertos` : ''}).`];
+    if (h.bestByHours && h.bestByHours !== h.overallBest) periodParts.push(`Maior volume: ${formatPeriodLabel(h.bestByHours.label)} (${formatValue(h.bestByHours.totalHours)}h).`);
+    if (h.bestByAccuracy && h.bestByAccuracy !== h.overallBest) periodParts.push(`Maior assertividade: ${formatPeriodLabel(h.bestByAccuracy.label)} (${formatValue(h.bestByAccuracy.accuracy)}%).`);
     if (sem.yearHighlights?.overallBest) periodParts.push(`Melhor ano no conjunto: ${sem.yearHighlights.overallBest.label}.`);
     periodInsights = periodParts.join(' ');
   }
