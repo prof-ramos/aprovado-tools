@@ -1,3 +1,4 @@
+import { escapeHtml, sanitizeColor } from '../shared/ui.js';
 import { AprovadoApi } from '../shared/api.js';
 import { computeStudyMetrics, filterActivitiesByPeriod } from '../shared/analytics.js';
 import { AprovadoExport } from '../shared/export.js';
@@ -131,7 +132,7 @@ function updateView() {
       row.className = 'ciclo-item';
       const mName = m.Nome || m.Materia?.Nome || 'Disciplina';
       const mHrs = m.HorasExecutadasTexto || `${Math.floor((m.HorasExecutadas || 0) / 3600)}h`;
-      row.innerHTML = `<span>${mName}</span><span style="color: var(--text-muted);">${mHrs}</span>`;
+      row.innerHTML = `<span>${escapeHtml(mName)}</span><span style="color: var(--text-muted);">${escapeHtml(mHrs)}</span>`;
       cicloSubjectsList.appendChild(row);
     });
   } else {
@@ -153,8 +154,8 @@ function updateView() {
       const dateText = r.DataAgendamento || 'Atrasada';
 
       item.innerHTML = `
-        <span class="review-subject">${subName} — ${contName}</span>
-        <span class="review-meta">Agendado para: ${dateText}</span>
+        <span class="review-subject">${escapeHtml(subName)} — ${escapeHtml(contName)}</span>
+        <span class="review-meta">Agendado para: ${escapeHtml(dateText)}</span>
       `;
       reviewsList.appendChild(item);
     });
@@ -174,13 +175,13 @@ function updateView() {
       row.innerHTML = `
         <div class="subject-bar-info">
           <span class="subject-name-tag">
-            <span class="subject-color-dot" style="background-color: ${s.color};"></span>
-            <span>${s.name}</span>
+            <span class="subject-color-dot" style="background-color: ${sanitizeColor(s.color)};"></span>
+            <span>${escapeHtml(s.name)}</span>
           </span>
           <span class="subject-bar-stats">${s.formattedHours} (${s.percentage.toFixed(0)}%)</span>
         </div>
         <div class="progress-bar-bg" style="height: 5px;">
-          <div class="progress-bar-fill" style="width: ${s.percentage}%; background-color: ${s.color};"></div>
+          <div class="progress-bar-fill" style="width: ${s.percentage}%; background-color: ${sanitizeColor(s.color)};"></div>
         </div>
       `;
       subjectsBars.appendChild(row);

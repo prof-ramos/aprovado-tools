@@ -358,7 +358,7 @@ function renderModalitiesAndShifts(metrics) {
     row.className = 'type-row';
     row.innerHTML = `
       <div class="type-info">
-        <strong>${t.name}</strong>
+        <strong>${escapeHtml(t.name)}</strong>
         <span style="color: var(--text-muted);">${t.formattedDuration} (${t.percentage.toFixed(1)}%)</span>
       </div>
       <div class="progress-bar-bg" style="height: 5px;">
