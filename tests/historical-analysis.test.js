@@ -126,6 +126,18 @@ describe('computeHourlyEfficiency', () => {
     assert.equal(result.hours[14].reliable, false, '10 questions is below the minimum sample');
   });
 
+  it('includes a reliable shift in the synthesis when individual hours lack enough questions', () => {
+    const activities = [6, 7, 8, 9, 10].map(hour =>
+      atv(`2026-01-05T${String(hour).padStart(2, '0')}:00:00`, 60, 10, 9));
+    const patterns = computeHistoricalPatterns(activities, [], { endYear: 2026 });
+    assert.equal(patterns.efficiency.mostEfficientHour, null);
+    assert.equal(patterns.efficiency.mostEfficientShift.questions, 50);
+    assert.match(patterns.insights.efficiencyInsights, /Questões insuficientes para comparar assertividade por horário/);
+    assert.match(patterns.insights.efficiencyInsights, /Por turno, a Manhã lidera com 90%/);
+    assert.doesNotMatch(patterns.insights.efficiencyInsights, /Sua melhor assertividade acontece às|Você estuda mais às|p\.p\./);
+    assert.match(patterns.insights.fullFormattedText, /Por turno, a Manhã lidera com 90%/);
+  });
+
   it('returns nulls when no hour has enough questions', () => {
     const result = computeHourlyEfficiency(computeCircadianDistribution([atv('2026-01-05T20:00:00', 60, 5, 5)]));
     assert.equal(result.mostEfficientHour, null);
@@ -165,6 +177,46 @@ describe('computeSemesterRanking', () => {
     assert.equal(h.bestByAccuracy.label, '2024.2', '2025.1 has 100% but only 5 questions');
     assert.equal(h.overallBest.label, '2024.2');
     assert.equal(yearHighlights.bestByHours.label, '2024');
+  });
+
+  for (const [periodsKey, highlightsKey, expectedWinner] of [
+    ['semesters', 'semesterHighlights', '2025.1'],
+    ['years', 'yearHighlights', '2025']
+  ]) {
+    it(`gives tied hours and consistency equal ranks in ${periodsKey}`, () => {
+      const result = computeSemesterRanking([
+        atv('2023-02-01T10:00:00', 600, 100, 50),
+        atv('2025-02-01T10:00:00', 600, 100, 90)
+      ], { now: '2026-01-15T12:00:00' });
+
+      assert.equal(result[highlightsKey].overallBest.label, expectedWinner);
+      assert.deepEqual(result[periodsKey].map(p => p.ranks), [
+        { hours: 1, consistency: 1, accuracy: 2 },
+        { hours: 1, consistency: 1, accuracy: 1 }
+      ]);
+      assert.deepEqual(result[periodsKey].map(p => p.averageRank), [1.33, 1]);
+    });
+  }
+
+  it('shares tied ranks without accuracy and preserves chronological highlight ties', () => {
+    const result = computeSemesterRanking([
+      atv('2023-02-01T10:00:00', 600),
+      atv('2025-02-01T10:00:00', 600),
+      atv('2026-02-01T10:00:00', 60)
+    ], { now: '2027-01-15T12:00:00' });
+
+    for (const periods of [result.semesters, result.years]) {
+      assert.deepEqual(periods.map(p => p.ranks), [
+        { hours: 1, consistency: 1, accuracy: null },
+        { hours: 1, consistency: 1, accuracy: null },
+        { hours: 3, consistency: 1, accuracy: null }
+      ]);
+      assert.deepEqual(periods.map(p => p.averageRank), [1, 1, 2]);
+    }
+    assert.equal(result.semesterHighlights.overallBest.label, '2023.1');
+    assert.equal(result.yearHighlights.overallBest.label, '2023');
+    assert.equal(result.semesterHighlights.bestByAccuracy, null);
+    assert.equal(result.yearHighlights.bestByAccuracy, null);
   });
 
   it('handles empty history', () => {

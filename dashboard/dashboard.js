@@ -1412,22 +1412,21 @@ function renderPeriodRanking(semesterData) {
 function renderEfficiencyNote(efficiency) {
   const note = document.getElementById('circadian-efficiency-note');
   if (!note) return;
-  if (!efficiency?.mostEfficientHour) {
-    note.textContent = `Assertividade por horário aparece quando um horário acumula pelo menos ${efficiency?.minQuestions ?? 50} questões.`;
-    return;
-  }
-  const best = efficiency.mostEfficientHour;
-  const peak = efficiency.volumePeakHour;
-  let text = `Melhor assertividade às <strong>${escapeHtml(best.label)}</strong> (${formatAccuracy(best.accuracy)} em ${best.questions} questões)`;
-  if (peak && peak.hour !== best.hour) {
-    text += ` · Maior volume às <strong>${escapeHtml(peak.label)}</strong>`;
-    if (efficiency.gapPoints !== null) {
-      text += ` (${formatAccuracy(peak.accuracy)}, ${efficiency.gapPoints > 0 ? '−' : '+'}${Math.abs(efficiency.gapPoints).toFixed(1)} p.p.)`;
+  const best = efficiency?.mostEfficientHour;
+  let text = `Assertividade por horário aparece quando um horário acumula pelo menos ${escapeHtml(efficiency?.minQuestions ?? 50)} questões.`;
+  if (best) {
+    const peak = efficiency.volumePeakHour;
+    text = `Melhor assertividade às <strong>${escapeHtml(best.label)}</strong> (${formatAccuracy(best.accuracy)} em ${best.questions} questões)`;
+    if (peak && peak.hour !== best.hour) {
+      text += ` · Maior volume às <strong>${escapeHtml(peak.label)}</strong>`;
+      if (efficiency.gapPoints !== null) {
+        text += ` (${formatAccuracy(peak.accuracy)}, ${efficiency.gapPoints > 0 ? '−' : '+'}${Math.abs(efficiency.gapPoints).toFixed(1)} p.p.)`;
+      }
+    } else if (peak) {
+      text += ' · também é o horário de maior volume';
     }
-  } else if (peak) {
-    text += ' · também é o horário de maior volume';
   }
-  if (efficiency.mostEfficientShift) {
+  if (efficiency?.mostEfficientShift) {
     text += ` · Turno mais eficiente: <strong>${escapeHtml(efficiency.mostEfficientShift.label)}</strong> (${formatAccuracy(efficiency.mostEfficientShift.accuracy)})`;
   }
   note.innerHTML = text;

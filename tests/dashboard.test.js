@@ -196,6 +196,20 @@ describe('Dashboard rendering regressions', () => {
     assert.match(page.get('tbody-period-ranking').innerHTML, /<strong>2025<\/strong>/);
   });
 
+  it('shows a reliable shift even when individual hours lack enough questions', () => {
+    const page = dashboard();
+    const activities = [6, 7, 8, 9, 10].map(hour => ({
+      ...activity(), Inicio: `2026-06-01T${String(hour).padStart(2, '0')}:00:00`,
+      ExercicioQuantidade: 10, ExercicioAcerto: 9
+    }));
+    page.context.renderHistoricalPatternsTab(activities, [activity().Materia]);
+    const note = page.get('circadian-efficiency-note');
+    const text = note.innerHTML || note.textContent;
+    assert.match(text, /pelo menos 50 questões/);
+    assert.match(text, /Turno mais eficiente: <strong>Manhã<\/strong> \(90\.0%\)/);
+    assert.doesNotMatch(text, /Melhor assertividade às|Maior volume às|p\.p\./);
+  });
+
   it('escapes subject text and colors in the overview as well as the matrix', () => {
     const page = dashboard();
     const payload = '<img src=x onerror="globalThis.xss=1">';

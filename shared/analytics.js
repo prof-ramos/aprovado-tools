@@ -1171,8 +1171,10 @@ export function generateStudyInsights(metrics, patterns) {
     if (eff.volumePeakHour && eff.volumePeakHour.hour !== eff.mostEfficientHour.hour && eff.gapPoints !== null) {
       effParts.push(`Você estuda mais às ${eff.volumePeakHour.label}, onde acerta ${eff.gapPoints} p.p. a menos.`);
     }
-    if (eff.mostEfficientShift) effParts.push(`Por turno, a ${eff.mostEfficientShift.label} lidera com ${eff.mostEfficientShift.accuracy}%.`);
     efficiencyInsights = effParts.join(' ');
+  }
+  if (eff?.mostEfficientShift) {
+    efficiencyInsights += ` Por turno, a ${eff.mostEfficientShift.label} lidera com ${eff.mostEfficientShift.accuracy}%.`;
   }
   if (slots.length) {
     efficiencyInsights += ` Horários mais frequentes: ${slots.map(sl => sl.label).join('; ')}.`;
@@ -1506,7 +1508,11 @@ export function computeHourlyEfficiency(circadian, options = {}) {
 function rankBy(list, valueFn) {
   const sorted = [...list].sort((a, b) => valueFn(b) - valueFn(a));
   const ranks = new Map();
-  sorted.forEach((item, idx) => ranks.set(item, idx + 1));
+  let rank = 0;
+  sorted.forEach((item, idx) => {
+    if (idx === 0 || valueFn(item) !== valueFn(sorted[idx - 1])) rank = idx + 1;
+    ranks.set(item, rank);
+  });
   return ranks;
 }
 
