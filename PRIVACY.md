@@ -1,57 +1,79 @@
 # Política de Privacidade / Privacy Policy
 
-**Última atualização / Last updated:** 02 de Novembro de 2026 / November 2, 2026
+**Última atualização / Last updated:** 3 de novembro de 2026 / November 3, 2026
 
 ## Português
 
-### 1. Visão Geral
-O **Aprovado Tools** é uma extensão de navegador de código aberto desenvolvida para permitir que usuários da plataforma AprovadoApp visualizem análises avançadas, padrões históricos de estudo e exportem seus dados (CSV, JSON, Markdown).
+### 1. Dados acessados e finalidade
 
-### 2. Coleta e Uso de Dados
-- **Privacidade por Design (Client-Side Only)**: O Aprovado Tools opera exclusivamente no ambiente local do seu navegador.
-- **Nenhum Servidor Externo**: A extensão não possui servidores próprios, não utiliza serviços analíticos terceirizados (telemetria) e não monitora sua navegação.
-- **Dados Acessados**: A extensão acessa unicamente as informações da sua própria conta do AprovadoApp (histórico de atividades, matérias cadastradas, ciclo de estudos e revisões) mediante a sua sessão já autenticada no site oficial (`aprovadoapp.com` e `aprovadoapp.com.br`).
-- **Armazenamento Local**: Seus dados de estudo e preferências de interface (ex.: tema claro/escuro) são armazenados localmente no seu dispositivo utilizando a API `chrome.storage.local`.
+O Aprovado Tools é uma extensão não oficial para visualizar e exportar dados da conta do usuário no AprovadoApp: perfil retornado pelo serviço, matérias, atividades e anotações, ciclo de estudos e revisões. Os cálculos e gráficos são executados no navegador. A extensão não mantém servidor próprio, telemetria, publicidade ou processamento por serviços de IA.
 
-### 3. Permissões Solicitadas e Justificativas
-- `storage` & `unlimitedStorage`: Armazenamento em cache local dos relatórios e preferências para abertura instantânea do painel sem requisições repetidas à API.
-- `cookies`: Leitura do cookie de autenticação de sessão gerado pelo AprovadoApp no navegador do usuário, dispensando a inserção manual de login e senha na extensão.
-- `sidePanel`: Exibição do painel lateral integrado de estudos enquanto o estudante navega em suas fontes de pesquisa e leitura.
-- `contextMenus`: Atalho no menu de clique direito para acesso rápido às métricas.
-- `tabs`: Abertura da aba dedicada do dashboard completo de métricas.
-- `host_permissions` (`*://*.aprovadoapp.com/*` e `*://*.aprovadoapp.com.br/*`): Comunicação direta via HTTPS entre o navegador e o backend do AprovadoApp para resgate dos registros do usuário.
+### 2. Comunicação e autenticação
 
-### 4. Compartilhamento e Venda de Dados
-O Aprovado Tools **nunca vende, aluga ou compartilha** dados pessoais ou métricas de estudo de seus usuários com terceiros, corretores de dados ou redes de publicidade.
+A sincronização envia requisições diretamente para `https://aprovadoapp.com/service`, com a sessão do navegador (`credentials: include`). A extensão não solicita nem armazena a senha. Cada leitura de snapshot confirma a identidade online, mesmo quando as listas podem ser reutilizadas do cache; o dono do snapshot precisa corresponder à conta autenticada.
 
-### 5. Contato e Código Aberto
-O código-fonte completo é aberto e auditável em:
-https://github.com/prof-ramos/aprovado-tools
+O manifesto permite acesso HTTPS aos domínios `.com`, `.com.br` e seus subdomínios, e injeta atalhos nessas páginas. O cliente de dados usa o domínio `.com`; a permissão de outro domínio não significa que a API use esse destino ou compartilhe sua sessão.
 
----
+### 3. Retenção e exclusão
+
+O snapshot completo e os marcadores de sincronização ficam em `chrome.storage.local`, no perfil do navegador. A instalação também grava uma data e um marcador de tema; a interface atual não oferece preferências de tema ou filtros persistentes. A extensão não sincroniza esse armazenamento pelo Chrome Sync.
+
+Cinco minutos é o prazo de reutilização das listas, não um prazo de exclusão. O cache permanece até ser substituído ou removido. Falhas de sincronização preservam o cache; sair do AprovadoApp não o apaga nem revoga automaticamente dados já carregados nas interfaces. O dashboard pode continuar mostrando e exportando um snapshot anterior após uma falha. Feche as superfícies abertas ao encerrar o uso em perfil compartilhado.
+
+Remover a extensão pelo gerenciador de extensões apaga seu armazenamento local. Arquivos CSV/JSON já baixados e conteúdo copiado para a área de transferência são independentes: apague-os ou substitua-os separadamente quando necessário. Exportações podem conter perfil e anotações pessoais.
+
+### 4. Permissões declaradas
+
+| Permissão | Uso no código atual |
+|---|---|
+| `storage` | Snapshot, instante da sincronização, usuário e marcadores locais de instalação. |
+| `unlimitedStorage` | Amplia a capacidade para históricos extensos. |
+| `cookies` | Handler `CHECK_LOGIN_STATUS` consulta a presença do cookie `aprovado` em `.com` e devolve apenas um booleano. As telas usam a consulta de identidade à API para autenticar. |
+| `sidePanel` | Exibe o painel lateral. |
+| `contextMenus` | Adiciona atalhos de abertura ao menu de contexto. |
+| `tabs` | Consta no manifesto; o código cria abas e consulta a janela da aba ativa, sem ler seu título ou URL. Essa descrição não afirma que a permissão seja indispensável. |
+| Hosts HTTPS `.com`, `.com.br` e subdomínios | Permitem os atalhos nas páginas correspondentes e o acesso ao serviço; o destino efetivo da API é `.com`. |
+
+### 5. Compartilhamento e contato
+
+A extensão não vende dados nem transmite histórico a terceiros por iniciativa própria. Downloads e cópias são ações do usuário; o destino e o compartilhamento posteriores ficam sob seu controle. As requisições autenticadas ao AprovadoApp continuam sujeitas ao serviço e ao navegador.
+
+Código e canal de contato: [repositório](https://github.com/prof-ramos/aprovado-tools) e [issues](https://github.com/prof-ramos/aprovado-tools/issues). Evite publicar backups, cookies, credenciais ou informações pessoais ao relatar um problema.
 
 ## English
 
-### 1. Overview
-**Aprovado Tools** is an open-source browser extension designed to allow users of the AprovadoApp study platform to inspect advanced metrics, historical study patterns, and export their study sessions into CSV, JSON, and Markdown formats.
+### 1. Accessed data and purpose
 
-### 2. Data Collection and Usage
-- **Client-Side Only**: Aprovado Tools operates strictly inside your local browser instance.
-- **No External Servers**: The extension has no external servers, collects no telemetry, and does not track your general browsing activity.
-- **Accessed Data**: The extension only accesses study data belonging to your own AprovadoApp account (session history, subjects, cycles, reviews) through your existing active login session on `aprovadoapp.com` and `aprovadoapp.com.br`.
-- **Local Storage**: Data snapshots and UI preferences are stored locally on your device via `chrome.storage.local`.
+Aprovado Tools is an unofficial extension for viewing and exporting the user's AprovadoApp account data: the profile returned by the service, subjects, activities and notes, study cycle, and reviews. Calculations and charts run in the browser. The extension operates no server, telemetry, advertising, or external AI processing.
 
-### 3. Permissions Justification
-- `storage` & `unlimitedStorage`: Caches metrics and multi-year historical logs locally for instant dashboard loading without repeated network round-trips.
-- `cookies`: Reads active session cookies on the AprovadoApp domain to authenticate API requests without asking for passwords.
-- `sidePanel`: Renders the companion study side panel alongside active reading tabs.
-- `contextMenus`: Adds browser context menu shortcuts to launch dashboards.
-- `tabs`: Opens the full analytics dashboard tab.
-- `host_permissions` (`aprovadoapp.com` / `aprovadoapp.com.br`): Performs HTTPS requests to fetch your study data directly from the official service.
+### 2. Communication and authentication
 
-### 4. Data Sharing & Monetization
-Aprovado Tools **does not sell, transfer, or disclose** any user information to third parties, data brokers, or advertising networks.
+Synchronization sends requests directly to `https://aprovadoapp.com/service` using the browser session (`credentials: include`). The extension does not request or store a password. Every snapshot read confirms the account identity online, including reads that can reuse cached lists; the snapshot owner must match the authenticated account.
 
-### 5. Contact & Open Source
-The complete source code is publicly accessible and auditable at:
-https://github.com/prof-ramos/aprovado-tools
+The manifest grants HTTPS access to `.com`, `.com.br`, and their subdomains and injects shortcuts on matching pages. The data client uses `.com`; permission for another domain does not establish an API destination or shared session there.
+
+### 3. Retention and deletion
+
+The full snapshot and synchronization markers are stored in `chrome.storage.local` in the browser profile. Installation also writes a date and theme marker; the current UI does not offer persistent theme or filter preferences. The extension does not synchronize this storage through Chrome Sync.
+
+Five minutes is the list reuse window, not a deletion deadline. Cached data remains until replaced or removed. Synchronization failures preserve the cache. Logging out of AprovadoApp neither deletes it nor automatically revokes data already loaded in extension views. The dashboard may continue displaying and exporting a previous snapshot after a failed refresh. Close open extension views when ending use of a shared profile.
+
+Removing the extension through the extension manager clears its local storage. Downloaded CSV/JSON files and clipboard contents are independent; delete or replace them separately as needed. Exports may include profile information and personal notes.
+
+### 4. Declared permissions
+
+| Permission | Current implementation |
+|---|---|
+| `storage` | Snapshot, synchronization time, user, and local installation markers. |
+| `unlimitedStorage` | Additional capacity for extensive study histories. |
+| `cookies` | `CHECK_LOGIN_STATUS` checks whether the `aprovado` cookie exists on `.com` and returns a Boolean only. Views authenticate through the API identity request. |
+| `sidePanel` | Displays the side panel. |
+| `contextMenus` | Provides context-menu navigation shortcuts. |
+| `tabs` | Declared in the manifest; code creates tabs and queries the active tab's window, without reading its title or URL. This description does not establish that the permission is necessary. |
+| HTTPS `.com`, `.com.br`, and subdomains | Enable matching-page shortcuts and service access; the actual API destination is `.com`. |
+
+### 5. Sharing and contact
+
+The extension does not sell data or independently transmit study history to third parties. Downloads and clipboard exports are user actions; subsequent destinations and sharing remain under the user's control. Authenticated requests to AprovadoApp remain subject to that service and browser behavior.
+
+Source and contact: [repository](https://github.com/prof-ramos/aprovado-tools) and [issues](https://github.com/prof-ramos/aprovado-tools/issues). Keep backups, cookies, credentials, and personal information out of public reports.

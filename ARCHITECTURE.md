@@ -6,12 +6,12 @@ Este documento detalha o desenho arquitetural, as interações entre subsistemas
 
 ## 1. Visão Geral de Alto Nível
 
-O **Aprovado Tools** é uma solução de auditoria analítica e exportação que opera **100% no lado do cliente** (*client-side only*). Ela se acopla ao ecossistema do AprovadoApp através de injeção pontual de interface (DOM) e consumo da API oficial reversa, dispensando servidores intermediários, bancos de dados em nuvem ou processamento por modelos externos de Inteligência Artificial.
+O **Aprovado Tools** é uma solução de auditoria analítica e exportação que opera **100% no lado do cliente** (*client-side only*). Ela se acopla ao ecossistema do AprovadoApp através de injeção pontual de interface (DOM) e consumo dos endpoints usados pelo serviço web, dispensando servidores intermediários, bancos de dados em nuvem ou processamento por modelos externos de Inteligência Artificial.
 
 ```mermaid
 graph TD
     User["Estudante / Navegador"]
-    Site["AprovadoApp Web App (ASP.NET / Knockout)"]
+    Site["AprovadoApp Web App"]
     
     subgraph Extension ["Aprovado Tools (Manifest V3 Extension)"]
         CS["Content Script (content.js)"]
@@ -61,7 +61,7 @@ graph TD
 - **Comportamento Efêmero:** Não mantém variáveis em memória entre chamadas. Escuta cliques em menus de contexto (`chrome.contextMenus`), gerencia a abertura do `chrome.sidePanel` por janela e abre o dashboard em aba dedicada (`chrome.tabs.create`).
 
 ### 2.3. Vistas de Usuário (Popup, SidePanel e Dashboard)
-- **Popup (`popup/`):** Visão ultrarrápida (340px) exibindo tempo total, sessões, assertividade, progresso do ciclo e botões de exportação rápida.
+- **Popup (`popup/`):** Visão compacta (340px) exibindo tempo total, sessões, assertividade, progresso do ciclo e botões de exportação rápida.
 - **Side Panel (`sidepanel/`):** Painel lateral retrátil que acompanha a navegação do usuário em abas de estudo e leitura, exibindo revisões pendentes e distribuição de matérias.
 - **Dashboard (`dashboard/`):** Aplicação de página inteira com duas visões controladas pelo seletor de período:
   1. *Visão geral:* Filtros de data, matéria e modalidade, busca com paginação, linha do tempo diária e tabela de matérias.
@@ -156,10 +156,10 @@ flowchart TD
 
 | Decisão de Design | Alternativa Rejeitada | Justificativa Técnica |
 |---|---|---|
-| **Abordagem 100% Determinística (Zero-AI)** | Uso de APIs externas como OpenAI GPT-4 ou Google Gemini | **Privacidade e custo:** Toda a síntese analítica é gerada por algoritmos de regras no próprio navegador do usuário, com **zero custo de infraestrutura**, latência sub-milissegundo, funcionamento 100% offline e sem risco de vazamento de dados de estudo do estudante para servidores de IA. |
+| **Abordagem 100% Determinística (Zero-AI)** | Uso de APIs externas como OpenAI GPT-4 ou Google Gemini | **Privacidade e custo:** Toda a síntese analítica é gerada por algoritmos de regras no próprio navegador do usuário, com nenhum serviço de IA contratado. Os cálculos dispensam rede depois de receber o snapshot; a carga normal, inclusive de cache, exige confirmação online da identidade. A prévia sintética é o modo separado de desenvolvimento sem conta. |
 | **Manifest V3 Estrito** | Manifest V2 legado | MV3 é a especificação obrigatória da Chrome Web Store. Garante segurança por meio de CSP restrito (proibição de `eval` e scripts remotos) e menor consumo de bateria via Service Workers orientados a eventos. |
-| **Gráficos em SVG Puro Sem Bibliotecas** | Dependências como Chart.js, Recharts ou D3.js | As bibliotecas tradicionais pesam centenas de kilobytes e violam princípios de bundle leve. Gerar `<svg>` nativo diretamente com código procedural consome 0 KB de dependências externas, renderiza instantaneamente e permite estilização CSS total com variáveis nativas. |
-| **Autenticação por Cookies Nativos** | Armazenamento de usuário e senha na extensão | A extensão utiliza o cookie de sessão `aprovado` já emitido pelo site oficial com `credentials: 'include'`. Isso elimina a necessidade de coletar credenciais sensíveis e evita qualquer risco de armazenamento de senhas. |
+| **Gráficos em SVG Puro Sem Bibliotecas** | Dependências como Chart.js, Recharts ou D3.js | As bibliotecas tradicionais pesam centenas de kilobytes e violam princípios de bundle leve. Gerar `<svg>` nativo diretamente com código procedural consome 0 KB de dependências externas, dispensa o carregamento de bibliotecas de gráficos e permite estilização CSS total com variáveis nativas. |
+| **Autenticação por Cookies Nativos** | Armazenamento de usuário e senha na extensão | A extensão utiliza o cookie de sessão `aprovado` já emitido pelo site oficial com `credentials: 'include'`. Isso elimina a necessidade de coletar credenciais sensíveis e dispensa o armazenamento de senhas na extensão. |
 | **Exportação CSV com UTF-8 BOM (`\uFEFF`)** | CSV padrão sem BOM | Softwares como o Microsoft Excel assumem codificações legadas (como Windows-1252) ao abrir CSVs no Brasil. A adição explícita do BOM UTF-8 garante acentuação correta em português sem exigir configurações manuais do usuário. |
 
 ---
@@ -169,8 +169,15 @@ flowchart TD
 1. **Dependência de Sessão Web Ativa**:
    - A extensão não armazena login e senha do usuário. Caso o cookie de autenticação do AprovadoApp expire, o usuário deve acessar o site oficial para renovar a sessão.
 2. **CORS e Políticas de Cookies do Navegador**:
-   - Para que as requisições com cookies funcionem em background, a extensão exige explicitamente `host_permissions` para `*://*.aprovadoapp.com/*` e `*://*.aprovadoapp.com.br/*` e a permissão `"cookies"`.
+   - As telas fazem `fetch` com `credentials: include` para `https://aprovadoapp.com/service`. O manifesto permite HTTPS nas raízes `.com`, `.com.br` e seus subdomínios, também usados pelos atalhos. A permissão `cookies` é usada separadamente pelo handler `CHECK_LOGIN_STATUS`, que retorna somente presença de cookie; as telas não usam esse handler para autenticar. A necessidade dessa permissão deve ser avaliada pelos seus consumidores, não presumida por causa do `fetch`.
 3. **Ausência de Webhooks ou Eventos Push no AprovadoApp**:
    - A extensão consulta a identidade antes de reutilizar listas em cache por até 5 minutos. O botão Sincronizar força a atualização das listas. Isso exige acesso ao serviço mesmo quando as listas ainda estão em cache; não há leitura offline de cache sem autenticação confirmada.
 4. **Volume de Histórico e Capacidade de Armazenamento**:
-   - Usuários com mais de uma década de estudo acumulam megabytes de registros JSON. Para evitar a limitação da cota de 5 MB do `chrome.storage.local`, o manifesto inclui obrigatoriamente a permissão `"unlimitedStorage"`.
+   - Usuários com mais de uma década de estudo acumulam megabytes de registros JSON. Para evitar a cota padrão de `chrome.storage.local` (10 MB no Chrome atual; 5 MB até o Chrome 113), o manifesto inclui obrigatoriamente a permissão `"unlimitedStorage"`.
+
+5. **Retenção e estado já carregado**:
+   - O prazo de cache não é um prazo de exclusão. Logout não apaga automaticamente `chrome.storage.local` nem revoga snapshots já em memória; o dashboard mantém dados e exportações após falha de sincronização. Os controles de identidade protegem novas leituras e gravações. Veja [PRIVACY.md](PRIVACY.md).
+6. **Conversão experimental de backup**:
+   - `shared/backup.js` é um conversor puro, testado e sem integração às telas; é excluído do ZIP. Propostas em `plans/` não representam uma funcionalidade disponível.
+
+Referências: [armazenamento do Chrome](https://developer.chrome.com/docs/extensions/reference/api/storage) e [permissão de cookies](https://developer.chrome.com/docs/extensions/reference/api/cookies).
