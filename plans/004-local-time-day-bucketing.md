@@ -7,7 +7,7 @@
 > em `plans/README.md`, a menos que um revisor tenha te despachado e dito que
 > ele mantém o índice.
 >
-> **Checagem de drift (rode primeiro)**: `git diff --stat bcf0ec0..HEAD -- shared/analytics.js tests/timezone.test.js`
+> **Checagem de drift (rode primeiro)**: `git diff --stat c8b055e..HEAD -- shared/analytics.js tests/timezone.test.js`
 > Se algum arquivo do escopo mudou desde que este plano foi escrito, compare
 > os trechos de "Estado atual" com o código vivo antes de prosseguir. Uma
 > divergência é condição de PARADA.
@@ -19,7 +19,7 @@
 - **Risco**: MÉDIO (muda números que o usuário já vê: dias ativos, sequência e gráfico diário)
 - **Depende de**: nenhum tecnicamente. Recomenda-se aplicar depois de 001 e 002, para que as correções de baixo risco saiam antes da que muda números visíveis.
 - **Categoria**: bug
-- **Planejado em**: commit `bcf0ec0`, 2026-11-03
+- **Planejado em**: commit `bcf0ec0` (reconciliado com `c8b055e`), 2026-11-03
 
 ## Por que isso importa
 

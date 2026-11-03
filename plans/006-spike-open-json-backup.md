@@ -9,7 +9,7 @@
 > Ao terminar, atualize a linha deste plano em `plans/README.md`, a menos que
 > um revisor tenha te despachado e dito que ele mantém o índice.
 >
-> **Checagem de drift (rode primeiro)**: `git diff --stat bcf0ec0..HEAD -- shared/export.js dashboard/dashboard.js shared/backup.js tests/backup.test.js`
+> **Checagem de drift (rode primeiro)**: `git diff --stat c8b055e..HEAD -- shared/export.js dashboard/dashboard.js shared/backup.js tests/backup.test.js`
 > Mudanças em `shared/export.js` e `dashboard/dashboard.js` vindas dos planos
 > 001, 003 e 005 são esperadas. Confira só se `exportFullBackupJSON` ainda
 > grava as chaves listadas em "Estado atual" e se `loadMockSnapshot` ainda
@@ -22,7 +22,7 @@
 - **Risco**: BAIXO (nenhuma mudança de comportamento visível)
 - **Depende de**: `plans/003-escape-api-data-in-html.md`. Um backup aberto de arquivo é dado não confiável; a funcionalidade final só é segura depois que o render escapar tudo. O spike em si pode rodar antes, mas a funcionalidade não.
 - **Categoria**: direction
-- **Planejado em**: commit `bcf0ec0`, 2026-11-03
+- **Planejado em**: commit `bcf0ec0` (reconciliado com `c8b055e`), 2026-11-03
 
 ## Por que isso importa
 
@@ -190,4 +190,12 @@ Em `tests/backup.test.js`:
 
 ## Resultados do spike
 
-_(preenchido pelo executor)_
+1. **UI:** manter “Abrir backup…” no menu `#export-menu`, com banner persistente indicando a data e ação “Voltar aos dados ao vivo”. O menu existente agrupa exportações e cabe neste fluxo; o banner evita confundir a fonte.
+2. **Leitura:** usar `<input type="file" accept="application/json,.json">`, `file.text()` e `JSON.parse`, sem nova permissão. Context7 consultado em 03/11/2026: a documentação oficial do Chrome declara que file handling não exige permissões (https://developer.chrome.com/docs/extensions/how-to/web-platform/file-handling-chromeos). O fluxo específico no Chrome desktop ainda não foi verificado manualmente.
+3. **Persistência:** não gravar em `chrome.storage.local`: conservar o cache ao vivo e manter o snapshot importado apenas em memória, somente leitura.
+4. **Tamanho:** fixture real medido: **3.008 atividades**, **1.693.392 bytes**, leitura + parse **17,4 ms** em execução local. O plano citava 3.030; o teste foi corrigido para o arquivo real, cujo usuário segue `Id === 101`. Recomendo limite inicial de 50 MB antes de ler; desempenho perto desse limite e memória não verificados.
+5. **Sincronizar:** desabilitar enquanto estiver visualizando backup, com orientação para voltar aos dados ao vivo pelo banner; evitar troca silenciosa de fonte.
+6. **CLI:** formato `prof-ramos/aprovado` não verificado. É preciso conferir o exportador e uma amostra sanitizada, inclusive datas, duração, objetos de matéria/conteúdo e nomes das chaves.
+7. **Próximo plano:** tocar `dashboard/dashboard.html`, `.js` e `.css`, reutilizando `shared/backup.js`. Adicionar seleção de arquivo, limite/tratamento de erros, banner e retorno ao snapshot ao vivo, bloquear sync e escritas durante importação, repopular filtros e renderizar as abas. Esforço M, aproximadamente 1–2 dias com QA. Testar arquivo inválido, formatos aceitos, limite, HTML malicioso, retorno ao vivo e prova de que storage não foi alterado.
+
+Verificação: conversor e API têm 7 testes cada, todos passando; sintaxe dos dois módulos validada. `npm test` executado, porém falhou no teste concorrente `tests/fixtures/generator.test.js` (“CLI creates a missing fixture directory and regenerates identical fixture bytes”), com ENOENT no fixture temporário. Nenhuma integração à UI, alteração de permissão ou escrita de backup no cache foi feita.

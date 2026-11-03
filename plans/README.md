@@ -1,17 +1,17 @@
 # Planos de Implementação
 
-Gerados pela skill `improve` em 2026-11-03, contra o commit `bcf0ec0` (branch `feat/study-history-patterns`). Execute na ordem abaixo, salvo quando as dependências indicarem outra coisa. Cada executor deve ler o plano inteiro antes de começar, respeitar as Condições de PARADA e atualizar a própria linha ao terminar.
+Gerados pela skill `improve` em 2026-11-03, contra o commit `bcf0ec0` (reconciliados com `c8b055e`) (branch `feat/study-history-patterns`). Execute na ordem abaixo, salvo quando as dependências indicarem outra coisa. Cada executor deve ler o plano inteiro antes de começar, respeitar as Condições de PARADA e atualizar a própria linha ao terminar.
 
 ## Ordem de execução e status
 
-| Plano | Título | Prioridade | Esforço | Depende de | Status |
-|---|---|---|---|---|---|
-| [001](001-fix-csv-semicolon-escaping.md) | CSV coloca entre aspas campos com `;` | P1 | S | — | TODO |
-| [002](002-fail-loud-on-partial-sync.md) | Falha de sync não gera cache nem backup vazio | P1 | S | — | TODO |
-| [003](003-escape-api-data-in-html.md) | Escapar dados da API antes de `innerHTML` | P1 | S–M | — | TODO |
-| [004](004-local-time-day-bucketing.md) | Dia local na Visão Geral, sequência e filtro personalizado | P1 | M | (recomendado após 001 e 002) | TODO |
-| [005](005-single-source-version.md) | Versão com fonte única no `manifest.json` | P3 | S | 001 | TODO |
-| [006](006-spike-open-json-backup.md) | Spike: abrir backup JSON no dashboard | P3 | S | 003 (para a funcionalidade final) | TODO |
+| Plano | Título | Prioridade | Esforço | Depende de | Issue | Status |
+|---|---|---|---|---|---|---|
+| [001](001-fix-csv-semicolon-escaping.md) | CSV coloca entre aspas campos com `;` | P1 | S | — | #2 | DONE |
+| [002](002-fail-loud-on-partial-sync.md) | Falha de sync não gera cache nem backup vazio | P1 | S | — | #3 | DONE |
+| [003](003-escape-api-data-in-html.md) | Escapar dados da API antes de `innerHTML` | P1 | S–M | — | #7 | DONE |
+| [004](004-local-time-day-bucketing.md) | Dia local na Visão Geral, sequência e filtro personalizado | P1 | M | (recomendado após 001 e 002) | #4 | DONE |
+| [005](005-single-source-version.md) | Versão com fonte única no `manifest.json` | P3 | S | 001 | #5 | DONE |
+| [006](006-spike-open-json-backup.md) | Spike: abrir backup JSON no dashboard | P3 | S | 003 (para a funcionalidade final) | #6 | DONE |
 
 Valores de status: TODO | IN PROGRESS | DONE | BLOCKED (com motivo em uma linha) | REJECTED (com justificativa em uma linha)
 
@@ -39,3 +39,28 @@ Não há linter, typechecker, CI nem dependências. A única verificação autom
 - **Permissão `unlimitedStorage`**: decisão documentada em `ARCHITECTURE.md §5.4` (históricos de 10+ anos).
 - **Modo mock carregando fixture**: já restrito a `?mock=true` no commit `bcf0ec0`, e o fixture não entra no ZIP (`build:zip` não inclui `tests/`).
 - **`...options` sobrescrevendo `headers` mesclados** em `request()` (`shared/api.js:16-21`): nenhum chamador passa `headers`, então não há efeito hoje.
+
+## Notas de execução (2026-11-03)
+
+- Todos os planos DONE, em commits separados na branch `feat/study-history-patterns`; revisão independente aprovou todos. Foram acrescentados na revisão um teste de sequência com `Date` fixado (004) e a checagem da chave `user` no teste de ida e volta (006).
+- 003 foi adaptado ao código vivo: usa `escapeHtml`/`sanitizeColor` de `shared/ui.js` (sem `shared/html.js`). Verificação manual do render (Passo 7) não foi feita.
+- Correção fora dos planos: `scripts/generate_multiannual_mock.js` agora compara `realpath` ao detectar execução direta (o teste de CLI do gerador falhava no macOS, onde `tmpdir()` é symlink). Commit separado.
+- 004: a hipótese sobre o formato real de `Inicio` na API continua NÃO verificada (fixture só usa ISO com `Z`); conferir com backup real antes do lançamento.
+- 006: `shared/backup.js` é código ainda não ligado à UI (vai no ZIP, sem efeito).
+- Contagem real do fixture: 3.008 atividades (o plano citava 3.030).
+
+## Resultados do spike (plano 006)
+
+1. UI: "Abrir backup…" no menu `#export-menu`, com banner persistente (data do backup e ação "Voltar aos dados ao vivo").
+2. Leitura: `<input type="file" accept="application/json,.json">`, `file.text()` e `JSON.parse`, sem nova permissão (não verificado manualmente no Chrome desktop).
+3. Persistência: não gravar em `chrome.storage.local`; snapshot importado só em memória, somente leitura.
+4. Tamanho: fixture real com 3.008 atividades, 1.693.392 bytes, leitura + parse de 7 a 17 ms. Limite inicial sugerido de 50 MB.
+5. Sincronizar: desabilitado enquanto se visualiza um backup.
+6. CLI `prof-ramos/aprovado`: formato não verificado; conferir exportador e amostra sanitizada.
+7. Próximo plano: tocar `dashboard/dashboard.html/.js/.css` reutilizando `shared/backup.js`; esforço M (1–2 dias com QA).
+
+Detalhes completos em `006-spike-open-json-backup.md`.
+
+## Achado não planejado (resumo)
+
+Permissões `tabs` e `cookies` provavelmente desnecessárias, cache sem vínculo com o usuário e badge de revisões pendentes: ver seção "Achados registrados mas não planejados" acima.

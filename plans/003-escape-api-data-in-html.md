@@ -7,7 +7,7 @@
 > em `plans/README.md`, a menos que um revisor tenha te despachado e dito que
 > ele mantém o índice.
 >
-> **Checagem de drift (rode primeiro)**: `git diff --stat bcf0ec0..HEAD -- shared/html.js dashboard/dashboard.js sidepanel/sidepanel.js tests/html.test.js`
+> **Checagem de drift (rode primeiro)**: `git diff --stat c8b055e..HEAD -- shared/ui.js dashboard/dashboard.js sidepanel/sidepanel.js tests/html.test.js`
 > Se algum arquivo do escopo mudou desde que este plano foi escrito, compare
 > os trechos de "Estado atual" com o código vivo antes de prosseguir. Uma
 > divergência é condição de PARADA.
@@ -19,7 +19,7 @@
 - **Risco**: BAIXO
 - **Depende de**: nenhum
 - **Categoria**: security / bug
-- **Planejado em**: commit `bcf0ec0`, 2026-11-03
+- **Planejado em**: commit `bcf0ec0` (reconciliado com `c8b055e`), 2026-11-03
 
 ## Por que isso importa
 
@@ -216,3 +216,9 @@ Não há testes de DOM no repositório (nem jsdom). A cobertura do render fica c
 - Regra para o futuro: qualquer `${...}` com dado da API dentro de `innerHTML` passa por `escapeHtml`, e qualquer cor por `safeColor`. O revisor deve procurar template strings novas com `innerHTML`.
 - `getAttribute` decodifica entidades (caso do ponto E). Ler de `data-*` e reinserir em `innerHTML` sempre exige escapar de novo.
 - O plano 006 (abrir backup JSON) depende deste plano, porque dados de arquivo são ainda menos confiáveis.
+
+## Adaptação autorizada e resultados (2026-11-03)
+
+O HEAD já continha escapeHtml e sanitizeColor em shared/ui.js e correções A/B/D/E/F. O coordenador autorizou adaptar o plano ao código vivo e reutilizar esse módulo, sem criar shared/html.js. Corrigidos o nome da modalidade (C) e os pontos G–I do painel lateral. sanitizeColor agora aceita espaços externos em cores hexadecimais, conforme contrato original.
+
+Testes em tests/html.test.js cobrem texto, atributos, ausentes, números, hexadecimais e CSS inválido; teste de espaços externos observado falhando antes da correção. Verificação manual da extensão não executada pelo executor; fica para integração. Índice mantido pelo coordenador.
