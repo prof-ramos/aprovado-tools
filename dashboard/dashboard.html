@@ -130,6 +130,18 @@
       </div>
     </section>
 
+    <!-- Top-level Tab Navigation Bar -->
+    <nav class="dash-tabs-bar" role="tablist" aria-label="Navegação Principal do Dashboard">
+      <button class="dash-tab-btn active" role="tab" aria-selected="true" aria-controls="tab-overview" data-tab="tab-overview" id="tab-btn-overview" tabindex="0">
+        <span class="tab-icon">📊</span>
+        <span>Visão Geral</span>
+      </button>
+      <button class="dash-tab-btn" role="tab" aria-selected="false" aria-controls="tab-historical-patterns" data-tab="tab-historical-patterns" id="tab-btn-historical-patterns" tabindex="-1">
+        <span class="tab-icon">🧬</span>
+        <span>Padrões Históricos de Estudo (2016–2026)</span>
+      </button>
+    </nav>
+
     <!-- Main Dashboard Container -->
     <main class="dashboard-content">
       <!-- Loading Skeleton/Spinner -->
@@ -138,9 +150,11 @@
         <p>Calculando estatísticas e métricas de estudo...</p>
       </div>
 
-      <!-- Executive KPIs Grid -->
-      <section class="kpi-banner">
-        <div class="metric-card">
+      <!-- Tab Pane 1: Visão Geral (Default Active) -->
+      <div id="tab-overview" class="dash-tab-pane active" role="tabpanel" aria-labelledby="tab-btn-overview">
+        <!-- Executive KPIs Grid -->
+        <section class="kpi-banner">
+          <div class="metric-card">
           <div class="metric-header">
             <span class="metric-title">TEMPO TOTAL</span>
             <span class="metric-icon">⏱️</span>
@@ -317,6 +331,229 @@
           </div>
         </div>
       </section>
+      </div> <!-- /#tab-overview -->
+
+      <!-- Tab Pane 2: Padrões Históricos de Estudo (2016–2026) -->
+      <div id="tab-historical-patterns" class="dash-tab-pane hidden" role="tabpanel" aria-labelledby="tab-btn-historical-patterns">
+        <!-- R1 & R2: Executive Summary Metrics Bar (Multiannual) -->
+        <section class="kpi-banner hist-kpi-banner">
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">ANOS ANALISADOS</span>
+              <span class="metric-icon">🗓️</span>
+            </div>
+            <div class="metric-value" id="hist-total-years">11 anos</div>
+            <div class="metric-footer" id="hist-years-range">2016 – 2026</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">HORAS CUMULATIVAS</span>
+              <span class="metric-icon">⏱️</span>
+            </div>
+            <div class="metric-value" id="hist-total-hours">0h 0m</div>
+            <div class="metric-footer" id="hist-total-hours-decimal">0.0 horas líquidas</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">SESSÕES REGISTRADAS</span>
+              <span class="metric-icon">📝</span>
+            </div>
+            <div class="metric-value" id="hist-total-sessions">0</div>
+            <div class="metric-footer" id="hist-active-days">0 dias com registro</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">ASSERTIVIDADE HISTÓRICA</span>
+              <span class="metric-icon">🎯</span>
+            </div>
+            <div class="metric-value" id="hist-accuracy">0%</div>
+            <div class="metric-footer" id="hist-questions-detail">0 acertos de 0 questões</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">ANO DE PICO</span>
+              <span class="metric-icon">🏆</span>
+            </div>
+            <div class="metric-value" id="hist-peak-year">----</div>
+            <div class="metric-footer" id="hist-peak-hours">Recorde de dedicação</div>
+          </div>
+        </section>
+
+        <!-- R2: Multiannual Comparative Section (2016–2026) -->
+        <section class="chart-card chart-full-width">
+          <div class="card-title-bar">
+            <div>
+              <h3>🗓️ Histórico Multianual & Fases de Estudo (2016–2026)</h3>
+              <span class="card-caption">Classificação determinística de períodos em Alta Intensidade, Manutenção e Hiato</span>
+            </div>
+          </div>
+          <div id="multiannual-cards-grid" class="multiannual-grid">
+            <!-- Dynamically populated year cards -->
+          </div>
+        </section>
+
+        <!-- R2: GitHub-Style Study Activity Heatmap -->
+        <section class="chart-card chart-full-width">
+          <div class="card-title-bar">
+            <div>
+              <h3>🔥 Mapa de Calor de Atividade Anual (Activity Heatmap)</h3>
+              <span class="card-caption">Grade estilo GitHub com 53 semanas x 7 dias e 5 níveis de intensidade</span>
+            </div>
+            <div class="heatmap-year-selector-wrap">
+              <label for="heatmap-year-select">Ano:</label>
+              <select id="heatmap-year-select" class="select-input select-sm" aria-label="Selecione o ano para o mapa de calor"></select>
+            </div>
+          </div>
+
+          <div class="heatmap-kpis-bar">
+            <div class="heatmap-kpi-item">
+              <span class="heatmap-kpi-label">Horas no Ano:</span>
+              <span class="heatmap-kpi-val" id="heatmap-kpi-hours">0.0h</span>
+            </div>
+            <div class="heatmap-kpi-item">
+              <span class="heatmap-kpi-label">Dias Ativos:</span>
+              <span class="heatmap-kpi-val" id="heatmap-kpi-days">0 dias</span>
+            </div>
+            <div class="heatmap-kpi-item">
+              <span class="heatmap-kpi-label">Dia Mais Produtivo:</span>
+              <span class="heatmap-kpi-val" id="heatmap-kpi-peak-day">--</span>
+            </div>
+            <div class="heatmap-kpi-item">
+              <span class="heatmap-kpi-label">Maior Sequência:</span>
+              <span class="heatmap-kpi-val" id="heatmap-kpi-streak">0 dias</span>
+            </div>
+          </div>
+
+          <div id="heatmap-svg-container" class="heatmap-svg-wrapper">
+            <!-- Native SVG 53-week x 7-day rendered here -->
+          </div>
+
+          <div class="heatmap-legend">
+            <span class="legend-text">Menos</span>
+            <span class="legend-box level-0" title="0 horas"></span>
+            <span class="legend-box level-1" title="Até 1.5h"></span>
+            <span class="legend-box level-2" title="1.5h a 3.5h"></span>
+            <span class="legend-box level-3" title="3.5h a 6.0h"></span>
+            <span class="legend-box level-4" title="Mais de 6.0h"></span>
+            <span class="legend-text">Mais</span>
+            <span class="legend-caption">(Nível 0: 0h • Nível 1: ≤1.5h • Nível 2: ≤3.5h • Nível 3: ≤6h • Nível 4: &gt;6h)</span>
+          </div>
+
+          <!-- Floating Tooltip for Heatmap & Scatter dots -->
+          <div id="heatmap-tooltip" class="heatmap-tooltip hidden" role="tooltip" aria-hidden="true"></div>
+        </section>
+
+        <!-- R3: Circadian & Temporal Patterns -->
+        <div class="analytics-grid">
+          <!-- 24-Hour Histogram Chart -->
+          <div class="chart-card chart-large">
+            <div class="card-title-bar">
+              <div>
+                <h3>⏰ Distribuição Circadiana (00h às 23h)</h3>
+                <span class="card-caption">Volume em horas líquidas e assertividade em cada hora do dia</span>
+              </div>
+            </div>
+            <div id="circadian-histogram-chart" class="circadian-histogram-container">
+              <!-- Dynamically populated 24-hour bars -->
+            </div>
+            <div id="circadian-peak-note" class="circadian-peak-note">
+              Pico de concentração: calculando...
+            </div>
+          </div>
+
+          <!-- 4 Daytime Shifts Breakdown -->
+          <div class="chart-card">
+            <div class="card-title-bar">
+              <div>
+                <h3>🌅 Produtividade por Turno do Dia</h3>
+                <span class="card-caption">Madrugada, Manhã, Tarde e Noite (Total = 100%)</span>
+              </div>
+            </div>
+            <div id="circadian-shifts-container" class="shifts-detailed-grid">
+              <!-- Dynamically populated shift cards -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Weekday Ranking (Volume & Consistency) -->
+        <div class="chart-card chart-full-width mt-4">
+          <div class="card-title-bar">
+            <div>
+              <h3>📅 Ranking Semanal por Volume e Consistência (1º ao 7º lugar)</h3>
+              <span class="card-caption">Ordenação por horas totais investidas e score de regularidade semanal</span>
+            </div>
+          </div>
+          <div id="weekday-ranking-container" class="weekday-ranking-wrap">
+            <!-- Dynamically populated weekday ranking table -->
+          </div>
+        </div>
+
+        <!-- R4: Yield Quadrant Matrix (Matriz de Quadrantes) -->
+        <section class="chart-card chart-full-width mt-4">
+          <div class="card-title-bar">
+            <div>
+              <h3>🎯 Matriz de Quadrantes de Rendimento (Tempo Investido vs. Assertividade)</h3>
+              <span class="card-caption">Pontos Fortes, Gargalos Críticos, Base Sólida e Zona de Risco</span>
+            </div>
+          </div>
+          <div id="quadrants-cutoff-info" class="quadrants-cutoff-info">
+            Calculando cortes estatísticos...
+          </div>
+          <div id="quadrants-matrix-container" class="quadrant-matrix-container">
+            <div id="quadrants-svg-container" class="quadrant-svg-wrap">
+              <!-- Native SVG 2x2 Scatter Plot -->
+            </div>
+            <div id="quadrants-breakdown-container" class="quadrant-breakdown-wrap">
+              <!-- 4 quadrant lists -->
+            </div>
+          </div>
+          <div id="quadrants-sem-exercicios-container" class="sem-exercicios-wrap hidden">
+            <!-- Subjects without exercises alert -->
+          </div>
+        </section>
+
+        <!-- R5: Methodological Mix & Rule-based Insights -->
+        <div class="analytics-grid mt-4">
+          <!-- Modalities Mix Card -->
+          <div class="chart-card">
+            <div class="card-title-bar">
+              <div>
+                <h3>⚖️ Mix Metodológico de Estudo</h3>
+                <span class="card-caption">Distribuição entre Teoria, Questões, Revisão e Outros</span>
+              </div>
+            </div>
+            <div class="mix-segmented-bar-wrapper">
+              <div id="mix-segmented-bar" class="mix-segmented-bar">
+                <!-- Dynamically segmented progress bar -->
+              </div>
+              <div id="mix-legend" class="mix-legend">
+                <!-- Legend items with percentages and hours -->
+              </div>
+            </div>
+            <h4 class="sub-heading mt-4">Recomendações Pedagógicas</h4>
+            <div id="mix-recommendations-container" class="mix-recommendations-container">
+              <!-- Diagnostic severity alert cards -->
+            </div>
+          </div>
+
+          <!-- Rule-based NLG Text Synthesis Card -->
+          <div class="chart-card chart-large">
+            <div class="card-title-bar">
+              <div>
+                <h3>🧠 Síntese Executiva de Insights (NLG Baseado em Regras)</h3>
+                <span class="card-caption">Diagnóstico analítico 100% determinístico e processado localmente</span>
+              </div>
+            </div>
+            <div id="insights-synthesis-container" class="executive-synthesis-card">
+              <!-- Formatted executive text report in Portuguese -->
+            </div>
+          </div>
+        </div>
+      </div> <!-- /#tab-historical-patterns -->
     </main>
 
     <!-- Footer -->

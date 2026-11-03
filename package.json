@@ -1,0 +1,18 @@
+{
+  "name": "aprovado-tools",
+  "version": "1.0.0",
+  "description": "Chrome Extension Manifest V3 for AprovadoApp analytics and study patterns",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/**/*.test.js"
+  },
+  "keywords": [
+    "aprovado",
+    "analytics",
+    "chrome-extension",
+    "mv3",
+    "study-patterns"
+  ],
+  "author": "prof-ramos",
+  "license": "MIT"
+}
