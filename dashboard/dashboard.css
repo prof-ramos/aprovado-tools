@@ -63,14 +63,17 @@ body {
 .brand-logo {
   width: 28px;
   height: 28px;
-  background-color: var(--surface-raised);
-  border: 1px solid var(--card-border);
   border-radius: 6px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent);
   flex-shrink: 0;
+}
+.brand-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .brand-text h1 {

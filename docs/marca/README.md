@@ -1,8 +1,8 @@
 # Guia da marca
 
-Versão 1, de 3 de novembro de 2026. Status: direção escolhida e artes finais
-prontas, **ainda não aplicadas à extensão**. Os ícones em `icons/` continuam os
-de produção.
+Versão 1, de 3 de novembro de 2026. Status: direção escolhida e aplicada aos
+ícones da extensão (`icons/`) e aos cabeçalhos do popup, do painel lateral e do
+dashboard. As capturas da Chrome Web Store ainda mostram o ícone anterior.
 
 ![Assinatura horizontal do Aprovado Tools](svg/aprovado-tools-assinatura-horizontal.svg)
 
@@ -99,8 +99,7 @@ em 16, 32, 48 e 128 px, em uma cor e invertidos.
 
 1. **Pesquisa de marca registrada** no INPI e busca reversa de imagem antes de
    publicar. Este guia não substitui essa checagem.
-2. **Aplicar na extensão numa branch própria:** trocar `icons/`, aposentar o
-   `scripts/generate_icons.py` e seguir o
-   [workflow de validação](../workflow-validacao.md), com inspeção dos ícones
-   em todas as superfícies.
+2. **Aplicação na extensão:** feita. `icons/` usa os PNGs de `png/` e o
+   `scripts/generate_icons.py` foi removido. Veja o
+   [recibo](../validacao-icones-a-grifado.md).
 3. **Atualizar as capturas da Chrome Web Store** com a nova identidade.
