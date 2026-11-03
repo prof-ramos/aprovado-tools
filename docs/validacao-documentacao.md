@@ -15,6 +15,8 @@ Base do produto: `090ced610225f17d13b5f5578adfca01df8561d0` (v1.0.0), branch `do
 
 ## Verificação
 
-Links relativos e âncoras: 8 arquivos Markdown e 48 destinos locais verificados, sem erros. A primeira execução de `git diff --check` apontou dois espaços de quebra de linha no texto da loja; foram removidos e a nova execução passou. As referências externas adicionadas são fontes oficiais e a release do próprio projeto.
+Links relativos e âncoras: 8 arquivos Markdown e 48 destinos locais verificados, sem erros. A primeira execução de `git diff --check` apontou dois espaços de quebra de linha no texto da loja; foram removidos e a nova execução passou. As dez URLs externas dos guias responderam HTTP 200 em requisições HEAD. Referências técnicas consultadas via Context7, sem instalar dependências no projeto.
 
-A suíte, o pacote e o navegador não foram reexecutados nesta mudança documental, conforme a exceção do [workflow](workflow-validacao.md#5-recibo-e-conclusão). Não houve alteração no comportamento do produto. O scan estático de segurança da base foi concluído separadamente, com 65 arquivos de texto revisados, quatro ícones PNG excluídos e nenhum achado reportável; não equivale a teste de execução.
+Revisões independentes do diff `090ced6...f0d5709`: Spec e Standards sem achados. A checagem do diff também passou após a atualização deste recibo. Os checks de CI serão acompanhados no PR após o push; este recibo não antecipa seu resultado.
+
+A suíte local, o pacote e o navegador não foram reexecutados nesta mudança documental, conforme a exceção do [workflow](workflow-validacao.md#5-recibo-e-conclusão). Não houve alteração no comportamento do produto. O scan estático de segurança da base foi concluído separadamente, com 65 arquivos de texto revisados, quatro ícones PNG excluídos e nenhum achado reportável; não equivale a teste de execução.
