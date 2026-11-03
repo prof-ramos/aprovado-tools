@@ -66,9 +66,9 @@ Português (Brasil)
 | Item | Dimensões | Status | Arquivo / Destino |
 |---|---|---|---|
 | Ícone da Loja [OBRIGATÓRIO] | 128×128 PNG | ✅ Pronto | `icons/icon-128.png` |
-| Captura 1 [OBRIGATÓRIO] | 1280×800 | ✅ Pronto | `store-assets/screenshot-1-dashboard.png` (Dashboard: visão geral com cards de métricas e filtros) |
-| Captura 2 [RECOMENDADO] | 1280×800 | ✅ Pronto | `store-assets/screenshot-2-historico.png` (Análise histórica: evolução semestral/anual e comparativo) |
-| Captura 3 [RECOMENDADO] | 1280×800 | ✅ Pronto | `store-assets/screenshot-3-matriz-rendimento.png` (Matriz de rendimento e mapa anual de calor) |
+| Captura 1 [OBRIGATÓRIO] | 1280×800 | ✅ Pronto | `store-assets/screenshot-1-dashboard.png` (Dashboard: visão geral com abas, cards de métricas, gráfico por período e filtros) |
+| Captura 2 [RECOMENDADO] | 1280×800 | ✅ Pronto | `store-assets/screenshot-2-historico.png` (Análise histórica: conclusões, melhor ano e semestre e ranking) |
+| Captura 3 [RECOMENDADO] | 1280×800 | ✅ Pronto | `store-assets/screenshot-3-matriz-rendimento.png` (Matriz de rendimento por matéria e mix metodológico) |
 | Captura 4 [RECOMENDADO] | 1280×800 | ✅ Pronto | `store-assets/screenshot-4-exportacao.png` (Exportação de dados: CSV, JSON e Markdown) |
 | Banner Promocional Pequeno [RECOMENDADO] | 440×280 PNG/JPEG | ⬜ Opcional | `store-assets/promo-small.png` |
 | Banner Promocional Principal (Marquee) | 1400×560 PNG/JPEG | ⬜ Opcional | `store-assets/promo-marquee.png` |
@@ -77,6 +77,7 @@ Português (Brasil)
 - Utilize dados sintéticos/mock (por exemplo, via `?mock=true` no dashboard) para proteger a privacidade dos dados reais.
 - Siga as especificações oficiais da Chrome Web Store: 1280×800 ou 640×400 pixels, sem bordas ou distorções.
 - Demonstre o produto em funcionamento real, com boa legibilidade e contraste.
+- As capturas atuais foram refeitas em 03/11/2026 a partir de `?mock=true`, com o ícone do A grifado, e mostram a faixa "Dados de exemplo".
 
 ## Justificativa de Permissões (Permissions Justification)
 

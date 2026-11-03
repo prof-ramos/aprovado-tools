@@ -18,6 +18,5 @@
 - Não executado: ícone na barra de ferramentas e no menu de extensões do Chrome (não observados
   na captura da página); abertura nativa do popup e do painel encaixado; dashboard sem
   `?mock=true`; console do navegador; CI (sem push nesta etapa).
-- Pendências: capturas da Chrome Web Store ainda mostram o ícone anterior; pesquisa de marca
-  registrada e busca reversa de imagem.
+- Pendências: capturas da Chrome Web Store ainda mostram o ícone anterior.
 - Limpeza: espaço de tarefa do ego-browser encerrado, sem abas mantidas.
