@@ -7,7 +7,7 @@ const source = fs.readFileSync(new URL('../content.js', import.meta.url), 'utf8'
 
 // Exercise the real content script with a queued animation frame, as in a SPA
 // whose DOM observer fires again before the browser paints.
-function pageHarness() {
+function pageHarness({ navbar = true } = {}) {
   const nodes = [];
   const frames = [];
   const observers = [];
@@ -16,11 +16,12 @@ function pageHarness() {
     querySelector: selector => nodes.find(node => '#' + node.id === selector),
     appendChild: node => nodes.push(node)
   };
+  const withRemove = node => Object.assign(node, { remove() { const i = nodes.indexOf(node); if (i >= 0) nodes.splice(i, 1); } });
   const document = {
     readyState: 'complete', body: container,
     getElementById: id => nodes.find(node => node.id === id),
-    querySelector: () => container,
-    createElement: () => ({ addEventListener(type, listener) { this[type] = listener; } })
+    querySelector: () => (navbar ? container : null),
+    createElement: () => withRemove({ addEventListener(type, listener) { this[type] = listener; } })
   };
   const window = { location: { pathname: '/' }, requestAnimationFrame: callback => frames.push(callback) };
   function MutationObserver(callback) { observers.push(callback); this.observe = () => {}; }
@@ -29,18 +30,19 @@ function pageHarness() {
     nodes, messages,
     inject: () => vm.runInContext(source, context),
     mutate: () => observers.forEach(callback => callback()),
+    showNavbar: () => { navbar = true; },
     paint: () => { while (frames.length) frames.shift()(); }
   };
 }
 
-test('SPA mutations before paint insert only one header shortcut and floating badge', () => {
+test('SPA mutations before paint insert only one header shortcut and no floating duplicate', () => {
   const page = pageHarness();
   page.inject();
   page.mutate();
   page.mutate();
   page.paint();
   assert.equal(page.nodes.filter(node => node.id === 'aprovado-tools-injected-btn').length, 1);
-  assert.equal(page.nodes.filter(node => node.id === 'aprovado-tools-floating-btn').length, 1);
+  assert.equal(page.nodes.filter(node => node.id === 'aprovado-tools-floating-btn').length, 0);
   page.nodes[0].click({ preventDefault() {} });
   assert.equal(page.messages.length, 1);
   assert.equal(page.messages[0].type, 'OPEN_DASHBOARD');
@@ -52,5 +54,29 @@ test('reinjection before a pending animation frame remains idempotent', () => {
   page.inject();
   page.paint();
   assert.equal(page.nodes.filter(node => node.id === 'aprovado-tools-injected-btn').length, 1);
+  assert.equal(page.nodes.filter(node => node.id === 'aprovado-tools-floating-btn').length, 0);
+});
+
+test('without a navigation bar a single floating button appears and is a real button', () => {
+  const page = pageHarness({ navbar: false });
+  page.inject();
+  page.inject();
+  page.mutate();
+  page.paint();
+  const floating = page.nodes.filter(node => node.id === 'aprovado-tools-floating-btn');
+  assert.equal(floating.length, 1);
+  assert.equal(floating[0].type, 'button');
+  assert.equal(page.nodes.filter(node => node.id === 'aprovado-tools-injected-btn').length, 0);
+});
+
+test('the floating fallback is removed once the header shortcut can be inserted', () => {
+  const page = pageHarness({ navbar: false });
+  page.inject();
+  page.paint();
   assert.equal(page.nodes.filter(node => node.id === 'aprovado-tools-floating-btn').length, 1);
+  page.showNavbar();
+  page.mutate();
+  page.paint();
+  assert.equal(page.nodes.filter(node => node.id === 'aprovado-tools-injected-btn').length, 1);
+  assert.equal(page.nodes.filter(node => node.id === 'aprovado-tools-floating-btn').length, 0);
 });

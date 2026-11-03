@@ -11,6 +11,7 @@ Escolha o guia conforme a tarefa. O [README principal](../README.md) apresenta a
 | Componentes, sincronização, cache e limites | [Arquitetura](../ARCHITECTURE.md) |
 | Dados acessados, retenção, exclusão e permissões | [Política de privacidade](../PRIVACY.md) |
 | Texto da loja e preparação de uma futura submissão | [Chrome Web Store](../CHROMEWEBSTORE.md) |
+| Termos e formatos de texto das telas | [Glossário](glossario.md) |
 | Logo, cores, tipografia e regras de uso | [Guia da marca](marca/README.md) |
 | Como a logo foi escolhida e os critérios usados | [Direção da logo](direcao-logo.md) |
 | Verificações e evidências de uma alteração | [Workflow de validação](workflow-validacao.md) |
@@ -29,6 +30,7 @@ Os recibos abaixo descrevem o commit, a data e o ambiente da execução registra
 - [Pendências de runtime e validação](validacao-pendencias-20261103.md): recuperação após falhas, filtros, permissões, guardrail e pacote.
 - [Guia da marca](validacao-guia-marca.md): conferência dos links e dos arquivos da marca.
 - [Troca de ícones](validacao-icones-a-grifado.md): ícones do manifesto e cabeçalhos das telas.
+- [UX etapa 1](validacao-ux-etapa-1.md): formatos pt-BR, termos, histórico recente primeiro e atalho único.
 - [Revisão da documentação](validacao-documentacao.md): links e conferência factual dos guias.
 - [Otimização de memória e delegação](validacao-memoria-delegacao.md): redução de listeners e teste de estresse de heap.
 - [Retrospectiva de 03/11/2026](retro-20261103.md): decisões e aprendizados da rodada.

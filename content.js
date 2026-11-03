@@ -33,23 +33,26 @@
         });
 
         navbar.appendChild(btn);
+        document.getElementById('aprovado-tools-floating-btn')?.remove();
       });
     }
 
-    // Also add a subtle floating badge if user is logged in (not on login page)
-    if (!document.getElementById('aprovado-tools-floating-btn') && !window.location.pathname.toLowerCase().includes('login')) {
+    // Fallback: when the site has no navigation bar to host the shortcut, show a single
+    // floating button (a real <button>, reachable by keyboard) instead of two entries.
+    if (!navbar && !document.getElementById('aprovado-tools-floating-btn') && !window.location.pathname.toLowerCase().includes('login')) {
       window.requestAnimationFrame(() => {
-        if (document.getElementById('aprovado-tools-floating-btn')) return;
-        const floatBtn = document.createElement('div');
+        if (document.getElementById('aprovado-tools-floating-btn') || document.getElementById('aprovado-tools-injected-btn')) return;
+        const floatBtn = document.createElement('button');
         floatBtn.id = 'aprovado-tools-floating-btn';
+        floatBtn.type = 'button';
         floatBtn.className = 'aprovado-tools-floating-badge';
         floatBtn.innerHTML = `
-          <svg viewBox="0 0 24 24">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M18 20V10M12 20V4M6 20v-6"></path>
           </svg>
-          <span>Métricas de Estudo</span>
+          <span>Exportar e métricas</span>
         `;
-        floatBtn.title = 'Aprovado Tools: Clique para abrir o dashboard de métricas e exportações';
+        floatBtn.title = 'Abrir painel completo de métricas e exportação de estudos';
 
         floatBtn.addEventListener('click', () => {
           chrome.runtime.sendMessage({ type: 'OPEN_DASHBOARD' });

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import * as analytics from '../shared/analytics.js';
 import * as ui from '../shared/ui.js';
+import * as format from '../shared/format.js';
 
 // Real UI scripts and analytics with DOM, API and clipboard/download boundaries.
 function surface(name) {
@@ -23,7 +24,7 @@ function surface(name) {
     return elements.get(id);
   };
   const downloads = [];
-  const context = vm.createContext({ ...analytics, ...ui, setTimeout: () => {},
+  const context = vm.createContext({ ...analytics, ...ui, ...format, setTimeout: () => {},
     console: { error() {} },
     AprovadoApi: { checkAuth: async () => ({ isAuthenticated: true }), fetchCompleteSnapshot: async () => {
       throw new Error('Authentication failed');

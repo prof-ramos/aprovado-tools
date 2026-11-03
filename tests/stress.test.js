@@ -178,9 +178,9 @@ describe('Adversarial Stress Test Suite: Historical Study Patterns Engine', () =
       assert.equal(formatDurationMs(0), '0h 0m');
       assert.equal(formatDurationMs(-5000), '0h 0m');
       assert.equal(formatDurationMs(null), '0h 0m');
-      assert.equal(formatDurationHours(0), '0.0h');
-      assert.equal(formatDurationHours(-3600000), '0.0h');
-      assert.equal(formatDurationHours(null), '0.0h');
+      assert.equal(formatDurationHours(0), '0,0h');
+      assert.equal(formatDurationHours(-3600000), '0,0h');
+      assert.equal(formatDurationHours(null), '0,0h');
 
       // Multiannual history with zero/negative duration
       const hist = computeMultiannualHistory(edgeActivities, 2024, 2024);
@@ -369,7 +369,7 @@ describe('Adversarial Stress Test Suite: Historical Study Patterns Engine', () =
 
       // 100,000 hours / 24 = 4166 days, 16 hours, 0 minutes
       assert.equal(formatted, '4166d 16h 0m');
-      assert.equal(formattedHours, '100000.0h');
+      assert.equal(formattedHours, '100.000,0h');
 
       // Test phase classification: 1 active day (<20 days) strictly yields HIATO
       assert.equal(classifyStudyPhase(100000, 1).phase, 'HIATO');

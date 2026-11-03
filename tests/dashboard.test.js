@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import * as analytics from '../shared/analytics.js';
 import * as ui from '../shared/ui.js';
+import * as format from '../shared/format.js';
 
 // Keep the actual renderers and analytics; replace only the browser boundary.
 function element() {
@@ -59,7 +60,7 @@ function dashboard(now, boundary = {}) {
   const filterBar = element();
   filterBar.querySelectorAll = selector => selector === '[data-overview-only]' ? overviewFilters : [];
   get('period-ranking-toggle').querySelectorAll = selector => selector === '.seg-btn' ? Object.values(granularity) : [];
-  const context = vm.createContext({ ...analytics, ...ui, console, setTimeout, Date: Clock,
+  const context = vm.createContext({ ...analytics, ...ui, ...format, console, setTimeout, Date: Clock,
     ...boundary,
     document: { readyState: 'loading', getElementById: get,
       querySelectorAll: selector => selector === '.filter-bar .seg-btn' ? periodButtons
@@ -102,7 +103,7 @@ describe('Dashboard rendering regressions', () => {
     await page.get('btn-sync-now').dispatch('click');
     assert.equal(page.get('user-display-name').textContent, '');
     assert.equal(Number(page.get('dash-total-sessions').textContent), 0);
-    assert.equal(page.get('hist-total-hours-decimal').textContent, '0.0 horas líquidas');
+    assert.equal(page.get('hist-total-hours-decimal').textContent, '0,0 horas líquidas');
     await page.periods.all.dispatch('click');
     await page.historical.dispatch('click');
     assert.equal(page.get('tab-overview').classList.contains('hidden'), true);
@@ -181,6 +182,16 @@ describe('Dashboard rendering regressions', () => {
     assert.equal(Number(page.get('dash-total-sessions').textContent), 1);
     assert.equal(page.get('tbody-activities-list').children.length, 1);
     assert.match(page.get('tbody-activities-list').children[0].innerHTML, /01\/12\/2020/);
+  });
+
+  it('lists the most recent activities first, even when the snapshot arrives oldest first', () => {
+    const page = dashboard('2026-09-15T12:00:00');
+    const row = (date, time) => ({ ...activity(), DataInicio: date, HoraInicio: time });
+    page.run(`fullSnapshot = { atividades: ${JSON.stringify([
+      row('03/01/2016', '08:00'), row('15/09/2026', '07:30'), row('15/09/2026', '21:10'), row('02/05/2024', '10:00')
+    ])}, materias: [] }; renderActivitiesTable(fullSnapshot.atividades)`);
+    const dates = page.get('tbody-activities-list').children.map(tr => tr.innerHTML.match(/<td>([\d/]+)<\/td>\s*<td[^>]*>([\d:]+)/).slice(1).join(' '));
+    assert.deepEqual(dates, ['15/09/2026 21:10', '15/09/2026 07:30', '02/05/2024 10:00', '03/01/2016 08:00']);
   });
 
   it('ranking toggle clicks regroup data without changing the selected view or period', () => {
@@ -266,7 +277,7 @@ describe('Dashboard rendering regressions', () => {
     assert.equal(page.run('cachedHistoricalPatterns'), first, 'Switching tabs should reuse computed results');
     page.context.renderHistoricalPatternsTab([activity(2)], materias);
     assert.notEqual(page.run('cachedHistoricalPatterns'), first);
-    assert.equal(page.get('hist-total-hours-decimal').textContent, '2.0 horas líquidas');
+    assert.equal(page.get('hist-total-hours-decimal').textContent, '2,0 horas líquidas');
   });
 
   it('uses newly synchronized activities when the heatmap year changes', () => {
@@ -277,7 +288,7 @@ describe('Dashboard rendering regressions', () => {
     const select = page.get('heatmap-year-select');
     select.value = '2026';
     select.dispatch('change');
-    assert.ok(page.get('heatmap-kpi-hours').textContent.startsWith('2.0h'));
+    assert.ok(page.get('heatmap-kpi-hours').textContent.startsWith('2,0h'));
   });
 
   it('shows the current year and 366 days when opened in leap year 2028', () => {
@@ -362,7 +373,7 @@ describe('Dashboard rendering regressions', () => {
     const note = page.get('circadian-efficiency-note');
     const text = note.innerHTML || note.textContent;
     assert.match(text, /pelo menos 50 questões/);
-    assert.match(text, /Turno mais eficiente: <strong>Manhã<\/strong> \(90\.0%\)/);
+    assert.match(text, /Turno mais eficiente: <strong>Manhã<\/strong> \(90,0%\)/);
     assert.doesNotMatch(text, /Melhor assertividade às|Maior volume às|p\.p\./);
   });
 
@@ -370,7 +381,7 @@ describe('Dashboard rendering regressions', () => {
     const page = dashboard();
     const payload = '<img src=x onerror="globalThis.xss=1">';
     page.context.renderSubjectsSummary([{ ...subject({ name: payload, color: 'red" onclick="bad()' }),
-      formattedHours: '2.0h', percentage: 100, sessionsCount: 1 }]);
+      formattedHours: '2,0h', percentage: 100, sessionsCount: 1 }]);
     const html = page.get('tbody-subjects-summary').children[0].innerHTML;
     assert.ok(!html.includes('<img'));
     assert.ok(!html.includes('onclick='));
@@ -381,7 +392,7 @@ describe('Dashboard rendering regressions', () => {
     const page = dashboard();
     page.context.renderHistoricalPatternsTab([activity()], [activity().Materia]);
     page.context.renderHistoricalPatternsTab([], []);
-    assert.equal(page.get('hist-total-hours-decimal').textContent, '0.0 horas líquidas');
+    assert.equal(page.get('hist-total-hours-decimal').textContent, '0,0 horas líquidas');
     assert.equal(page.get('heatmap-kpi-days').textContent.startsWith('0 de '), true);
   });
 });
