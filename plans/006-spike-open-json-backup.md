@@ -51,7 +51,7 @@ Abrir um backup no dashboard permitiria ver métricas offline ou com a sessão e
 ```js
     const snapshot = { user, materias, atividades, ciclo, revisoesPendentes, revisoesConcluidas, syncedAt: new Date().toISOString() };
 ```
-O fixture `tests/fixtures/multiannual_mock_2016_2026.json` (1,7 MB, 3.030 atividades) já está **no formato de snapshot**, com as chaves `user`, `materias`, `atividades`, `ciclo`, `revisoesPendentes`, `revisoesConcluidas` e `syncedAt`.
+O fixture `tests/fixtures/multiannual_mock_2016_2026.json` (1,7 MB, 3.008 atividades) já está **no formato de snapshot**, com as chaves `user`, `materias`, `atividades`, `ciclo`, `revisoesPendentes`, `revisoesConcluidas` e `syncedAt`.
 
 **Carregador existente**, `dashboard/dashboard.js:84-93`, usado quando a URL tem `?mock=true`:
 ```js
@@ -195,7 +195,9 @@ Em `tests/backup.test.js`:
 3. **Persistência:** não gravar em `chrome.storage.local`: conservar o cache ao vivo e manter o snapshot importado apenas em memória, somente leitura.
 4. **Tamanho:** fixture real medido: **3.008 atividades**, **1.693.392 bytes**, leitura + parse **17,4 ms** em execução local. O plano citava 3.030; o teste foi corrigido para o arquivo real, cujo usuário segue `Id === 101`. Recomendo limite inicial de 50 MB antes de ler; desempenho perto desse limite e memória não verificados.
 5. **Sincronizar:** desabilitar enquanto estiver visualizando backup, com orientação para voltar aos dados ao vivo pelo banner; evitar troca silenciosa de fonte.
-6. **CLI:** formato `prof-ramos/aprovado` não verificado. É preciso conferir o exportador e uma amostra sanitizada, inclusive datas, duração, objetos de matéria/conteúdo e nomes das chaves.
+6. **CLI:** exportador `exportar_backup_completo` conferido no commit `5623f1841af1f98e2c7a3e2a7807fbbf71a0ff43` de `prof-ramos/aprovado`: mesmas chaves centrais, mais `metricas_tempo` e `metricas_ciclo`, ignoradas pelo conversor. Compatibilidade estrutural confirmada; não foi executada uma exportação do CLI. O módulo experimental é excluído do ZIP até existir integração à UI.
 7. **Próximo plano:** tocar `dashboard/dashboard.html`, `.js` e `.css`, reutilizando `shared/backup.js`. Adicionar seleção de arquivo, limite/tratamento de erros, banner e retorno ao snapshot ao vivo, bloquear sync e escritas durante importação, repopular filtros e renderizar as abas. Esforço M, aproximadamente 1–2 dias com QA. Testar arquivo inválido, formatos aceitos, limite, HTML malicioso, retorno ao vivo e prova de que storage não foi alterado.
 
 Verificação: conversor e API têm 7 testes cada, todos passando; sintaxe dos dois módulos validada. `npm test` executado, porém falhou no teste concorrente `tests/fixtures/generator.test.js` (“CLI creates a missing fixture directory and regenerates identical fixture bytes”), com ENOENT no fixture temporário. Nenhuma integração à UI, alteração de permissão ou escrita de backup no cache foi feita.
+
+Validação final: 156/156 testes passam em UTC e America/Sao_Paulo. Falha do gerador temporário corrigida com resolução de links simbólicos.

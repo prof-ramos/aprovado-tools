@@ -25,3 +25,8 @@ it('mantém a sequência de ontem quando já é noite (UTC no dia seguinte)', ()
  globalThis.Date = class extends RealDate { constructor(...args) { super(...(args.length ? args : [fixedNow])); } static now() { return fixedNow; } };
  try { assert.equal(computeStudyMetrics([activity(11)]).streak.current, 1); } finally { globalThis.Date = RealDate; }
 });
+it('aceita Inicio real local sem sufixo de fuso', () => {
+  const acts = [{ Inicio: '2025-03-10T22:30:00', Duracao: 3600000 }];
+  assert.equal(computeStudyMetrics(acts).dailyHistory[0].date, '2025-03-10');
+  assert.equal(filterActivitiesByPeriod(acts, 'custom', '2025-03-10', '2025-03-10').length, 1);
+});
