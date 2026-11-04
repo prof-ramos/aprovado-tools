@@ -5,7 +5,9 @@ import { formatNumber, formatSyncLabel, getSnapshotSyncedAt } from '../shared/fo
 
 let currentSnapshot = null;
 let currentPeriod = 'all';
-// Sync note appended to the "Atualizado há…" label while a refresh runs or after it fails.
+// Only the newest load may change the view, including manual refreshes.
+let loadGeneration = 0;
+// Sync note appended to the "Atualizado há…" label while a refresh runs.
 let syncNote = '';
 
 // DOM Elements
@@ -54,34 +56,34 @@ function renderSyncStatus() {
 }
 
 async function init() {
+  const generation = ++loadGeneration;
+  btnRefresh.disabled = false;
   setLoading(true);
-  let showedCache = false;
 
   try {
     // The account is confirmed first; only then is its saved snapshot shown right away
     // while the refresh runs in the background.
-    currentSnapshot = await AprovadoApi.loadSnapshotProgressive({
+    const snapshot = await AprovadoApi.loadSnapshotProgressive({
       onCached: cached => {
-        showedCache = true;
+        if (generation !== loadGeneration) return;
         currentSnapshot = cached;
         syncNote = 'atualizando…';
         renderConnected(cached);
         setLoading(false);
       }
     });
+    if (generation !== loadGeneration) return;
+    currentSnapshot = snapshot;
     syncNote = '';
     renderConnected(currentSnapshot);
   } catch (err) {
+    if (generation !== loadGeneration) return;
     console.error('Falha ao inicializar popup:', err);
-    if (showedCache && err.status !== 401) {
-      // Identity was confirmed and the saved data belongs to this account: keep it, say it is old.
-      syncNote = 'não foi possível atualizar';
-      renderSyncStatus();
-    } else {
-      showDisconnected();
-    }
+    // The account may have changed since the cache was shown. A missing status
+    // does not establish identity: revoke rendered data and exports on any failure.
+    showDisconnected();
   } finally {
-    setLoading(false);
+    if (generation === loadGeneration) setLoading(false);
   }
 }
 
@@ -190,18 +192,24 @@ btnRetryAuth.addEventListener('click', () => {
 });
 
 btnRefresh.addEventListener('click', async () => {
+  const generation = ++loadGeneration;
   btnRefresh.disabled = true;
   setLoading(true);
   try {
-    currentSnapshot = await AprovadoApi.fetchCompleteSnapshot(true);
+    const snapshot = await AprovadoApi.fetchCompleteSnapshot(true);
+    if (generation !== loadGeneration) return;
+    currentSnapshot = snapshot;
     syncNote = '';
     renderConnected(currentSnapshot);
   } catch (err) {
+    if (generation !== loadGeneration) return;
     console.error('Erro ao atualizar:', err);
     showDisconnected();
   } finally {
-    btnRefresh.disabled = false;
-    setLoading(false);
+    if (generation === loadGeneration) {
+      btnRefresh.disabled = false;
+      setLoading(false);
+    }
   }
 });
 

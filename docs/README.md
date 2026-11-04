@@ -22,6 +22,8 @@ Escolha o guia conforme a tarefa. O [README principal](../README.md) apresenta a
 
 Os recibos abaixo descrevem o commit, a data e o ambiente da execução registrada. Eles não substituem uma nova validação de alterações posteriores.
 
+- [Integração de busca, isolamento e privacidade](validacao-integracao-20261104.md): testes das quatro correções em conjunto, pacote e limites da validação nativa.
+
 - [Issues 2–7](validacao-issues-2-7.md): testes, navegador e limites da rodada inicial de correções.
 - [Backup do CLI](validacao-cli.md): execução do método real e conversão do resultado; não comprova importação pela UI.
 - [PR #11](validacao-pr11.md): análise histórica, regressões e verificações de interface.

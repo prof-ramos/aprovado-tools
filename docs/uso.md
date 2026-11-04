@@ -38,7 +38,7 @@ Quais filtros valem em cada seção:
 | Atividades | Valem, mais a busca por texto | Tabela de sessões, da mais recente para a mais antiga, com paginação. |
 | Histórico | Não valem: ficam visíveis, esmaecidos e desabilitados, com um aviso | Padrões de todo o histórico carregado. |
 
-Selecione **Tudo**, **Este ano**, **90 dias**, **30 dias**, **7 dias** ou **Personalizado**, e combine matéria, modalidade e busca. Os indicadores e exportações do recorte usam essa seleção; a paginação limita as linhas exibidas, não o conjunto exportado.
+Selecione **Tudo**, **Este ano**, **90 dias**, **30 dias**, **7 dias** ou **Personalizado**, e combine matéria e modalidade. Os indicadores e exportações do recorte usam essa seleção. A busca por texto restringe a tabela de **Atividades** e suas exportações CSV/Markdown enquanto essa seção estiver aberta; ela não altera a **Visão geral** nem as exportações feitas em outra seção. Ao voltar a **Atividades**, o texto da busca é preservado. A paginação limita as linhas exibidas, não o conjunto exportado.
 
 O gráfico **Evolução cronológica** cobre o período escolhido e agrupa as barras conforme o tamanho dele: por dia até 45 dias, por semana (segunda a domingo) até um ano e por mês acima disso. Dias, semanas e meses sem estudo aparecem como barras vazias, e o tooltip de cada barra traz horas, sessões e dias com estudo.
 
@@ -62,7 +62,7 @@ Os indicadores multianuais abrangem 2016 até o ano corrente; o ranking de perí
 
 | Ação | Alcance |
 |---|---|
-| Atividades (CSV) | Todas as atividades do recorte, incluindo a busca no dashboard, sem limitar à página da tabela. |
+| Atividades (CSV) | Todas as atividades do recorte, incluindo a busca quando a seção Atividades do dashboard está aberta, sem limitar à página da tabela. |
 | Resumo por matéria (CSV) | Agregação por matéria sobre o mesmo recorte; disponível no popup, no painel lateral e no dashboard. |
 | Backup completo (JSON) | Snapshot completo, incluindo perfil, listas, ciclo e revisões; ignora os filtros. |
 | Copiar relatório (Markdown) | Métricas do recorte e nome do usuário na área de transferência. |

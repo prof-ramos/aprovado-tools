@@ -6,7 +6,9 @@ import { formatNumber, formatSyncLabel, getSnapshotSyncedAt } from '../shared/fo
 
 let currentSnapshot = null;
 let currentPeriod = 'all';
-// Sync note appended to the "Atualizado há…" label while a refresh runs or after it fails.
+// Only the newest load may change the view, including manual refreshes.
+let loadGeneration = 0;
+// Sync note appended to the "Atualizado há…" label while a refresh runs.
 let syncNote = '';
 
 // DOM Elements
@@ -66,23 +68,25 @@ function renderSyncStatus() {
 }
 
 async function loadData(force = false) {
+  const generation = ++loadGeneration;
   setLoading(true);
-  let showedCache = false;
 
   try {
+    let snapshot;
     if (force) {
       const auth = await AprovadoApi.checkAuth();
+      if (generation !== loadGeneration) return;
       if (!auth.isAuthenticated) {
         showDisconnected();
         return;
       }
-      currentSnapshot = await AprovadoApi.fetchCompleteSnapshot(true);
+      snapshot = await AprovadoApi.fetchCompleteSnapshot(true);
     } else {
       // The account is confirmed first; only then is its saved snapshot shown right away
       // while the refresh runs in the background.
-      currentSnapshot = await AprovadoApi.loadSnapshotProgressive({
+      snapshot = await AprovadoApi.loadSnapshotProgressive({
         onCached: cached => {
-          showedCache = true;
+          if (generation !== loadGeneration) return;
           currentSnapshot = cached;
           syncNote = 'atualizando…';
           renderPanel(cached);
@@ -90,19 +94,18 @@ async function loadData(force = false) {
         }
       });
     }
+    if (generation !== loadGeneration) return;
+    currentSnapshot = snapshot;
     syncNote = '';
     renderPanel(currentSnapshot);
   } catch (err) {
+    if (generation !== loadGeneration) return;
     console.error('Falha ao carregar dados no painel lateral:', err);
-    if (showedCache && err.status !== 401) {
-      // Identity was confirmed and the saved data belongs to this account: keep it, say it is old.
-      syncNote = 'não foi possível atualizar';
-      renderSyncStatus();
-    } else {
-      showDisconnected();
-    }
+    // The account may have changed since the cache was shown. A missing status
+    // does not establish identity: revoke rendered data and exports on any failure.
+    showDisconnected();
   } finally {
-    setLoading(false);
+    if (generation === loadGeneration) setLoading(false);
   }
 }
 
