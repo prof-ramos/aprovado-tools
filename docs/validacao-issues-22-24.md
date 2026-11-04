@@ -1,5 +1,8 @@
 # Validação das issues #22–24 — 03/11/2026
 
+Estado final: #22 enviada para análise na loja; #23 concluída; #24 aguardando
+participantes. A aprovação e a publicação pública pela loja ainda não ocorreram.
+
 ## Fonte e escopo
 
 Base: `main` em `2931762`; ajuste em `fix/validacao-publicacao-22-24`.
@@ -143,3 +146,38 @@ As quatro capturas e o ícone no painel ainda eram antigos. A confirmação de
 remoção informa que a ação não pode ser desfeita. Nenhuma dessas cinco imagens
 foi removida; a substituição aguarda confirmação específica do mantenedor.
 A submissão final ainda não ocorreu neste ponto.
+
+## Submissão concluída — #22
+
+Em 03/11/2026, após confirmação expressa do mantenedor, as quatro capturas
+antigas e o ícone antigo foram removidos pelo painel. Foram enviados
+`icons/icon-128.png` e, nesta ordem, os quatro arquivos de `store-assets/`:
+
+1. `screenshot-1-dashboard.png`
+2. `screenshot-2-historico.png`
+3. `screenshot-3-matriz-rendimento.png`
+4. `screenshot-4-exportacao.png`
+
+Rascunho salvo e página recarregada. As cinco imagens persistidas foram baixadas
+para inspeção visual: A grifado no ícone; capturas de visão geral com abas,
+histórico, matriz de rendimento e exportações. As capturas mostram dados
+sintéticos e a faixa Dados de exemplo. As miniaturas da loja são 320×200; os
+arquivos enviados têm 1280×800. Ícone retornado pela loja: 128×128.
+
+Descrição salva corresponde exatamente ao texto de `CHROMEWEBSTORE.md`, com
+versão 1.0.1. Declarações de identificação pessoal e conteúdo do site e a
+justificativa de storage corrigida foram relidas após navegação, confirmando
+persistência. Sem código remoto. Política pública preservada, com perfil e
+tratamento local explicitados no documento bilíngue.
+
+No diálogo de envio, a opção Publicar automaticamente após a revisão já estava
+marcada e foi mantida. Enviar para análise foi confirmado; o painel mostrou
+“Seu item (extensão) foi enviado para revisão” e “Revisão pendente”. A seção
+Pacote confirmou 1.0.1 e “Este item ainda não foi publicado”. Distribuição
+reconferida: sem custo financeiro, Público e todas as 155 caixas de regiões
+marcadas. Não houve pagamento, nova permissão nem aceitação de novo contrato.
+
+Última conferência por volta de 21h27 BRT em 03/11/2026. A etapa do mantenedor
+na #22 está concluída; a publicação efetiva depende da análise do Google, sem
+prazo garantido. O espaço Ego 3 foi encerrado com `finish({ keep: [] })`; abas
+pessoais foram preservadas. A #24 continua sem participantes ou sessões reais.

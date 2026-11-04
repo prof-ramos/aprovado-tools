@@ -1,6 +1,7 @@
 # Chrome Web Store Listing — Aprovado Tools — Métricas & Exportação
 
 > Última atualização: 2026-11-03
+> Estado confirmado no painel: versão 1.0.1 enviada para análise, revisão pendente e publicação automática após aprovação. Ainda não publicada.
 
 ## Ficha da Loja (Store Listing)
 
@@ -141,7 +142,8 @@ https://github.com/prof-ramos/aprovado-tools/blob/main/PRIVACY.md
 
 | Versão | Data | Alterações | Status |
 |---|---|---|---|
-| 1.0.0 | 2026-11-03 | Lançamento inicial: dashboard com métricas e filtros, histórico plurianual, matriz de rendimento, painel lateral nativo e exportações CSV, JSON e Markdown. Permissões estritamente restritas a storage, sidePanel, contextMenus e hosts aprovadoapp. ID na CWS: `milphjggjejjomdcmlmlhhckjjabenjk`. | Submetido (Revisão pendente) |
+| 1.0.0 | 2026-11-03 | Lançamento inicial: dashboard com métricas e filtros, histórico plurianual, matriz de rendimento, painel lateral nativo e exportações CSV, JSON e Markdown. Permissões estritamente restritas a storage, sidePanel, contextMenus e hosts aprovadoapp. ID na CWS: `milphjggjejjomdcmlmlhhckjjabenjk`. | Avaliação cancelada e pacote substituído pela 1.0.1 antes da publicação. |
+| 1.0.1 | 2026-11-03 | Pacote da main com ícones de sincronização Lucide, nova identidade, quatro capturas atuais e declarações de dados corrigidas. | Submetido; revisão pendente, publicação automática após aprovação. |
 
 ## Notas de Revisão (Review Notes)
 
