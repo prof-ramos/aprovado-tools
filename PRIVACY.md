@@ -6,7 +6,7 @@
 
 ### 1. Dados acessados e finalidade
 
-O Aprovado Tools é uma extensão não oficial para visualizar e exportar dados da conta do usuário no AprovadoApp: perfil retornado pelo serviço, matérias, atividades e anotações, ciclo de estudos e revisões. Os cálculos e gráficos são executados no navegador. A extensão não mantém servidor próprio, telemetria, publicidade ou processamento por serviços de IA.
+O Aprovado Tools é uma extensão não oficial para visualizar e exportar dados da conta do usuário no AprovadoApp: perfil retornado pelo serviço, matérias, atividades e anotações, ciclo de estudos e revisões. O perfil inclui nome, email e ID de conta, usados na exibição e na identificação do cache local. Os cálculos e gráficos são executados no navegador. A extensão não mantém servidor próprio, telemetria, publicidade ou processamento por serviços de IA.
 
 ### 2. Comunicação e autenticação
 
@@ -42,7 +42,7 @@ Código e canal de contato: [repositório](https://github.com/prof-ramos/aprovad
 
 ### 1. Accessed data and purpose
 
-Aprovado Tools is an unofficial extension for viewing and exporting the user's AprovadoApp account data: the profile returned by the service, subjects, activities and notes, study cycle, and reviews. Calculations and charts run in the browser. The extension operates no server, telemetry, advertising, or external AI processing.
+Aprovado Tools is an unofficial extension for viewing and exporting the user's AprovadoApp account data: the profile returned by the service, subjects, activities and notes, study cycle, and reviews. The profile includes name, email, and account ID, used for display and local cache ownership checks. Calculations and charts run in the browser. The extension operates no server, telemetry, advertising, or external AI processing.
 
 ### 2. Communication and authentication
 

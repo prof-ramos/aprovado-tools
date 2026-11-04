@@ -101,15 +101,17 @@ A extensão coleta ou processa dados do usuário? **Sim** (processamento exclusi
 
 | Tipo de Dado | Coletado? | Transmitido para fora do dispositivo? | Finalidade | Compartilhado com terceiros? |
 |---|---|---|---|---|
-| Informações de identificação pessoal | Não | Não | Não coleta nomes, documentos ou emails (lê apenas metadados de perfil para exibição local) | Não |
+| Informações de identificação pessoal | Sim, localmente | Não | Nome, email e ID de conta retornados pelo AprovadoApp, para exibição e identificação do cache local | Não |
 | Informações de saúde | Não | Não | N/A | Não |
 | Informações financeiras | Não | Não | N/A | Não |
 | Informações de autenticação | Não | Não | Utiliza a sessão de cookies ativa do navegador via requisições diretas; não coleta nem armazena senhas ou tokens | Não |
 | Comunicações pessoais | Não | Não | N/A | Não |
 | Localização | Não | Não | N/A | Não |
 | Histórico de navegação | Não | Não | N/A | Não |
-| Atividade do usuário | Sim | Não | Histórico de sessões de estudo, matérias e anotações obtidas do AprovadoApp para cálculo de métricas e exportação | Não |
-| Conteúdo do site | Não | Não | N/A | Não |
+| Atividade do usuário (telemetria de uso) | Não | Não | Não monitora cliques, teclas ou navegação; o histórico de estudos é declarado como conteúdo do site | Não |
+| Conteúdo do site | Sim, localmente | Não | Histórico de estudos, matérias, anotações, ciclo e revisões obtidos da API para métricas e exportação | Não |
+
+O painel da loja declara os dados tratados mesmo quando permanecem apenas no dispositivo: informações de identificação pessoal e conteúdo do site. Consulte o [FAQ oficial de dados](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq).
 
 ### Declaração de Conformidade (Data Use Certification)
 - [x] Os dados NÃO são vendidos a terceiros.

@@ -96,3 +96,50 @@ Manter a issue aberta até a realização efetiva de 3 a 5 sessões.
 A #22 depende de atualizar e confirmar a submissão, após revisão de segurança do
 SHA final. A #23 permanece aberta pelos cenários explicitamente não exercitados.
 A #24 depende de recrutamento real. Não confundir preparação com execução.
+
+## Retomada autorizada — conclusão da validação #23
+
+O mantenedor autorizou abrir outro espaço após a perda do anterior. Espaço Ego 3
+criado; origem da extensão reconferida no checkout, versão 1.0.1, base `d886ccf`.
+A PR #25 teve nove checks verdes e Code/Security Review concluídos para
+`c229a1f`, sem achados publicados. A CI da main `d886ccf` também passou.
+ZIP reconstruído na main: SHA-256
+`52d252410efeddc7c7c765ff5d2144951cf87f7a112133c5e3477e43d1492ded`,
+22 entradas conferidas byte a byte contra o checkout. Capturas locais: quatro
+PNG 1280×800; ícone 128×128.
+
+No Chrome nativo, menu Extensões aberto: o A grifado aparece na linha Aprovado
+Tools e na barra. Menu fechado após inspeção. Isso conclui a pendência do ícone
+no menu geral indicada acima.
+
+Console das três telas inspecionado por CDP Runtime e Log após recarga, até o
+conteúdo autenticado renderizar: zero `Runtime.exceptionThrown`, zero
+`console.error` e zero entradas Log de nível error em dashboard, popup e painel.
+São páginas reais da extensão, sem `mock=true`; essa observação complementa a
+inspeção visual nativa anterior, sem alegar que as abas são popup/painel nativos.
+
+`https://aprovadoapp.com/robots.txt` abriu uma página real sem barra de navegação.
+O content script injetou exatamente um botão `BUTTON` Exportar e métricas com
+`position: fixed`, visível no canto inferior direito, sem sobreposição ao texto.
+Captura visual inspecionada. O clique foi enviado, mas uma nova aba não apareceu
+no inventário do espaço; não se afirma sucesso de abertura por esse clique.
+O critério da issue é verificar o botão flutuante; a aparência foi confirmada.
+
+Não se observou mudança de largura ao tentar arrastar a alça nativa. Sua presença
+e o encaixe do painel foram confirmados; não se atribui o resultado do arrasto a
+um defeito da extensão. Os critérios de observação da #23 foram exercitados.
+
+### Retomada da loja
+
+A versão 1.0.0 continuava em revisão. Cancelamento confirmado pelo painel, que
+voltou a Rascunho, e ZIP 1.0.1 enviado. A seção Pacote confirmou 1.0.1.
+Descrição atualizada para 1.0.1 e salva. Corrigida justificativa de storage,
+retirando promessa de uso offline. Categorias de identificação pessoal e conteúdo
+do site declaradas para o processamento local; demais categorias preservadas
+desmarcadas, e as três certificações existentes mantidas. Essa declaração segue
+o FAQ oficial do Google, que exige divulgar tratamento exclusivamente local.
+
+As quatro capturas e o ícone no painel ainda eram antigos. A confirmação de
+remoção informa que a ação não pode ser desfeita. Nenhuma dessas cinco imagens
+foi removida; a substituição aguarda confirmação específica do mantenedor.
+A submissão final ainda não ocorreu neste ponto.
