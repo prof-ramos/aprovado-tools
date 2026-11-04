@@ -160,6 +160,112 @@ describe('Dashboard rendering regressions', () => {
     assert.match(page.get('copy-report-title').textContent, /Falha/);
   });
 
+  it('keeps the activity search local to the table across tab clicks and history navigation', async () => {
+    const page = dashboard('2026-06-02T12:00:00');
+    page.context.data = { atividades: [activity(), { ...activity(2),
+      Materia: { Id: 2, Nome: 'História', Cor: '#abcdef' } }], materias: [] };
+    page.run('fullSnapshot = data; setupViewSwitch(); updateDashboard()');
+    await page.tabs.activities.dispatch('click');
+    const search = page.get('input-search-activities');
+    search.value = 'matemática';
+    await search.dispatch('input', { target: search });
+    assert.equal(page.get('tbody-activities-list').children.length, 1);
+    assert.match(page.get('activities-count-caption').textContent, /^1 atividades/);
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 2);
+    assert.equal(page.get('tbody-subjects-summary').children.length, 2);
+
+    await page.tabs.overview.dispatch('click');
+    assert.equal(page.get('tab-activities').classList.contains('hidden'), true);
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 2);
+    for (const hash of ['#historico', '#atividades', '#visao-geral']) {
+      page.setHash(hash);
+      assert.equal(Number(page.get('dash-total-sessions').textContent), 2);
+    }
+    page.setHash('#atividades');
+    assert.equal(search.value, 'matemática', 'returning to the table preserves its visible search');
+    assert.equal(page.get('tbody-activities-list').children.length, 1);
+    search.value = 'no matching activity';
+    await search.dispatch('input', { target: search });
+    assert.match(page.get('tbody-activities-list').innerHTML, /Nenhuma atividade/);
+    await page.tabs.overview.dispatch('click');
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 2);
+  });
+
+  it('exports the search only while its field is visible, preserving global filters and full backups', async () => {
+    const exported = {};
+    const page = dashboard('2026-06-02T12:00:00', { setTimeout: () => {}, AprovadoExport: {
+      exportActivitiesCSV: value => { exported.activities = value; },
+      exportSubjectsSummaryCSV: value => { exported.subjects = value; },
+      exportFullBackupJSON: value => { exported.backup = value; },
+      copyReportToClipboard: async value => { exported.report = value; }
+    } });
+    page.context.data = { atividades: [
+      { ...activity(), Anotacoes: 'primeira' },
+      { ...activity(2), Anotacoes: 'segunda' },
+      { ...activity(3), Materia: { Id: 2, Nome: 'História' } }
+    ], materias: [activity().Materia, { Id: 2, Nome: 'História' }] };
+    page.run('fullSnapshot = data; setupViewSwitch(); populateFilterSelects(data); updateDashboard()');
+    const subject = page.get('select-subject');
+    subject.value = '1';
+    await subject.dispatch('change', { target: subject });
+    await page.tabs.activities.dispatch('click');
+    const search = page.get('input-search-activities');
+    search.value = 'primeira';
+    await search.dispatch('input', { target: search });
+
+    const checkExports = async (sessions, hours) => {
+      for (const id of ['export-csv-activities', 'export-csv-subjects', 'export-copy-md', 'export-json-backup']) {
+        await page.get(id).dispatch('click');
+      }
+      assert.equal(exported.activities.length, sessions);
+      assert.equal(exported.subjects.length, 1);
+      assert.equal(exported.subjects[0].durationMs, hours * 3600000);
+      assert.equal(exported.report.totalSessions, sessions);
+      assert.equal(exported.backup.atividades.length, 3);
+    };
+    await checkExports(1, 1);
+    await page.tabs.overview.dispatch('click');
+    await checkExports(2, 3);
+    page.setHash('#historico');
+    await checkExports(2, 3);
+    page.setHash('#atividades');
+    await checkExports(1, 1);
+  });
+
+  it('keeps searched pagination and combines the table search with the visible filters', async () => {
+    const page = dashboard('2026-06-02T12:00:00');
+    page.context.data = { atividades: [
+      ...Array.from({ length: 51 }, () => ({ ...activity(), Anotacoes: 'matching' })),
+      { ...activity(), Anotacoes: 'excluded' },
+      { ...activity(), Anotacoes: 'matching', TipoEstudo: 'Leitura' },
+      { ...activity(), Anotacoes: 'matching', Materia: { Id: 2, Nome: 'História' } },
+      { ...activity(), Anotacoes: 'matching', Inicio: '2026-01-01T12:00:00' }
+    ], materias: [activity().Materia, { Id: 2, Nome: 'História' }] };
+    page.run('fullSnapshot = data; setupViewSwitch(); populateFilterSelects(data); updateDashboard()');
+    await page.tabs.activities.dispatch('click');
+    await page.periods.custom.dispatch('click');
+    page.get('input-date-start').value = '2026-06-01';
+    page.get('input-date-end').value = '2026-06-02';
+    await page.get('btn-apply-custom-dates').dispatch('click');
+    for (const [id, value] of [['select-subject', '1'], ['select-type', 'Questões']]) {
+      const field = page.get(id); field.value = value;
+      await field.dispatch('change', { target: field });
+    }
+    const search = page.get('input-search-activities');
+    search.value = 'matching';
+    await search.dispatch('input', { target: search });
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 52);
+    assert.equal(page.get('pagination-info').textContent, 'Mostrando 1 a 50 de 51');
+    await page.get('btn-page-next').dispatch('click');
+    assert.equal(page.get('pagination-info').textContent, 'Mostrando 51 a 51 de 51');
+    assert.equal(page.get('tbody-activities-list').children.length, 1);
+    await page.get('btn-page-prev').dispatch('click');
+    assert.equal(page.get('pagination-info').textContent, 'Mostrando 1 a 50 de 51');
+    search.value = '';
+    await search.dispatch('input', { target: search });
+    assert.equal(page.get('pagination-info').textContent, 'Mostrando 1 a 50 de 52');
+  });
+
   it('tabs switch sections, disable filters in the history and keep the address in sync', () => {
     const page = dashboard();
     const recentDate = new Date().toISOString();
@@ -609,5 +715,225 @@ describe('Dashboard rendering regressions', () => {
     page.context.renderHistoricalPatternsTab([], []);
     assert.equal(page.get('hist-total-hours-decimal').textContent, '0,0 horas líquidas');
     assert.equal(page.get('heatmap-kpi-days').textContent.startsWith('0 de '), true);
+  });
+});
+
+function deferredLoad() {
+  let resolve, reject;
+  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+}
+const settleLoads = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
+const accountSnapshot = id => ({ user: { Id: id, Nome: `Account ${id}` }, materias: [activity().Materia],
+  atividades: [activity(id)], syncedAt: '2026-11-03T12:00:00Z' });
+function requestOrderPage(api, boundary = {}) {
+  const downloads = [];
+  const page = dashboard(null, { console: { error() {} }, AprovadoApi: api,
+    AprovadoExport: { exportFullBackupJSON: value => downloads.push(value) }, ...boundary });
+  page.context.window.chrome = { storage: { local: {} } };
+  return { ...page, downloads };
+}
+async function assertAccount(page, id) {
+  assert.equal(page.run('fullSnapshot.user.Id'), id);
+  assert.equal(page.get('user-display-name').textContent, `Account ${id}`);
+  assert.equal(page.get('hist-total-hours-decimal').textContent, `${id},0 horas líquidas`);
+  assert.equal(page.run('backgroundRefresh'), false);
+  assert.doesNotMatch(page.get('user-status-text').textContent, /atualizando/);
+  await page.get('export-json-backup').dispatch('click');
+  assert.equal(page.downloads.at(-1).user.Id, id);
+}
+
+describe('Dashboard request ordering', () => {
+  for (const fail of [false, true]) for (const early of [false, true]) {
+    it(`ignores obsolete progressive ${fail ? 'failure' : 'success'} ${early ? 'before' : 'after'} manual completion`, async () => {
+      const old = deferredLoad(), fresh = deferredLoad();
+      let cached;
+      const page = requestOrderPage({ checkAuth: async () => ({ isAuthenticated: true }),
+        loadSnapshotProgressive: ({ onCached }) => { cached = onCached; onCached(accountSnapshot(1)); return old.promise; },
+        fetchCompleteSnapshot: () => fresh.promise });
+      const initial = page.run('init()');
+      await settleLoads();
+      const manual = page.get('btn-sync-now').dispatch('click');
+      const completeOld = async () => {
+        cached(accountSnapshot(1));
+        if (fail) old.reject(new Error('Old request failed')); else old.resolve(accountSnapshot(1));
+        await initial;
+      };
+      if (early) {
+        await completeOld();
+        assert.equal(page.get('btn-sync-now').disabled, true);
+        assert.equal(page.get('dashboard-loading').classList.contains('hidden'), false);
+        assert.equal(page.get('alert-disconnected').classList.contains('hidden'), true);
+      }
+      fresh.resolve(accountSnapshot(2)); await manual;
+      if (!early) await completeOld();
+      await assertAccount(page, 2);
+      assert.equal(page.get('btn-sync-now').disabled, false);
+    });
+  }
+
+  it('does not restore old cache or success after a newer failure and recovers with new data', async () => {
+    const old = deferredLoad(); let cached;
+    const page = requestOrderPage({ checkAuth: async () => ({ isAuthenticated: true }),
+      loadSnapshotProgressive: ({ onCached }) => { cached = onCached; onCached(accountSnapshot(1)); return old.promise; },
+      fetchCompleteSnapshot: async () => { throw new Error('New request failed'); } });
+    const initial = page.run('init()'); await settleLoads();
+    await page.get('btn-sync-now').dispatch('click');
+    cached(accountSnapshot(1)); old.resolve(accountSnapshot(1)); await initial;
+    assert.equal(page.run('fullSnapshot'), null);
+    assert.equal(page.run('backgroundRefresh'), false);
+    assert.equal(page.get('btn-export-dropdown').disabled, true);
+    await page.get('export-json-backup').dispatch('click'); assert.equal(page.downloads.length, 0);
+    page.context.AprovadoApi.fetchCompleteSnapshot = async () => accountSnapshot(2);
+    await page.get('btn-sync-now').dispatch('click'); await assertAccount(page, 2);
+  });
+
+  for (const fail of [false, true]) {
+    it(`ignores old manual ${fail ? 'failure' : 'success'} after a newer init`, async () => {
+      const old = deferredLoad();
+      const page = requestOrderPage({ checkAuth: async () => ({ isAuthenticated: true }),
+        loadSnapshotProgressive: async () => accountSnapshot(2), fetchCompleteSnapshot: () => old.promise });
+      const manual = page.get('btn-sync-now').dispatch('click');
+      await page.run('init()');
+      assert.equal(page.get('btn-sync-now').disabled, false, 'new init owns the button state');
+      if (fail) old.reject(new Error('Old manual failed')); else old.resolve(accountSnapshot(1));
+      await manual; await assertAccount(page, 2);
+    });
+  }
+
+  for (const authenticated of [false, true]) {
+    it(`ignores obsolete authentication result ${authenticated}`, async () => {
+      const auth = deferredLoad(); let progressiveCalls = 0;
+      const page = requestOrderPage({ checkAuth: () => auth.promise,
+        loadSnapshotProgressive: async () => { progressiveCalls++; return accountSnapshot(1); },
+        fetchCompleteSnapshot: async () => accountSnapshot(2) });
+      const initial = page.run('init()');
+      await page.get('btn-sync-now').dispatch('click');
+      auth.resolve({ isAuthenticated: authenticated }); await initial;
+      assert.equal(progressiveCalls, 0); await assertAccount(page, 2);
+    });
+  }
+
+  for (const fail of [false, true]) for (const manualMock of [false, true]) {
+    it(`ignores obsolete mock ${manualMock ? 'manual' : 'initial'} ${fail ? 'failure' : 'success'} after real data`, async () => {
+      const mock = deferredLoad();
+      const page = requestOrderPage({ checkAuth: async () => ({ isAuthenticated: true }),
+        loadSnapshotProgressive: async () => accountSnapshot(2), fetchCompleteSnapshot: async () => accountSnapshot(2) },
+      { fetch: () => mock.promise });
+      page.location.search = '?mock=true';
+      const initial = manualMock ? page.get('btn-sync-now').dispatch('click') : page.run('init()');
+      page.location.search = '';
+      if (manualMock) await page.run('init()'); else await page.get('btn-sync-now').dispatch('click');
+      if (fail) mock.reject(new Error('Mock failed'));
+      else mock.resolve({ ok: true, json: async () => accountSnapshot(1) });
+      await initial; await assertAccount(page, 2);
+      assert.equal(page.run('usingMockData'), false);
+      assert.equal(page.get('mock-banner').classList.contains('hidden'), true);
+    });
+  }
+
+  it('keeps newer account UI and exports when an actual API storage write completes late', async () => {
+    const pendingWrite = deferredLoad(), writeStarted = deferredLoad();
+    let owner = 1, storage = {};
+    const chrome = { storage: { local: {
+      get: async () => storage,
+      set: async values => {
+        if (values.aprovado_data_snapshot.user.Id === 1) { writeStarted.resolve(); await pendingWrite.promise; }
+        storage = values;
+      }
+    } } };
+    const page = requestOrderPage({}, { chrome, fetch: async url => {
+      const payload = url.endsWith('Usuario/Obter') ? accountSnapshot(owner).user
+        : url.endsWith('Atividade/Listar') ? accountSnapshot(owner).atividades
+        : url.endsWith('Materia/Listar') ? accountSnapshot(owner).materias : [];
+      return { ok: true, status: 200, text: async () => JSON.stringify(payload) };
+    } });
+    page.context.window.chrome = chrome;
+    const apiSource = readFileSync(new URL('../shared/api.js', import.meta.url), 'utf8')
+      .replace(/^import[^\n]+\n/gm, '').replace('export const AprovadoApi', 'globalThis.AprovadoApi');
+    page.run(apiSource);
+    const initial = page.run('init()'); await writeStarted.promise;
+    owner = 2; await page.get('btn-sync-now').dispatch('click');
+    pendingWrite.resolve(); await initial;
+    await assertAccount(page, 2);
+    assert.equal(storage.aprovado_data_snapshot.user.Id, 1, 'the simulated old write actually completed last');
+    assert.equal(await page.context.AprovadoApi.getCachedSnapshotForUser(accountSnapshot(2).user), null);
+    const next = await page.context.AprovadoApi.fetchCompleteSnapshot();
+    assert.equal(next.user.Id, 2);
+    assert.equal(next.atividades[0].Duracao, 7200000);
+  });
+});
+
+describe('Integrated search and account isolation', () => {
+  it('revokes searched cache after failure, ignores its late completion and restores all exports with only the new account', async () => {
+    const oldLoad = deferredLoad();
+    let cachedCallback, failCurrent = true;
+    const snapshotFor = id => ({ user: { Id: id, Nome: `Synthetic ${id}` },
+      materias: [activity().Materia, { Id: 2, Nome: 'História' }],
+      atividades: [
+        { ...activity(1), Id: id * 10 + 1 },
+        { ...activity(2), Id: id * 10 + 2, Materia: { Id: 2, Nome: 'História' } }
+      ], syncedAt: '2026-06-02T12:00:00Z' });
+    const exports = [];
+    const page = dashboard('2026-06-02T12:00:00', { console: { error() {} }, setTimeout: () => {},
+      AprovadoApi: {
+        checkAuth: async () => ({ isAuthenticated: true }),
+        loadSnapshotProgressive: ({ onCached }) => {
+          cachedCallback = onCached; onCached(snapshotFor(7)); return oldLoad.promise;
+        },
+        fetchCompleteSnapshot: async () => {
+          if (failCurrent) throw new Error('Synthetic current failure');
+          return snapshotFor(8);
+        }
+      },
+      AprovadoExport: Object.fromEntries(['exportActivitiesCSV', 'exportSubjectsSummaryCSV', 'exportFullBackupJSON', 'copyReportToClipboard']
+        .map(method => [method, (...args) => { exports.push({ method, args }); }]))
+    });
+    page.context.window.chrome = { storage: { local: {} } };
+    const initial = page.run('init()');
+    await settleLoads();
+    await page.tabs.activities.dispatch('click');
+    const search = page.get('input-search-activities');
+    search.value = 'Matemática'; await search.dispatch('input', { target: search });
+    assert.equal(page.get('tbody-activities-list').children.length, 1);
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 2);
+    await page.get('export-csv-activities').dispatch('click');
+    assert.deepEqual(Array.from(exports.at(-1).args[0], a => a.Id), [71]);
+    await page.tabs.overview.dispatch('click');
+    await page.get('export-csv-activities').dispatch('click');
+    assert.deepEqual(Array.from(exports.at(-1).args[0], a => a.Id), [71, 72]);
+    exports.length = 0;
+
+    await page.get('btn-sync-now').dispatch('click');
+    cachedCallback(snapshotFor(7)); oldLoad.resolve(snapshotFor(7)); await initial;
+    assert.equal(page.run('fullSnapshot'), null);
+    assert.equal(page.run('activitiesSearchQuery'), '');
+    assert.equal(search.value, '');
+    assert.equal(page.get('btn-export-dropdown').disabled, true);
+    for (const id of ['export-csv-activities', 'export-csv-subjects', 'export-json-backup', 'export-copy-md']) {
+      await page.get(id).dispatch('click');
+    }
+    assert.equal(exports.length, 0);
+
+    failCurrent = false;
+    await page.get('btn-sync-now').dispatch('click');
+    for (const id of ['export-csv-activities', 'export-csv-subjects', 'export-json-backup', 'export-copy-md']) {
+      await page.get(id).dispatch('click');
+    }
+    assert.equal(exports.length, 4);
+    assert.deepEqual(Array.from(exports.find(e => e.method === 'exportActivitiesCSV').args[0], a => a.Id), [81, 82]);
+    assert.equal(exports.find(e => e.method === 'exportSubjectsSummaryCSV').args[0].length, 2);
+    assert.equal(exports.find(e => e.method === 'exportFullBackupJSON').args[0].user.Id, 8);
+    const report = exports.find(e => e.method === 'copyReportToClipboard');
+    assert.equal(report.args[0].totalSessions, 2);
+    assert.equal(report.args[1].Id, 8);
+    await page.tabs.activities.dispatch('click');
+    search.value = 'História'; await search.dispatch('input', { target: search });
+    await page.get('export-csv-activities').dispatch('click');
+    assert.deepEqual(Array.from(exports.at(-1).args[0], a => a.Id), [82]);
+    await page.tabs.overview.dispatch('click');
+    assert.equal(Number(page.get('dash-total-sessions').textContent), 2);
+    await page.get('export-csv-activities').dispatch('click');
+    assert.deepEqual(Array.from(exports.at(-1).args[0], a => a.Id), [81, 82]);
   });
 });

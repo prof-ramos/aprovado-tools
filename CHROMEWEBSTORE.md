@@ -33,7 +33,7 @@ COMO USAR
 3. Clique em "Sincronizar" para carregar seus dados e explorar as análises no dashboard
 
 PRIVACIDADE
-Todos os cálculos e gráficos são gerados 100% localmente no seu navegador. A extensão não possui servidores próprios, não utiliza telemetria nem serviços externos de inteligência artificial. Seus dados de estudo nunca são transmitidos para terceiros.
+Todos os cálculos e gráficos são gerados localmente no seu navegador. A extensão acessa a API do AprovadoApp com a sessão ativa do navegador e salva no dispositivo o perfil retornado pelo serviço e os dados de estudo. Não possui servidores próprios, não utiliza telemetria nem serviços externos de inteligência artificial e não envia o histórico a terceiros por iniciativa própria. Exportações são geradas localmente a pedido do usuário: o backup JSON inclui o perfil, e o relatório Markdown inclui o nome. O compartilhamento posterior desses arquivos ou textos fica sob o controle do usuário.
 
 PERMISSÕES
 • Armazenamento ("storage" e "unlimitedStorage") — necessários para salvar o histórico de atividades e métricas no seu dispositivo, garantindo consulta rápida e suporte a históricos com vários anos de registros
@@ -86,7 +86,7 @@ Todas as permissões declaradas no `manifest.json` foram estritamente minimizada
 
 | Permissão | Tipo | Justificativa para a equipe de revisão da CWS |
 |---|---|---|
-| `storage` | permissions | Salvar snapshot local do histórico de estudos, data da sincronização e ID de conta para acesso rápido após confirmação online da identidade da conta. |
+| `storage` | permissions | Salvar o snapshot local do histórico de estudos, a data da sincronização e o perfil retornado pelo serviço, incluindo ID, nome, sobrenome e email quando disponíveis, para acesso rápido após confirmação online da identidade da conta. |
 | `unlimitedStorage` | permissions | Armazenar localmente históricos plurianuais volumosos (milhares de sessões e atividades) sem interrupção por limite de cota do navegador. |
 | `sidePanel` | permissions | Exibir a interface lateral nativa do navegador com o progresso do ciclo de estudos e lista de revisões pendentes ao lado da navegação. |
 | `contextMenus` | permissions | Fornecer atalhos de clique com o botão direito para abrir o painel lateral e o dashboard analítico. |
@@ -98,14 +98,14 @@ Todas as permissões declaradas no `manifest.json` foram estritamente minimizada
 ## Privacidade e Uso de Dados (Privacy & Data Use)
 
 ### Coleta de dados (Data Collection)
-A extensão coleta ou processa dados do usuário? **Sim** (processamento exclusivamente local no navegador).
+A extensão coleta ou processa dados do usuário? **Sim**. O perfil e os dados de estudo são obtidos da API do AprovadoApp; o armazenamento, os cálculos e as exportações são locais. As consultas de identidade e a sincronização exigem requisições online autenticadas ao AprovadoApp, mesmo quando as listas podem ser reutilizadas do cache.
 
 | Tipo de Dado | Coletado? | Transmitido para fora do dispositivo? | Finalidade | Compartilhado com terceiros? |
 |---|---|---|---|---|
-| Informações de identificação pessoal | Sim, localmente | Não | Nome, email e ID de conta retornados pelo AprovadoApp, para exibição e identificação do cache local | Não |
+| Informações de identificação pessoal | Sim, localmente | Não há upload do perfil pela extensão | Perfil retornado pelo AprovadoApp, incluindo nome, sobrenome, email e ID quando disponíveis, para exibição, identificação do cache local e exportações solicitadas pelo usuário | Não por iniciativa da extensão |
 | Informações de saúde | Não | Não | N/A | Não |
 | Informações financeiras | Não | Não | N/A | Não |
-| Informações de autenticação | Não | Não | Utiliza a sessão de cookies ativa do navegador via requisições diretas; não coleta nem armazena senhas ou tokens | Não |
+| Informações de autenticação | Não lê nem armazena diretamente credenciais | O navegador envia cookies da sessão ao AprovadoApp nas requisições autenticadas | Utiliza a sessão ativa com `credentials: include`; não solicita senha nem usa a API de leitura de cookies | Somente a comunicação autenticada com o AprovadoApp |
 | Comunicações pessoais | Não | Não | N/A | Não |
 | Localização | Não | Não | N/A | Não |
 | Histórico de navegação | Não | Não | N/A | Não |
@@ -113,6 +113,8 @@ A extensão coleta ou processa dados do usuário? **Sim** (processamento exclusi
 | Conteúdo do site | Sim, localmente | Não | Histórico de estudos, matérias, anotações, ciclo e revisões obtidos da API para métricas e exportação | Não |
 
 O painel da loja declara os dados tratados mesmo quando permanecem apenas no dispositivo: informações de identificação pessoal e conteúdo do site. Consulte o [FAQ oficial de dados](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq).
+
+O perfil retornado pela API é salvo integralmente em `aprovado_data_snapshot.user` e `aprovado_user`, em `chrome.storage.local`; não se limita ao ID. O backup JSON inclui esse perfil, e o relatório Markdown inclui nome e sobrenome quando disponíveis. Downloads e cópias são ações locais, não uploads. Consulte [PRIVACY.md](PRIVACY.md) para retenção, exclusão e limites das interfaces já abertas.
 
 ### Declaração de Conformidade (Data Use Certification)
 - [x] Os dados NÃO são vendidos a terceiros.
@@ -149,5 +151,6 @@ https://github.com/prof-ramos/aprovado-tools/blob/main/PRIVACY.md
 
 ### Limitações e Funcionamento
 - A extensão opera no modelo cliente-servidor direto com o AprovadoApp: o usuário faz login diretamente no site oficial e a extensão realiza requisições para a API do serviço com a sessão do navegador (`credentials: include`).
-- Nenhuma informação transita por servidores próprios, provedores de análise ou serviços de terceiros.
+- A extensão não opera servidores próprios nem envia os dados a provedores de análise ou IA. A comunicação de rede necessária é direta com o AprovadoApp; downloads e cópias são ações locais do usuário.
+- Cada carga normal confirma online a identidade antes de disponibilizar o cache da mesma conta. Os cálculos sobre dados já carregados são locais; isso não representa um modo de abertura offline dos dados da conta.
 - Histórico de rejeições: Nenhuma (primeira submissão).

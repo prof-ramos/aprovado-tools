@@ -58,9 +58,12 @@ const timelineCaption = document.getElementById('timeline-caption');
 let currentView = 'overview';
 let usingMockData = false;
 let backgroundRefresh = false;
+// Only the newest load may publish data, errors or loading state.
+let loadGeneration = 0;
 
 /* Sections and their addresses. Filter rules per section:
    - overview and activities: period, subject, modality and custom dates apply;
+   - activity search: table only, plus filtered exports while that section is visible;
    - historical: always covers every record, so those filters stay visible but disabled. */
 const VIEW_HASHES = { overview: '#visao-geral', historical: '#historico', activities: '#atividades' };
 const FILTERED_VIEWS = ['overview', 'activities'];
@@ -112,7 +115,6 @@ async function loadMockSnapshot() {
   const mockUrl = window.chrome?.runtime?.getURL
     ? chrome.runtime.getURL('tests/fixtures/multiannual_mock_2016_2026.json')
     : '../tests/fixtures/multiannual_mock_2016_2026.json';
-  usingMockData = true;
   const res = await fetch(mockUrl);
   if (!res.ok) {
     throw new Error(`Falha ao carregar fixture mock: status ${res.status}`);
@@ -121,6 +123,9 @@ async function loadMockSnapshot() {
 }
 
 async function init() {
+  const generation = ++loadGeneration;
+  backgroundRefresh = false;
+  btnSyncNow.disabled = false;
   setLoading(true);
   setupViewSwitch();
   setupPeriodRankingToggle();
@@ -128,34 +133,43 @@ async function init() {
   const isExplicitMock = window.location.search.includes('mock=true');
   const hasStorage = Boolean(window.chrome?.storage?.local);
 
+  const isMock = isExplicitMock || !hasStorage;
   try {
-    if (isExplicitMock || !hasStorage) {
-      fullSnapshot = await loadMockSnapshot();
+    let snapshot;
+    if (isMock) {
+      snapshot = await loadMockSnapshot();
     } else {
       const auth = await AprovadoApi.checkAuth();
+      if (generation !== loadGeneration) return;
       if (!auth.isAuthenticated) {
         showDisconnected();
         return;
       }
-      usingMockData = false;
       // Show the cached snapshot of this account right away, then refresh in the background.
-      fullSnapshot = await AprovadoApi.loadSnapshotProgressive({
+      snapshot = await AprovadoApi.loadSnapshotProgressive({
         onCached: cached => {
+          if (generation !== loadGeneration) return;
+          usingMockData = false;
           fullSnapshot = cached;
           backgroundRefresh = true;
           applySnapshot();
           setLoading(false);
         }
       });
-      backgroundRefresh = false;
     }
 
+    if (generation !== loadGeneration) return;
+    fullSnapshot = snapshot;
+    usingMockData = isMock;
+    backgroundRefresh = false;
     applySnapshot();
   } catch (err) {
+    if (generation !== loadGeneration) return;
+    backgroundRefresh = false;
     console.error('Falha ao inicializar dashboard:', err);
     showDisconnected();
   } finally {
-    setLoading(false);
+    if (generation === loadGeneration) setLoading(false);
   }
 }
 
@@ -259,7 +273,7 @@ function populateFilterSelects(snapshot) {
   selectType.value = selectedStudyType;
 }
 
-function getFilteredActivities() {
+function getFilteredActivities({ searchQuery = '' } = {}) {
   if (!fullSnapshot || !fullSnapshot.atividades) return [];
 
   let list = filterActivitiesByPeriod(
@@ -278,8 +292,8 @@ function getFilteredActivities() {
     list = list.filter(a => a.TipoEstudo?.trim().toLowerCase() === selectedStudyType.toLowerCase());
   }
 
-  if (activitiesSearchQuery) {
-    const q = activitiesSearchQuery.toLowerCase();
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
     list = list.filter(a => {
       const mat = (a.Materia?.Nome || '').toLowerCase();
       const cont = (a.Conteudo?.Nome || '').toLowerCase();
@@ -290,6 +304,15 @@ function getFilteredActivities() {
   }
 
   return list;
+}
+
+function getTableActivities() {
+  return getFilteredActivities({ searchQuery: activitiesSearchQuery });
+}
+
+function getExportActivities() {
+  // Never apply a table search that the user cannot see in the current section.
+  return getFilteredActivities({ searchQuery: currentView === 'activities' ? activitiesSearchQuery : '' });
 }
 
 function updateDashboard() {
@@ -308,7 +331,7 @@ function updateDashboard() {
   renderCicloCard(metrics.ciclo);
   renderSubjectsSummary(metrics.subjects);
   renderModalitiesAndShifts(metrics);
-  renderActivitiesTable(filtered);
+  renderActivitiesTable(getTableActivities());
 }
 
 function renderKpiBanner(metrics) {
@@ -588,43 +611,48 @@ selectType.addEventListener('change', (e) => {
 inputSearchActivities.addEventListener('input', (e) => {
   activitiesSearchQuery = e.target.value;
   currentPage = 1;
-  updateDashboard();
+  renderActivitiesTable(getTableActivities());
 });
 
 btnPagePrev.addEventListener('click', () => {
   if (currentPage > 1) {
     currentPage--;
-    renderActivitiesTable(getFilteredActivities());
+    renderActivitiesTable(getTableActivities());
   }
 });
 
 btnPageNext.addEventListener('click', () => {
   currentPage++;
-  renderActivitiesTable(getFilteredActivities());
+  renderActivitiesTable(getTableActivities());
 });
 
 btnSyncNow.addEventListener('click', async () => {
+  const generation = ++loadGeneration;
+  backgroundRefresh = false;
   btnSyncNow.disabled = true;
   setLoading(true);
   try {
     const isExplicitMock = window.location.search.includes('mock=true');
     const hasStorage = Boolean(window.chrome?.storage?.local);
-    if (isExplicitMock || !hasStorage) {
-      fullSnapshot = await loadMockSnapshot();
-    } else {
-      usingMockData = false;
-      fullSnapshot = await AprovadoApi.fetchCompleteSnapshot(true);
-    }
-    renderUserHeader(fullSnapshot.user);
-    populateFilterSelects(fullSnapshot);
-    updateDashboard();
-    renderHistoricalPatternsTab(fullSnapshot.atividades, fullSnapshot.materias);
+    const isMock = isExplicitMock || !hasStorage;
+    const snapshot = isMock
+      ? await loadMockSnapshot()
+      : await AprovadoApi.fetchCompleteSnapshot(true);
+    if (generation !== loadGeneration) return;
+    fullSnapshot = snapshot;
+    usingMockData = isMock;
+    backgroundRefresh = false;
+    applySnapshot();
   } catch (err) {
+    if (generation !== loadGeneration) return;
+    backgroundRefresh = false;
     console.error('Erro na sincronização:', err);
     showDisconnected();
   } finally {
-    btnSyncNow.disabled = false;
-    setLoading(false);
+    if (generation === loadGeneration) {
+      btnSyncNow.disabled = false;
+      setLoading(false);
+    }
   }
 });
 
@@ -640,13 +668,13 @@ document.addEventListener('click', () => {
 
 exportCsvActivities.addEventListener('click', () => {
   if (!fullSnapshot) return;
-  const filtered = getFilteredActivities();
+  const filtered = getExportActivities();
   AprovadoExport.exportActivitiesCSV(filtered);
 });
 
 exportCsvSubjects.addEventListener('click', () => {
   if (!fullSnapshot) return;
-  const filtered = getFilteredActivities();
+  const filtered = getExportActivities();
   const metrics = computeStudyMetrics(filtered, fullSnapshot.materias);
   AprovadoExport.exportSubjectsSummaryCSV(metrics.subjects);
 });
@@ -658,7 +686,7 @@ exportJsonBackup.addEventListener('click', () => {
 
 exportCopyMd.addEventListener('click', async () => {
   if (!fullSnapshot) return;
-  const filtered = getFilteredActivities();
+  const filtered = getExportActivities();
   const metrics = computeStudyMetrics(
     filtered,
     fullSnapshot.materias,
