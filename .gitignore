@@ -21,3 +21,7 @@ build/
 
 # Generated locally by npm run generate:mock and npm test
 /tests/fixtures/multiannual_mock_2016_2026.json
+
+# Configurações locais do agente
+/.claude/settings.local.json
+/.claude/worktrees/
