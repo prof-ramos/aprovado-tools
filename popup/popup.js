@@ -2,7 +2,7 @@ import { AprovadoApi } from '../shared/api.js';
 import { computeStudyMetrics, filterActivitiesByPeriod, isCycleNotStarted } from '../shared/analytics.js';
 import { AprovadoExport } from '../shared/export.js';
 import { formatNumber, formatSyncLabel, getSnapshotSyncedAt } from '../shared/format.js';
-import { getElapsedMs, formatElapsedTimer } from '../shared/timer.js';
+import { getElapsedMs, formatElapsedTimer, getTimerStorageKey, isTimerOwnedBy } from '../shared/timer.js';
 
 let currentSnapshot = null;
 let currentPeriod = 'all';
@@ -104,6 +104,7 @@ function setLoading(isLoading) {
 
 function showDisconnected() {
   currentSnapshot = null;
+  clearPopupTimerBanner();
   syncNote = '';
   syncStatus.textContent = '';
   for (const el of [userAvatar, userName, userEmail, kpiTime, kpiAvgDay, kpiSessions,
@@ -275,41 +276,48 @@ btnPopupOpenTimer?.addEventListener('click', async () => {
   }
 });
 
+function clearPopupTimerBanner() {
+  if (popupTimerInterval) clearInterval(popupTimerInterval);
+  popupTimerInterval = null;
+  popupTimerBanner?.classList.add('hidden');
+  if (popupTimerMateria) popupTimerMateria.textContent = '';
+  if (popupTimerDigits) popupTimerDigits.textContent = '';
+}
+
 async function updatePopupTimerBanner() {
   if (!popupTimerBanner) return;
+  clearPopupTimerBanner();
+  const snapshot = currentSnapshot;
+  const userId = snapshot?.user?.Id;
+  const key = getTimerStorageKey(userId);
+  if (!key || !globalThis.chrome?.storage?.local) return;
+
   try {
-    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-      const data = await chrome.storage.local.get(['aprovado_active_timer']);
-      const timer = data.aprovado_active_timer;
-      if (timer && (timer.status === 'running' || timer.status === 'paused')) {
-        popupTimerBanner.classList.remove('hidden');
-        if (popupTimerMateria) {
-          popupTimerMateria.textContent = timer.materia?.Nome
-            ? `${timer.status === 'paused' ? '❙❙ ' : '▶ '}${timer.materia.Nome}`
-            : (timer.status === 'paused' ? 'Cronômetro (pausado)' : 'Cronômetro ativo');
-        }
-        if (popupTimerDigits) {
-          const updateTime = () => {
-            const elapsed = getElapsedMs(timer);
-            popupTimerDigits.textContent = formatElapsedTimer(elapsed).text;
-          };
-          updateTime();
-          if (popupTimerInterval) clearInterval(popupTimerInterval);
-          if (timer.status === 'running' && typeof setInterval === 'function') {
-            popupTimerInterval = setInterval(updateTime, 500);
-          }
-        }
-        return;
+    const data = await chrome.storage.local.get([key]);
+    if (snapshot !== currentSnapshot) return;
+
+    const timer = data[key];
+    if (!isTimerOwnedBy(timer, userId) || !['running', 'paused'].includes(timer.status)) return;
+
+    popupTimerBanner.classList.remove('hidden');
+    const paused = timer.status === 'paused';
+    if (popupTimerMateria) {
+      popupTimerMateria.textContent = timer.materia?.Nome
+        ? `${paused ? '❙❙ ' : '▶ '}${timer.materia.Nome}`
+        : (paused ? 'Cronômetro (pausado)' : 'Cronômetro ativo');
+    }
+    if (popupTimerDigits) {
+      const updateTime = () => {
+        popupTimerDigits.textContent = formatElapsedTimer(getElapsedMs(timer)).text;
+      };
+      updateTime();
+      if (!paused && typeof setInterval === 'function') {
+        popupTimerInterval = setInterval(updateTime, 500);
       }
     }
   } catch (err) {
     console.error('Falha ao verificar timer no popup:', err);
   }
-  if (popupTimerInterval) {
-    clearInterval(popupTimerInterval);
-    popupTimerInterval = null;
-  }
-  popupTimerBanner.classList.add('hidden');
 }
 
 // Keep "Atualizado há…" honest while the popup stays open.

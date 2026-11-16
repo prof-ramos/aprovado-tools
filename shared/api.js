@@ -63,6 +63,10 @@ async function request(endpoint, options = {}) {
   }
 }
 
+function accountChangedError(message) {
+  return Object.assign(new Error(message), { status: 401, code: 'ACCOUNT_CHANGED' });
+}
+
 export const AprovadoApi = {
   /**
    * Verifica se o usuário está autenticado
@@ -80,7 +84,7 @@ export const AprovadoApi = {
    * Obtém os dados do perfil autenticado
    */
   async getUser() {
-    return await request('Usuario/Obter', { method: 'GET' });
+    return await request('Usuario/Obter', { cache: 'no-store' });
   },
 
   /**
@@ -150,12 +154,19 @@ export const AprovadoApi = {
   /**
    * Salva uma nova atividade de estudo no servidor AprovadoApp
    */
-  async createActivity(activity) {
+  async createActivity(activity, ownerId) {
     if (!activity?.Materia?.Id) {
       throw new Error('Matéria é obrigatória para salvar a atividade.');
     }
     if (!activity?.Duracao || activity.Duracao <= 0) {
       throw new Error('A duração precisa ser maior que zero.');
+    }
+    if (!ownerId) {
+      throw new Error('A conta proprietária do cronômetro é obrigatória.');
+    }
+    const user = await this.getUser();
+    if (!user?.Id || String(user.Id) !== String(ownerId)) {
+      throw accountChangedError('A conta do AprovadoApp mudou. A sessão pertence à conta anterior.');
     }
     return await request('Atividade/Novo', {
       method: 'POST',
@@ -220,21 +231,25 @@ export const AprovadoApi = {
       error.status = 401;
       throw error;
     }
+    let cached;
     if (!forceRefresh && typeof onCached === 'function') {
-      const cached = await this.getCachedSnapshotForUser(user);
+      cached = await this.getCachedSnapshotForUser(user);
       if (cached) onCached(cached);
     }
-    return this.fetchCompleteSnapshot(forceRefresh);
+    return this.fetchCompleteSnapshot(forceRefresh, cached?.user.Id);
   },
 
   /**
    * Carrega um snapshot completo dos dados da conta com cache local
    */
-  async fetchCompleteSnapshot(forceRefresh = false) {
+  async fetchCompleteSnapshot(forceRefresh = false, expectedUserId) {
     // A validade temporal não comprova que o cache pertence à sessão atual.
     const user = await this.getUser();
-    if (!user || !user.Id) {
-      throw new Error('Sessão expirada ou não autenticado.');
+    if (!user?.Id) {
+      throw Object.assign(new Error('Sessão expirada ou não autenticado.'), { status: 401 });
+    }
+    if (expectedUserId && String(user.Id) !== String(expectedUserId)) {
+      throw accountChangedError('A conta mudou durante a sincronização. Sincronize novamente.');
     }
 
     if (!forceRefresh) {
@@ -261,7 +276,7 @@ export const AprovadoApi = {
     // descarte esta leitura, sem sobrescrever o snapshot anterior.
     const currentUser = await this.getUser();
     if (!currentUser?.Id || String(currentUser.Id) !== String(user.Id)) {
-      throw new Error('A conta mudou durante a sincronização. Sincronize novamente.');
+      throw accountChangedError('A conta mudou durante a sincronização. Sincronize novamente.');
     }
 
     const snapshot = {

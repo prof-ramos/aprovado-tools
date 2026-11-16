@@ -131,6 +131,9 @@ test('createActivity valida campos obrigatórios e envia payload para Atividade/
   let capturedUrl = null;
   let capturedBody = null;
   globalThis.fetch = async (url, opts) => {
+    if (url.endsWith('/Usuario/Obter')) {
+      return { ok: true, text: async () => JSON.stringify({ Id: 7 }) };
+    }
     capturedUrl = url;
     capturedBody = JSON.parse(opts.body);
     return {
@@ -150,9 +153,33 @@ test('createActivity valida campos obrigatórios e envia payload para Atividade/
     Duracao: 1800000
   };
 
-  const result = await AprovadoApi.createActivity(payload);
+  await assert.rejects(() => AprovadoApi.createActivity(payload), /conta proprietária/);
+  const result = await AprovadoApi.createActivity(payload, 7);
   assert.strictEqual(result.Id, 12345);
   assert.ok(capturedUrl.endsWith('/service/Atividade/Novo'));
   assert.strictEqual(capturedBody.Tipo, 'cronometro');
   assert.strictEqual(capturedBody.Duracao, 1800000);
+});
+
+test('createActivity só envia a sessão se a conta atual for a proprietária', async () => {
+  const calls = [];
+  let user = { Id: 8 };
+  globalThis.fetch = async (url, options) => {
+    const endpoint = url.split('/service/')[1];
+    calls.push({ endpoint, options });
+    return { ok: true, text: async () => JSON.stringify(endpoint === 'Usuario/Obter' ? user : { Id: 123 }) };
+  };
+  const activity = { Materia: { Id: 1 }, Duracao: 62000 };
+  await assert.rejects(() => AprovadoApi.createActivity(activity, '7'), { code: 'ACCOUNT_CHANGED' });
+  assert.deepEqual(calls.map(call => call.endpoint), ['Usuario/Obter']);
+
+  user = { Id: 7 };
+  assert.equal((await AprovadoApi.createActivity(activity, '7')).Id, 123);
+  assert.deepEqual(calls.map(call => call.endpoint), ['Usuario/Obter', 'Usuario/Obter', 'Atividade/Novo']);
+  assert.equal(calls[1].options.cache, 'no-store');
+  assert.deepEqual(JSON.parse(calls[2].options.body), activity);
+
+  user = null;
+  await assert.rejects(() => AprovadoApi.createActivity(activity, '7'), { code: 'ACCOUNT_CHANGED' });
+  assert.equal(calls.at(-1).endpoint, 'Usuario/Obter');
 });

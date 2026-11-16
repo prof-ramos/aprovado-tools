@@ -5,6 +5,8 @@ import { AprovadoExport } from '../shared/export.js';
 import { formatNumber, formatSyncLabel, getSnapshotSyncedAt } from '../shared/format.js';
 import {
   createTimerState,
+  getTimerStorageKey,
+  isTimerOwnedBy,
   startTimer,
   pauseTimer,
   resumeTimer,
@@ -17,10 +19,14 @@ let currentSnapshot = null;
 let currentPeriod = 'all';
 // Sync note appended to the "Atualizado há…" label while a refresh runs or after it fails.
 let syncNote = '';
+let loadSequence = 0;
 
 // Active Timer state
 let activeTimerState = createTimerState();
 let timerTicker = null;
+let restoringTimer = false;
+let savingTimer = false;
+let timerFeedbackTimeout = null;
 
 // DOM Elements
 const panelLoading = document.getElementById('panel-loading');
@@ -96,22 +102,16 @@ function renderSyncStatus() {
 }
 
 async function loadData(force = false) {
+  const load = ++loadSequence;
   setLoading(true);
   let showedCache = false;
 
   try {
-    if (force) {
-      const auth = await AprovadoApi.checkAuth();
-      if (!auth.isAuthenticated) {
-        showDisconnected();
-        return;
-      }
-      currentSnapshot = await AprovadoApi.fetchCompleteSnapshot(true);
-    } else {
-      // The account is confirmed first; only then is its saved snapshot shown right away
-      // while the refresh runs in the background.
-      currentSnapshot = await AprovadoApi.loadSnapshotProgressive({
+    const snapshot = force
+      ? await AprovadoApi.fetchCompleteSnapshot(true)
+      : await AprovadoApi.loadSnapshotProgressive({
         onCached: cached => {
+          if (load !== loadSequence) return;
           showedCache = true;
           currentSnapshot = cached;
           syncNote = 'atualizando…';
@@ -119,10 +119,12 @@ async function loadData(force = false) {
           setLoading(false);
         }
       });
-    }
+    if (load !== loadSequence) return;
+    currentSnapshot = snapshot;
     syncNote = '';
-    renderPanel(currentSnapshot);
+    await renderPanel(snapshot);
   } catch (err) {
+    if (load !== loadSequence) return;
     console.error('Falha ao carregar dados no painel lateral:', err);
     if (showedCache && err.status !== 401) {
       // Identity was confirmed and the saved data belongs to this account: keep it, say it is old.
@@ -132,7 +134,7 @@ async function loadData(force = false) {
       showDisconnected();
     }
   } finally {
-    setLoading(false);
+    if (load === loadSequence) setLoading(false);
   }
 }
 
@@ -148,6 +150,8 @@ function setLoading(isLoading) {
 
 function showDisconnected() {
   currentSnapshot = null;
+  restoringTimer = false;
+  resetTimerUI();
   syncNote = '';
   for (const el of [syncStatus, todayTime, todaySessions, todayQuestions, weekTime, weekSessions, weekDays, userAvatar, userName, kpiTime, kpiAvg, kpiSessions, kpiDays,
     kpiQuestions, kpiAccuracy, kpiStreak, kpiLongest, cicloPct, reviewsCountBadge]) {
@@ -171,7 +175,7 @@ function renderPanel(snapshot) {
 
   renderSyncStatus();
   updateView();
-  initTimerUI();
+  return initTimerUI();
 }
 
 function renderDaily() {
@@ -305,7 +309,9 @@ pillButtons.forEach(btn => {
   });
 });
 
-btnSync.addEventListener('click', () => loadData(true));
+btnSync.addEventListener('click', () => {
+  if (!savingTimer) return loadData(true);
+});
 
 btnOpenFull.addEventListener('click', async () => {
   await chrome.tabs.create({ url: chrome.runtime.getURL('dashboard/dashboard.html') });
@@ -358,8 +364,10 @@ btnCopyMd.addEventListener('click', async () => {
 // Timer Functions
 // ----------------------------------------------------
 
-function setTimerFeedback(msg, type = '') {
+function setTimerFeedback(msg, type = '', duration = 0) {
   if (!timerFeedback) return;
+  if (timerFeedbackTimeout) clearTimeout(timerFeedbackTimeout);
+  timerFeedbackTimeout = null;
   if (!msg) {
     timerFeedback.textContent = '';
     timerFeedback.classList.add('hidden');
@@ -369,6 +377,7 @@ function setTimerFeedback(msg, type = '') {
   timerFeedback.textContent = msg;
   timerFeedback.classList.remove('hidden', 'error', 'success');
   if (type) timerFeedback.classList.add(type);
+  if (duration) timerFeedbackTimeout = setTimeout(() => setTimerFeedback(''), duration);
 }
 
 function updateTimerDisplay() {
@@ -397,30 +406,28 @@ function stopTimerTicker() {
 }
 
 function populateTimerMaterias() {
-  if (!timerSelectMateria || !currentSnapshot?.materias) return;
-  const currentVal = timerSelectMateria.value;
+  if (!timerSelectMateria) return;
   timerSelectMateria.innerHTML = '<option value="">Selecione uma matéria...</option>';
-  for (const mat of currentSnapshot.materias) {
+  for (const mat of currentSnapshot?.materias || []) {
     const opt = document.createElement('option');
     opt.value = String(mat.Id);
     opt.textContent = mat.Nome;
     timerSelectMateria.appendChild(opt);
   }
-  if (activeTimerState.materia?.Id) {
-    timerSelectMateria.value = String(activeTimerState.materia.Id);
-    populateTimerConteudos(activeTimerState.materia.Id);
-  } else if (currentVal) {
-    timerSelectMateria.value = currentVal;
-    populateTimerConteudos(Number(currentVal));
-  }
+  const materiaId = activeTimerState.materia?.Id;
+  timerSelectMateria.value = materiaId ? String(materiaId) : '';
+  populateTimerConteudos(materiaId);
+}
+
+function getTimerMateria(materiaId) {
+  return currentSnapshot?.materias?.find(m => String(m.Id) === String(materiaId));
 }
 
 function populateTimerConteudos(materiaId) {
   if (!timerSelectConteudo) return;
   timerSelectConteudo.innerHTML = '<option value="">Nenhum conteúdo</option>';
-  if (!materiaId || !currentSnapshot?.materias) return;
-
-  const mat = currentSnapshot.materias.find(m => String(m.Id) === String(materiaId));
+  timerSelectConteudo.value = '';
+  const mat = getTimerMateria(materiaId);
   if (mat?.Conteudos && mat.Conteudos.length > 0) {
     for (const c of mat.Conteudos) {
       const opt = document.createElement('option');
@@ -440,7 +447,14 @@ function syncTimerUIWithState() {
 
   const isRunning = activeTimerState.status === 'running';
   const isPaused = activeTimerState.status === 'paused';
-  const isStopped = activeTimerState.status === 'stopped';
+  const busy = restoringTimer || savingTimer;
+  for (const button of [btnTimerStart, btnTimerPause, btnTimerResume, btnTimerSave, btnTimerDiscard]) {
+    if (button) button.disabled = busy;
+  }
+  for (const field of [timerSelectTipo, timerInputQuestoes, timerInputAcertos, timerInputAnotacoes]) {
+    if (field) field.disabled = busy;
+  }
+  btnSync.disabled = savingTimer;
 
   if (isRunning) {
     timerStatusBadge.textContent = 'Em andamento';
@@ -475,77 +489,100 @@ function syncTimerUIWithState() {
     btnTimerSave?.classList.add('hidden');
     btnTimerDiscard?.classList.add('hidden');
     timerExtraFields?.classList.add('hidden');
-    if (timerSelectMateria) timerSelectMateria.disabled = false;
-    if (timerSelectConteudo) timerSelectConteudo.disabled = false;
+    if (timerSelectMateria) timerSelectMateria.disabled = busy;
+    if (timerSelectConteudo) timerSelectConteudo.disabled = busy;
     stopTimerTicker();
   }
 }
 
-async function persistTimerState() {
+async function persistTimerState(state = activeTimerState) {
+  const key = getTimerStorageKey(state.ownerId);
+  if (!key || !globalThis.chrome?.storage?.local) return;
   try {
-    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-      await chrome.storage.local.set({ aprovado_active_timer: activeTimerState });
-    }
+    await chrome.storage.local.set({ [key]: state });
   } catch (err) {
     console.error('Falha ao salvar estado do cronômetro:', err);
   }
 }
 
-async function initTimerUI() {
-  populateTimerMaterias();
-  try {
-    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-      const data = await chrome.storage.local.get(['aprovado_active_timer']);
-      if (data.aprovado_active_timer) {
-        activeTimerState = data.aprovado_active_timer;
-        if (activeTimerState.materia?.Id && timerSelectMateria) {
-          timerSelectMateria.value = String(activeTimerState.materia.Id);
-          populateTimerConteudos(activeTimerState.materia.Id);
-        }
-      }
-    }
-  } catch (err) {
-    console.error('Falha ao restaurar cronômetro:', err);
+function resetTimerUI(ownerId = null) {
+  activeTimerState = createTimerState(null, null, ownerId);
+  if (timerSelectTipo) timerSelectTipo.value = 'Teoria';
+  for (const input of [timerInputQuestoes, timerInputAcertos, timerInputAnotacoes]) {
+    if (input) input.value = '';
   }
+  setTimerFeedback('');
+  populateTimerMaterias();
   syncTimerUIWithState();
 }
 
+async function initTimerUI() {
+  const userId = currentSnapshot?.user?.Id;
+  if (isTimerOwnedBy(activeTimerState, userId)) {
+    populateTimerMaterias();
+    return;
+  }
+
+  const key = getTimerStorageKey(userId);
+  restoringTimer = Boolean(key && globalThis.chrome?.storage?.local);
+  resetTimerUI(userId);
+  if (!restoringTimer) return;
+
+  const initialState = activeTimerState;
+  let storedState;
+  try {
+    const data = await chrome.storage.local.get([key]);
+    storedState = data[key];
+  } catch (err) {
+    console.error('Falha ao restaurar cronômetro:', err);
+  }
+  // Another account may have been loaded while Chrome was reading storage.
+  if (activeTimerState !== initialState) return;
+  if (isTimerOwnedBy(storedState, userId)) activeTimerState = storedState;
+  restoringTimer = false;
+  populateTimerMaterias();
+  syncTimerUIWithState();
+}
+
+function canChangeTimer(status) {
+  return !savingTimer && !restoringTimer && activeTimerState.status === status &&
+    isTimerOwnedBy(activeTimerState, currentSnapshot?.user?.Id);
+}
+
+function readTimerSelection() {
+  const materia = getTimerMateria(timerSelectMateria?.value);
+  const conteudo = materia?.Conteudos?.find(c => String(c.Id) === timerSelectConteudo?.value);
+  return createTimerState(materia, conteudo, activeTimerState.ownerId);
+}
+
 timerSelectMateria?.addEventListener('change', () => {
-  const materiaId = Number(timerSelectMateria.value);
-  populateTimerConteudos(materiaId);
-  const mat = currentSnapshot?.materias?.find(m => m.Id === materiaId);
-  activeTimerState.materia = mat ? { Id: mat.Id, Nome: mat.Nome, Cor: mat.Cor } : null;
-  activeTimerState.conteudo = null;
+  if (!canChangeTimer('stopped')) return;
+  activeTimerState = createTimerState(getTimerMateria(timerSelectMateria.value), null, activeTimerState.ownerId);
+  populateTimerConteudos(timerSelectMateria.value);
   persistTimerState();
 });
 
 timerSelectConteudo?.addEventListener('change', () => {
-  const cId = Number(timerSelectConteudo.value);
-  if (cId && activeTimerState.materia?.Id) {
-    const mat = currentSnapshot?.materias?.find(m => m.Id === activeTimerState.materia.Id);
-    const cont = mat?.Conteudos?.find(c => c.Id === cId);
-    activeTimerState.conteudo = cont ? { Id: cont.Id, Nome: cont.Nome } : null;
-  } else {
-    activeTimerState.conteudo = null;
-  }
+  if (!canChangeTimer('stopped')) return;
+  activeTimerState = readTimerSelection();
   persistTimerState();
 });
 
 btnTimerStart?.addEventListener('click', () => {
+  if (!canChangeTimer('stopped')) return;
   setTimerFeedback('');
-  const materiaId = Number(timerSelectMateria?.value);
-  if (!materiaId) {
+  const selection = readTimerSelection();
+  if (!selection.materia) {
     setTimerFeedback('Selecione uma matéria antes de iniciar.', 'error');
     return;
   }
-  const mat = currentSnapshot?.materias?.find(m => m.Id === materiaId);
-  activeTimerState.materia = mat ? { Id: mat.Id, Nome: mat.Nome, Cor: mat.Cor } : { Id: materiaId, Nome: '' };
-  activeTimerState = startTimer(activeTimerState);
+  activeTimerState = startTimer(selection);
   syncTimerUIWithState();
   persistTimerState();
 });
 
 btnTimerPause?.addEventListener('click', () => {
+  if (!canChangeTimer('running')) return;
   setTimerFeedback('');
   activeTimerState = pauseTimer(activeTimerState);
   syncTimerUIWithState();
@@ -553,6 +590,7 @@ btnTimerPause?.addEventListener('click', () => {
 });
 
 btnTimerResume?.addEventListener('click', () => {
+  if (!canChangeTimer('paused')) return;
   setTimerFeedback('');
   activeTimerState = resumeTimer(activeTimerState);
   syncTimerUIWithState();
@@ -560,24 +598,22 @@ btnTimerResume?.addEventListener('click', () => {
 });
 
 btnTimerDiscard?.addEventListener('click', () => {
-  setTimerFeedback('');
-  stopTimerTicker();
-  activeTimerState = createTimerState();
-  syncTimerUIWithState();
+  if (!canChangeTimer('paused')) return;
+  resetTimerUI(activeTimerState.ownerId);
   persistTimerState();
-  setTimerFeedback('Sessão descartada.', '');
-  setTimeout(() => setTimerFeedback(''), 3000);
+  setTimerFeedback('Sessão descartada.', '', 3000);
 });
 
 btnTimerSave?.addEventListener('click', async () => {
-  setTimerFeedback('');
-  const duracao = getElapsedMs(activeTimerState);
-  if (duracao <= 0) {
+  if (!canChangeTimer('paused')) return;
+  const submitted = activeTimerState;
+  if (getElapsedMs(submitted) <= 0) {
     setTimerFeedback('A duração precisa ser maior que zero.', 'error');
     return;
   }
 
-  btnTimerSave.disabled = true;
+  savingTimer = true;
+  syncTimerUIWithState();
   setTimerFeedback('Salvando atividade no AprovadoApp...', '');
 
   try {
@@ -588,28 +624,35 @@ btnTimerSave?.addEventListener('click', async () => {
       anotacoes: timerInputAnotacoes?.value || ''
     };
 
-    const payload = buildActivityPayload(activeTimerState, options);
-    await AprovadoApi.createActivity(payload);
+    await AprovadoApi.createActivity(buildActivityPayload(submitted, options), submitted.ownerId);
+    if (activeTimerState !== submitted) {
+      await persistTimerState(createTimerState(null, null, submitted.ownerId));
+      return;
+    }
 
+    resetTimerUI(submitted.ownerId);
     setTimerFeedback('Atividade salva com sucesso! Sincronizando...', 'success');
-    activeTimerState = createTimerState();
-    stopTimerTicker();
-    syncTimerUIWithState();
     await persistTimerState();
 
-    if (timerInputQuestoes) timerInputQuestoes.value = '';
-    if (timerInputAcertos) timerInputAcertos.value = '';
-    if (timerInputAnotacoes) timerInputAnotacoes.value = '';
-
-    // Sincroniza snapshot para refletir a nova sessão nas métricas
+    // Sincroniza snapshot para refletir a nova sessão nas métricas.
     await loadData(true);
-    setTimerFeedback('Atividade registrada com sucesso! ✓', 'success');
-    setTimeout(() => setTimerFeedback(''), 4000);
+    if (isTimerOwnedBy(submitted, currentSnapshot?.user?.Id)) {
+      setTimerFeedback('Atividade registrada com sucesso! ✓', 'success', 4000);
+    }
   } catch (err) {
     console.error('Erro ao salvar atividade:', err);
-    setTimerFeedback(`Erro ao salvar: ${err.message}`, 'error');
+    if (activeTimerState !== submitted) return;
+    if (err.status === 401) {
+      await loadData(true);
+      if (currentSnapshot) {
+        setTimerFeedback('A autenticação mudou. O salvamento foi cancelado.', 'error');
+      }
+    } else {
+      setTimerFeedback(`Erro ao salvar: ${err.message}`, 'error');
+    }
   } finally {
-    btnTimerSave.disabled = false;
+    savingTimer = false;
+    syncTimerUIWithState();
   }
 });
 

@@ -7,9 +7,11 @@
  * Cria um estado inicial de cronômetro
  * @param {Object} materia - { Id, Nome, Cor }
  * @param {Object|null} conteudo - { Id, Nome, Cor }
+ * @param {string|number|null} ownerId - ID confirmado da conta
  */
-export function createTimerState(materia = null, conteudo = null) {
+export function createTimerState(materia = null, conteudo = null, ownerId = null) {
   return {
+    ownerId: ownerId ? String(ownerId) : null,
     status: 'stopped', // 'stopped' | 'running' | 'paused'
     startTime: null,
     initialStartTime: null,
@@ -17,6 +19,14 @@ export function createTimerState(materia = null, conteudo = null) {
     materia: materia ? { Id: materia.Id, Nome: materia.Nome || '', Cor: materia.Cor || '' } : null,
     conteudo: conteudo ? { Id: conteudo.Id, Nome: conteudo.Nome || '' } : null
   };
+}
+
+export function getTimerStorageKey(userId) {
+  return userId ? `aprovado_active_timer:${userId}` : null;
+}
+
+export function isTimerOwnedBy(timer, userId) {
+  return Boolean(timer?.ownerId && userId && String(timer.ownerId) === String(userId));
 }
 
 /**

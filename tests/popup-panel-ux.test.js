@@ -165,7 +165,8 @@ describe('export names match the dashboard menu', () => {
 describe('popup active timer banner', () => {
   it('exibe o banner quando há timer em execução ou pausado', async () => {
     let storage = {
-      aprovado_active_timer: {
+      'aprovado_active_timer:1': {
+        ownerId: '1',
         status: 'running',
         startTime: Date.now() - 5000,
         accumulatedMs: 0,
@@ -180,7 +181,7 @@ describe('popup active timer banner', () => {
         }
       }
     };
-    await page.run('updatePopupTimerBanner()');
+    await page.run('currentSnapshot = { user: { Id: 1 } }; updatePopupTimerBanner()');
     assert.equal(page.get('popup-timer-banner').classList.contains('hidden'), false);
     assert.ok(page.get('popup-timer-materia').textContent.includes('Direito Penal'));
   });
@@ -195,7 +196,24 @@ describe('popup active timer banner', () => {
         }
       }
     };
-    await page.run('updatePopupTimerBanner()');
+    await page.run('currentSnapshot = { user: { Id: 1 } }; updatePopupTimerBanner()');
     assert.equal(page.get('popup-timer-banner').classList.contains('hidden'), true);
   });
+});
+
+it('o popup oculta matéria e duração de um cronômetro sem dono válido para a conta atual', async () => {
+  const timer = { ownerId: '1', status: 'paused', accumulatedMs: 62000, materia: { Id: 10, Nome: 'Matéria de A' } };
+  const page = surface('popup');
+  page.context.chrome = { storage: { local: { get: async () => ({
+    'aprovado_active_timer:1': timer,
+    'aprovado_active_timer:2': timer,
+    aprovado_active_timer: timer
+  }) } } };
+  await page.run('currentSnapshot = { user: { Id: 1 } }; updatePopupTimerBanner()');
+  assert.equal(page.get('popup-timer-banner').classList.contains('hidden'), false);
+
+  await page.run('currentSnapshot = { user: { Id: 2 } }; updatePopupTimerBanner()');
+  assert.equal(page.get('popup-timer-banner').classList.contains('hidden'), true);
+  assert.equal(page.get('popup-timer-materia').textContent, '');
+  assert.equal(page.get('popup-timer-digits').textContent, '');
 });
