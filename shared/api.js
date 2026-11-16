@@ -148,6 +148,22 @@ export const AprovadoApi = {
   },
 
   /**
+   * Salva uma nova atividade de estudo no servidor AprovadoApp
+   */
+  async createActivity(activity) {
+    if (!activity?.Materia?.Id) {
+      throw new Error('Matéria é obrigatória para salvar a atividade.');
+    }
+    if (!activity?.Duracao || activity.Duracao <= 0) {
+      throw new Error('A duração precisa ser maior que zero.');
+    }
+    return await request('Atividade/Novo', {
+      method: 'POST',
+      body: activity
+    });
+  },
+
+  /**
    * Relatório de tempo de estudo acumulado
    */
   async getTimeReport(dataInicio = '2020-01-01', dataFim = null) {

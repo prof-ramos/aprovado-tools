@@ -117,3 +117,42 @@ test('sincronização forçada recarrega também o cache da própria conta', asy
   assert.deepEqual((await AprovadoApi.fetchCompleteSnapshot(true)).atividades, [{ Id: 10 }, { Id: 11 }]);
   assert.equal(writes.length, 1);
 });
+
+test('createActivity valida campos obrigatórios e envia payload para Atividade/Novo', async () => {
+  await assert.rejects(
+    () => AprovadoApi.createActivity({}),
+    /Matéria é obrigatória/
+  );
+  await assert.rejects(
+    () => AprovadoApi.createActivity({ Materia: { Id: 1 }, Duracao: 0 }),
+    /duração precisa ser maior que zero/
+  );
+
+  let capturedUrl = null;
+  let capturedBody = null;
+  globalThis.fetch = async (url, opts) => {
+    capturedUrl = url;
+    capturedBody = JSON.parse(opts.body);
+    return {
+      status: 200,
+      ok: true,
+      redirected: false,
+      text: async () => JSON.stringify({ Id: 12345, FacebookStatus: null })
+    };
+  };
+
+  const payload = {
+    Materia: { Id: 1, Nome: 'Direito' },
+    DataInicio: '16/11/2026',
+    HoraInicio: '09:00',
+    SegundoInicio: '00',
+    Tipo: 'cronometro',
+    Duracao: 1800000
+  };
+
+  const result = await AprovadoApi.createActivity(payload);
+  assert.strictEqual(result.Id, 12345);
+  assert.ok(capturedUrl.endsWith('/service/Atividade/Novo'));
+  assert.strictEqual(capturedBody.Tipo, 'cronometro');
+  assert.strictEqual(capturedBody.Duracao, 1800000);
+});
