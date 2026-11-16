@@ -61,8 +61,8 @@ graph TD
 - **Comportamento Efêmero:** Não mantém variáveis em memória entre chamadas. Escuta cliques em menus de contexto (`chrome.contextMenus`), gerencia a abertura do `chrome.sidePanel` por janela e abre o dashboard em aba dedicada (`chrome.tabs.create`).
 
 ### 2.3. Vistas de Usuário (Popup, SidePanel e Dashboard)
-- **Popup (`popup/`):** Visão compacta (340px) exibindo tempo total, sessões, assertividade, progresso do ciclo e botões de exportação rápida.
-- **Side Panel (`sidepanel/`):** Painel lateral retrátil que acompanha a navegação do usuário em abas de estudo e leitura, exibindo revisões pendentes e distribuição de matérias.
+- **Popup (`popup/`):** Visão compacta (340px) exibindo tempo total, sessões, assertividade, progresso do ciclo, banner com atalho para cronômetro ativo e botões de exportação rápida.
+- **Side Panel (`sidepanel/`):** Painel lateral retrátil que acompanha a navegação do usuário em abas de estudo e leitura, exibindo cronômetro interativo com persistência, revisões pendentes e distribuição de matérias.
 - **Dashboard (`dashboard/`):** Aplicação de página inteira com três seções em abas, cada uma com endereço próprio por hash (`#visao-geral`, `#historico`, `#atividades`) e navegação pelo histórico do navegador:
   1. *Visão geral:* Indicadores, evolução por dia, semana ou mês conforme o período (`buildTimelineSeries`), ciclo, tabela de matérias, modalidades agrupadas (`groupByModality`) e turnos.
   2. *Histórico:* Usa todos os registros. Os filtros de período, matéria e modalidade ficam visíveis e desabilitados. Inclui ranking de semestres/anos, grade dia × hora, eficiência por hora/turno, perfil de duração das sessões, mapa anual de atividade, análise multianual, matriz de rendimento e mix metodológico. Os indicadores multianuais usam 2016 até o ano corrente; o ranking inclui todos os anos presentes no histórico.
@@ -70,7 +70,8 @@ graph TD
   Com `?mock=true` (ou fora da extensão), uma faixa informa que os dados são de exemplo e a identificação da conta fica oculta.
 
 ### 2.4. Núcleo de Domínio (`shared/`)
-- **`api.js`:** Encapsula requisições autenticadas para os endpoints `/service/*` do AprovadoApp. O cache local de 5 minutos só é reutilizado após consultar a identidade da sessão e comparar seu ID com `snapshot.user.Id`. Sem identidade confirmada não há fallback para dados anteriores. Durante uma sincronização completa, verifica novamente a conta antes de gravar, rejeitando uma troca detectada durante o carregamento. Falhas preservam o cache anterior, mas não o retornam como resultado dessa tentativa.
+- **`api.js`:** Encapsula requisições autenticadas para os endpoints `/service/*` do AprovadoApp (incluindo criação de atividades via `/service/Atividade/Novo`). O cache local de 5 minutos só é reutilizado após consultar a identidade da sessão e comparar seu ID com `snapshot.user.Id`. Sem identidade confirmada não há fallback para dados anteriores. Durante uma sincronização completa, verifica novamente a conta antes de gravar, rejeitando uma troca detectada durante o carregamento. Falhas preservam o cache anterior, mas não o retornam como resultado dessa tentativa.
+- **`timer.js`:** Biblioteca desacoplada e pura para cálculo determinístico do cronômetro com timestamps (`startTime`, `accumulatedMs`, `status`) persistidos em `chrome.storage.local`. Sobrevive à suspensão do Service Worker no Manifest V3 sem desvios de tempo.
 - **`analytics.js`:** Biblioteca pura e determinística com zero dependências. Converte logs brutos em modelos analíticos ricos (histogramas, quartis, medianas e textos NLG).
 - **`format.js`:** Formatação de exibição em pt-BR (`1.234,5`, `74,3%`, `4.460,1h`). Exportações CSV e JSON mantêm formatos estáveis para máquina; o Markdown reaproveita alguns textos de exibição, como as horas totais.
 - **`export.js`:** Utilitário para geração de arquivos para download (CSV compatível com Excel via UTF-8 BOM, backup estruturado em JSON e relatórios em Markdown para Notion/Obsidian).
