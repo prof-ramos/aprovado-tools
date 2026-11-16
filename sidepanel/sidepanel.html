@@ -91,6 +91,79 @@
         </div>
       </div>
 
+      <!-- Timer Section -->
+      <section id="section-timer" class="card-section timer-card">
+        <div class="section-header">
+          <h2 class="section-title">Cronômetro</h2>
+          <span id="timer-status-badge" class="section-badge">Parado</span>
+        </div>
+
+        <div class="timer-display-container">
+          <div class="timer-digits" id="timer-display" aria-live="off">00:00:00</div>
+        </div>
+
+        <div class="timer-selectors">
+          <div class="form-group">
+            <label for="timer-select-materia" class="form-label">Matéria</label>
+            <select id="timer-select-materia" class="form-select">
+              <option value="">Selecione uma matéria...</option>
+            </select>
+          </div>
+          <div class="form-group" id="timer-conteudo-group">
+            <label for="timer-select-conteudo" class="form-label">Conteúdo (opcional)</label>
+            <select id="timer-select-conteudo" class="form-select">
+              <option value="">Nenhum conteúdo</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Extra details toggleable on save/pause -->
+        <div id="timer-extra-fields" class="timer-extra-fields hidden">
+          <div class="form-group">
+            <label for="timer-select-tipo" class="form-label">Tipo de estudo</label>
+            <select id="timer-select-tipo" class="form-select">
+              <option value="Teoria">Teoria</option>
+              <option value="Leitura">Leitura</option>
+              <option value="Revisao">Revisão</option>
+              <option value="Exercicios">Exercícios / Questões</option>
+            </select>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="timer-input-questoes" class="form-label">Questões</label>
+              <input type="number" id="timer-input-questoes" class="form-input" min="0" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label for="timer-input-acertos" class="form-label">Acertos</label>
+              <input type="number" id="timer-input-acertos" class="form-input" min="0" placeholder="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="timer-input-anotacoes" class="form-label">Anotações</label>
+            <textarea id="timer-input-anotacoes" class="form-textarea" rows="2" placeholder="Observações sobre a sessão..."></textarea>
+          </div>
+        </div>
+
+        <div class="timer-actions">
+          <button id="btn-timer-start" class="btn btn-primary" type="button">
+            <span>Iniciar</span>
+          </button>
+          <button id="btn-timer-pause" class="btn btn-secondary hidden" type="button">
+            <span>Pausar</span>
+          </button>
+          <button id="btn-timer-resume" class="btn btn-primary hidden" type="button">
+            <span>Continuar</span>
+          </button>
+          <button id="btn-timer-save" class="btn btn-success hidden" type="button">
+            <span>Salvar</span>
+          </button>
+          <button id="btn-timer-discard" class="btn btn-danger hidden" type="button">
+            <span>Descartar</span>
+          </button>
+        </div>
+        <p id="timer-feedback" class="timer-feedback hidden" role="status"></p>
+      </section>
+
       <!-- Today -->
       <section id="section-today" class="card-section">
         <div class="section-header">

@@ -2,11 +2,13 @@ import { AprovadoApi } from '../shared/api.js';
 import { computeStudyMetrics, filterActivitiesByPeriod, isCycleNotStarted } from '../shared/analytics.js';
 import { AprovadoExport } from '../shared/export.js';
 import { formatNumber, formatSyncLabel, getSnapshotSyncedAt } from '../shared/format.js';
+import { getElapsedMs, formatElapsedTimer, getTimerStorageKey, isTimerOwnedBy } from '../shared/timer.js';
 
 let currentSnapshot = null;
 let currentPeriod = 'all';
 // Sync note appended to the "Atualizado há…" label while a refresh runs or after it fails.
 let syncNote = '';
+let popupTimerInterval = null;
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -33,6 +35,11 @@ const cyclePct = document.getElementById('cycle-pct');
 const cycleProgressFill = document.getElementById('cycle-progress-fill');
 const cycleEmptyNote = document.getElementById('cycle-empty-note');
 const syncStatus = document.getElementById('sync-status');
+
+const popupTimerBanner = document.getElementById('popup-timer-banner');
+const popupTimerMateria = document.getElementById('popup-timer-materia');
+const popupTimerDigits = document.getElementById('popup-timer-digits');
+const btnPopupOpenTimer = document.getElementById('btn-popup-open-timer');
 
 const btnLogin = document.getElementById('btn-login-aprovado');
 const btnRetryAuth = document.getElementById('btn-retry-auth');
@@ -97,6 +104,7 @@ function setLoading(isLoading) {
 
 function showDisconnected() {
   currentSnapshot = null;
+  clearPopupTimerBanner();
   syncNote = '';
   syncStatus.textContent = '';
   for (const el of [userAvatar, userName, userEmail, kpiTime, kpiAvgDay, kpiSessions,
@@ -125,6 +133,7 @@ function renderConnected(snapshot) {
 
   renderSyncStatus();
   updateMetricsDisplay();
+  updatePopupTimerBanner();
 }
 
 function updateMetricsDisplay() {
@@ -258,6 +267,58 @@ btnCopyMarkdown.addEventListener('click', async () => {
     copyBtnText.textContent = 'Copiar relatório (Markdown)';
   }, 2000);
 });
+
+btnPopupOpenTimer?.addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab && tab.windowId) {
+    await chrome.sidePanel.open({ windowId: tab.windowId });
+    window.close();
+  }
+});
+
+function clearPopupTimerBanner() {
+  if (popupTimerInterval) clearInterval(popupTimerInterval);
+  popupTimerInterval = null;
+  popupTimerBanner?.classList.add('hidden');
+  if (popupTimerMateria) popupTimerMateria.textContent = '';
+  if (popupTimerDigits) popupTimerDigits.textContent = '';
+}
+
+async function updatePopupTimerBanner() {
+  if (!popupTimerBanner) return;
+  clearPopupTimerBanner();
+  const snapshot = currentSnapshot;
+  const userId = snapshot?.user?.Id;
+  const key = getTimerStorageKey(userId);
+  if (!key || !globalThis.chrome?.storage?.local) return;
+
+  try {
+    const data = await chrome.storage.local.get([key]);
+    if (snapshot !== currentSnapshot) return;
+
+    const timer = data[key];
+    if (!isTimerOwnedBy(timer, userId) || !['running', 'paused'].includes(timer.status)) return;
+
+    popupTimerBanner.classList.remove('hidden');
+    const paused = timer.status === 'paused';
+    if (popupTimerMateria) {
+      popupTimerMateria.textContent = timer.materia?.Nome
+        ? `${paused ? '❙❙ ' : '▶ '}${timer.materia.Nome}`
+        : (paused ? 'Cronômetro (pausado)' : 'Cronômetro ativo');
+    }
+    if (popupTimerDigits) {
+      const updateTime = () => {
+        popupTimerDigits.textContent = formatElapsedTimer(getElapsedMs(timer)).text;
+      };
+      updateTime();
+      if (!paused && typeof setInterval === 'function') {
+        popupTimerInterval = setInterval(updateTime, 500);
+      }
+    }
+  } catch (err) {
+    console.error('Falha ao verificar timer no popup:', err);
+  }
+}
 
 // Keep "Atualizado há…" honest while the popup stays open.
 if (typeof setInterval === 'function') {

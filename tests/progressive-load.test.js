@@ -81,3 +81,11 @@ test('progressive load skips the cache callback on a forced refresh and rejects 
   await assert.rejects(() => AprovadoApi.loadSnapshotProgressive({ onCached: () => { shown++; } }), error => error.status === 401);
   assert.equal(shown, 0);
 });
+
+test('a troca de conta após exibir o cache revoga a identidade do snapshot anterior', async () => {
+  storage = { aprovado_data_snapshot: { user: { Id: 7 }, atividades: [] }, aprovado_last_sync: 1 };
+  await assert.rejects(() => AprovadoApi.loadSnapshotProgressive({
+    onCached: () => { session.id = 8; }
+  }), { code: 'ACCOUNT_CHANGED', status: 401 });
+  assert.equal(writes.length, 0);
+});
