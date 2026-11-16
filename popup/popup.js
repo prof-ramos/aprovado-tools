@@ -2,11 +2,13 @@ import { AprovadoApi } from '../shared/api.js';
 import { computeStudyMetrics, filterActivitiesByPeriod, isCycleNotStarted } from '../shared/analytics.js';
 import { AprovadoExport } from '../shared/export.js';
 import { formatNumber, formatSyncLabel, getSnapshotSyncedAt } from '../shared/format.js';
+import { getElapsedMs, formatElapsedTimer } from '../shared/timer.js';
 
 let currentSnapshot = null;
 let currentPeriod = 'all';
 // Sync note appended to the "Atualizado há…" label while a refresh runs or after it fails.
 let syncNote = '';
+let popupTimerInterval = null;
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -33,6 +35,11 @@ const cyclePct = document.getElementById('cycle-pct');
 const cycleProgressFill = document.getElementById('cycle-progress-fill');
 const cycleEmptyNote = document.getElementById('cycle-empty-note');
 const syncStatus = document.getElementById('sync-status');
+
+const popupTimerBanner = document.getElementById('popup-timer-banner');
+const popupTimerMateria = document.getElementById('popup-timer-materia');
+const popupTimerDigits = document.getElementById('popup-timer-digits');
+const btnPopupOpenTimer = document.getElementById('btn-popup-open-timer');
 
 const btnLogin = document.getElementById('btn-login-aprovado');
 const btnRetryAuth = document.getElementById('btn-retry-auth');
@@ -125,6 +132,7 @@ function renderConnected(snapshot) {
 
   renderSyncStatus();
   updateMetricsDisplay();
+  updatePopupTimerBanner();
 }
 
 function updateMetricsDisplay() {
@@ -258,6 +266,51 @@ btnCopyMarkdown.addEventListener('click', async () => {
     copyBtnText.textContent = 'Copiar relatório (Markdown)';
   }, 2000);
 });
+
+btnPopupOpenTimer?.addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab && tab.windowId) {
+    await chrome.sidePanel.open({ windowId: tab.windowId });
+    window.close();
+  }
+});
+
+async function updatePopupTimerBanner() {
+  if (!popupTimerBanner) return;
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      const data = await chrome.storage.local.get(['aprovado_active_timer']);
+      const timer = data.aprovado_active_timer;
+      if (timer && (timer.status === 'running' || timer.status === 'paused')) {
+        popupTimerBanner.classList.remove('hidden');
+        if (popupTimerMateria) {
+          popupTimerMateria.textContent = timer.materia?.Nome
+            ? `${timer.status === 'paused' ? '❙❙ ' : '▶ '}${timer.materia.Nome}`
+            : (timer.status === 'paused' ? 'Cronômetro (pausado)' : 'Cronômetro ativo');
+        }
+        if (popupTimerDigits) {
+          const updateTime = () => {
+            const elapsed = getElapsedMs(timer);
+            popupTimerDigits.textContent = formatElapsedTimer(elapsed).text;
+          };
+          updateTime();
+          if (popupTimerInterval) clearInterval(popupTimerInterval);
+          if (timer.status === 'running' && typeof setInterval === 'function') {
+            popupTimerInterval = setInterval(updateTime, 500);
+          }
+        }
+        return;
+      }
+    }
+  } catch (err) {
+    console.error('Falha ao verificar timer no popup:', err);
+  }
+  if (popupTimerInterval) {
+    clearInterval(popupTimerInterval);
+    popupTimerInterval = null;
+  }
+  popupTimerBanner.classList.add('hidden');
+}
 
 // Keep "Atualizado há…" honest while the popup stays open.
 if (typeof setInterval === 'function') {

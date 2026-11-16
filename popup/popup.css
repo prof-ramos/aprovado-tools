@@ -203,6 +203,43 @@ body {
   border-color: rgba(255, 255, 255, 0.14);
 }
 
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 10px;
+}
+
+/* Popup Timer Banner */
+.popup-timer-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background-color: var(--surface-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+}
+
+.popup-timer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.popup-timer-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.popup-timer-digits {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
 .btn-icon {
   background: transparent;
   border: none;

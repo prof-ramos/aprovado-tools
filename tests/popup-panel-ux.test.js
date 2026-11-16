@@ -161,3 +161,41 @@ describe('export names match the dashboard menu', () => {
     });
   }
 });
+
+describe('popup active timer banner', () => {
+  it('exibe o banner quando há timer em execução ou pausado', async () => {
+    let storage = {
+      aprovado_active_timer: {
+        status: 'running',
+        startTime: Date.now() - 5000,
+        accumulatedMs: 0,
+        materia: { Id: 1, Nome: 'Direito Penal' }
+      }
+    };
+    const page = surface('popup');
+    page.context.chrome = {
+      storage: {
+        local: {
+          get: async () => storage
+        }
+      }
+    };
+    await page.run('updatePopupTimerBanner()');
+    assert.equal(page.get('popup-timer-banner').classList.contains('hidden'), false);
+    assert.ok(page.get('popup-timer-materia').textContent.includes('Direito Penal'));
+  });
+
+  it('oculta o banner quando não há timer ativo', async () => {
+    let storage = { aprovado_active_timer: null };
+    const page = surface('popup');
+    page.context.chrome = {
+      storage: {
+        local: {
+          get: async () => storage
+        }
+      }
+    };
+    await page.run('updatePopupTimerBanner()');
+    assert.equal(page.get('popup-timer-banner').classList.contains('hidden'), true);
+  });
+});
