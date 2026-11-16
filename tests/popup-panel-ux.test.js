@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import * as analytics from '../shared/analytics.js';
 import * as ui from '../shared/ui.js';
 import * as format from '../shared/format.js';
+import * as timer from '../shared/timer.js';
 
 // Real popup/sidepanel scripts with analytics and format; only DOM and API are simulated.
 function surface(name, api = {}) {
@@ -22,7 +23,7 @@ function surface(name, api = {}) {
     }
     return elements.get(id);
   };
-  const context = vm.createContext({ ...analytics, ...ui, ...format, setTimeout: () => {}, console: { error() {} },
+  const context = vm.createContext({ ...analytics, ...ui, ...format, ...timer, setTimeout: () => {}, console: { error() {} },
     AprovadoApi: { checkAuth: async () => ({ isAuthenticated: true }), ...api },
     AprovadoExport: { exportActivitiesCSV() {}, exportFullBackupJSON() {}, copyReportToClipboard: async () => {} },
     document: { readyState: 'loading', getElementById: get, querySelectorAll: () => [],

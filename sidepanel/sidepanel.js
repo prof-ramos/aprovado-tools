@@ -3,11 +3,24 @@ import { AprovadoApi } from '../shared/api.js';
 import { computeStudyMetrics, filterActivitiesByPeriod, isCycleNotStarted } from '../shared/analytics.js';
 import { AprovadoExport } from '../shared/export.js';
 import { formatNumber, formatSyncLabel, getSnapshotSyncedAt } from '../shared/format.js';
+import {
+  createTimerState,
+  startTimer,
+  pauseTimer,
+  resumeTimer,
+  getElapsedMs,
+  formatElapsedTimer,
+  buildActivityPayload
+} from '../shared/timer.js';
 
 let currentSnapshot = null;
 let currentPeriod = 'all';
 // Sync note appended to the "Atualizado há…" label while a refresh runs or after it fails.
 let syncNote = '';
+
+// Active Timer state
+let activeTimerState = createTimerState();
+let timerTicker = null;
 
 // DOM Elements
 const panelLoading = document.getElementById('panel-loading');
@@ -59,6 +72,23 @@ const btnCopyMd = document.getElementById('btn-copy-md');
 const copyText = document.getElementById('copy-text');
 
 const pillButtons = document.querySelectorAll('.pill-btn');
+
+// Timer DOM Elements
+const timerDisplay = document.getElementById('timer-display');
+const timerStatusBadge = document.getElementById('timer-status-badge');
+const timerSelectMateria = document.getElementById('timer-select-materia');
+const timerSelectConteudo = document.getElementById('timer-select-conteudo');
+const timerExtraFields = document.getElementById('timer-extra-fields');
+const timerSelectTipo = document.getElementById('timer-select-tipo');
+const timerInputQuestoes = document.getElementById('timer-input-questoes');
+const timerInputAcertos = document.getElementById('timer-input-acertos');
+const timerInputAnotacoes = document.getElementById('timer-input-anotacoes');
+const btnTimerStart = document.getElementById('btn-timer-start');
+const btnTimerPause = document.getElementById('btn-timer-pause');
+const btnTimerResume = document.getElementById('btn-timer-resume');
+const btnTimerSave = document.getElementById('btn-timer-save');
+const btnTimerDiscard = document.getElementById('btn-timer-discard');
+const timerFeedback = document.getElementById('timer-feedback');
 
 function renderSyncStatus() {
   const label = formatSyncLabel(getSnapshotSyncedAt(currentSnapshot));
@@ -141,6 +171,7 @@ function renderPanel(snapshot) {
 
   renderSyncStatus();
   updateView();
+  initTimerUI();
 }
 
 function renderDaily() {
@@ -323,10 +354,267 @@ btnCopyMd.addEventListener('click', async () => {
   }, 2000);
 });
 
-// Keep "Atualizado há…" honest while the panel stays open.
-if (typeof setInterval === 'function') {
-  setInterval(() => { if (currentSnapshot) renderSyncStatus(); }, 30000);
+// ----------------------------------------------------
+// Timer Functions
+// ----------------------------------------------------
+
+function setTimerFeedback(msg, type = '') {
+  if (!timerFeedback) return;
+  if (!msg) {
+    timerFeedback.textContent = '';
+    timerFeedback.classList.add('hidden');
+    timerFeedback.classList.remove('error', 'success');
+    return;
+  }
+  timerFeedback.textContent = msg;
+  timerFeedback.classList.remove('hidden', 'error', 'success');
+  if (type) timerFeedback.classList.add(type);
 }
+
+function updateTimerDisplay() {
+  if (!timerDisplay) return;
+  const elapsed = getElapsedMs(activeTimerState);
+  const formatted = formatElapsedTimer(elapsed);
+  timerDisplay.textContent = formatted.text;
+}
+
+function startTimerTicker() {
+  if (timerTicker) clearInterval(timerTicker);
+  updateTimerDisplay();
+  if (typeof setInterval === 'function') {
+    timerTicker = setInterval(() => {
+      updateTimerDisplay();
+    }, 500);
+  }
+}
+
+function stopTimerTicker() {
+  if (timerTicker) {
+    clearInterval(timerTicker);
+    timerTicker = null;
+  }
+  updateTimerDisplay();
+}
+
+function populateTimerMaterias() {
+  if (!timerSelectMateria || !currentSnapshot?.materias) return;
+  const currentVal = timerSelectMateria.value;
+  timerSelectMateria.innerHTML = '<option value="">Selecione uma matéria...</option>';
+  for (const mat of currentSnapshot.materias) {
+    const opt = document.createElement('option');
+    opt.value = String(mat.Id);
+    opt.textContent = mat.Nome;
+    timerSelectMateria.appendChild(opt);
+  }
+  if (activeTimerState.materia?.Id) {
+    timerSelectMateria.value = String(activeTimerState.materia.Id);
+    populateTimerConteudos(activeTimerState.materia.Id);
+  } else if (currentVal) {
+    timerSelectMateria.value = currentVal;
+    populateTimerConteudos(Number(currentVal));
+  }
+}
+
+function populateTimerConteudos(materiaId) {
+  if (!timerSelectConteudo) return;
+  timerSelectConteudo.innerHTML = '<option value="">Nenhum conteúdo</option>';
+  if (!materiaId || !currentSnapshot?.materias) return;
+
+  const mat = currentSnapshot.materias.find(m => String(m.Id) === String(materiaId));
+  if (mat?.Conteudos && mat.Conteudos.length > 0) {
+    for (const c of mat.Conteudos) {
+      const opt = document.createElement('option');
+      opt.value = String(c.Id);
+      opt.textContent = c.Nome;
+      timerSelectConteudo.appendChild(opt);
+    }
+  }
+  if (activeTimerState.conteudo?.Id) {
+    timerSelectConteudo.value = String(activeTimerState.conteudo.Id);
+  }
+}
+
+function syncTimerUIWithState() {
+  updateTimerDisplay();
+  if (!timerStatusBadge) return;
+
+  const isRunning = activeTimerState.status === 'running';
+  const isPaused = activeTimerState.status === 'paused';
+  const isStopped = activeTimerState.status === 'stopped';
+
+  if (isRunning) {
+    timerStatusBadge.textContent = 'Em andamento';
+    timerStatusBadge.className = 'section-badge success';
+    btnTimerStart?.classList.add('hidden');
+    btnTimerPause?.classList.remove('hidden');
+    btnTimerResume?.classList.add('hidden');
+    btnTimerSave?.classList.add('hidden');
+    btnTimerDiscard?.classList.add('hidden');
+    timerExtraFields?.classList.add('hidden');
+    if (timerSelectMateria) timerSelectMateria.disabled = true;
+    if (timerSelectConteudo) timerSelectConteudo.disabled = true;
+    startTimerTicker();
+  } else if (isPaused) {
+    timerStatusBadge.textContent = 'Pausado';
+    timerStatusBadge.className = 'section-badge warning';
+    btnTimerStart?.classList.add('hidden');
+    btnTimerPause?.classList.add('hidden');
+    btnTimerResume?.classList.remove('hidden');
+    btnTimerSave?.classList.remove('hidden');
+    btnTimerDiscard?.classList.remove('hidden');
+    timerExtraFields?.classList.remove('hidden');
+    if (timerSelectMateria) timerSelectMateria.disabled = true;
+    if (timerSelectConteudo) timerSelectConteudo.disabled = true;
+    stopTimerTicker();
+  } else {
+    timerStatusBadge.textContent = 'Parado';
+    timerStatusBadge.className = 'section-badge';
+    btnTimerStart?.classList.remove('hidden');
+    btnTimerPause?.classList.add('hidden');
+    btnTimerResume?.classList.add('hidden');
+    btnTimerSave?.classList.add('hidden');
+    btnTimerDiscard?.classList.add('hidden');
+    timerExtraFields?.classList.add('hidden');
+    if (timerSelectMateria) timerSelectMateria.disabled = false;
+    if (timerSelectConteudo) timerSelectConteudo.disabled = false;
+    stopTimerTicker();
+  }
+}
+
+async function persistTimerState() {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      await chrome.storage.local.set({ aprovado_active_timer: activeTimerState });
+    }
+  } catch (err) {
+    console.error('Falha ao salvar estado do cronômetro:', err);
+  }
+}
+
+async function initTimerUI() {
+  populateTimerMaterias();
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      const data = await chrome.storage.local.get(['aprovado_active_timer']);
+      if (data.aprovado_active_timer) {
+        activeTimerState = data.aprovado_active_timer;
+        if (activeTimerState.materia?.Id && timerSelectMateria) {
+          timerSelectMateria.value = String(activeTimerState.materia.Id);
+          populateTimerConteudos(activeTimerState.materia.Id);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Falha ao restaurar cronômetro:', err);
+  }
+  syncTimerUIWithState();
+}
+
+timerSelectMateria?.addEventListener('change', () => {
+  const materiaId = Number(timerSelectMateria.value);
+  populateTimerConteudos(materiaId);
+  const mat = currentSnapshot?.materias?.find(m => m.Id === materiaId);
+  activeTimerState.materia = mat ? { Id: mat.Id, Nome: mat.Nome, Cor: mat.Cor } : null;
+  activeTimerState.conteudo = null;
+  persistTimerState();
+});
+
+timerSelectConteudo?.addEventListener('change', () => {
+  const cId = Number(timerSelectConteudo.value);
+  if (cId && activeTimerState.materia?.Id) {
+    const mat = currentSnapshot?.materias?.find(m => m.Id === activeTimerState.materia.Id);
+    const cont = mat?.Conteudos?.find(c => c.Id === cId);
+    activeTimerState.conteudo = cont ? { Id: cont.Id, Nome: cont.Nome } : null;
+  } else {
+    activeTimerState.conteudo = null;
+  }
+  persistTimerState();
+});
+
+btnTimerStart?.addEventListener('click', () => {
+  setTimerFeedback('');
+  const materiaId = Number(timerSelectMateria?.value);
+  if (!materiaId) {
+    setTimerFeedback('Selecione uma matéria antes de iniciar.', 'error');
+    return;
+  }
+  const mat = currentSnapshot?.materias?.find(m => m.Id === materiaId);
+  activeTimerState.materia = mat ? { Id: mat.Id, Nome: mat.Nome, Cor: mat.Cor } : { Id: materiaId, Nome: '' };
+  activeTimerState = startTimer(activeTimerState);
+  syncTimerUIWithState();
+  persistTimerState();
+});
+
+btnTimerPause?.addEventListener('click', () => {
+  setTimerFeedback('');
+  activeTimerState = pauseTimer(activeTimerState);
+  syncTimerUIWithState();
+  persistTimerState();
+});
+
+btnTimerResume?.addEventListener('click', () => {
+  setTimerFeedback('');
+  activeTimerState = resumeTimer(activeTimerState);
+  syncTimerUIWithState();
+  persistTimerState();
+});
+
+btnTimerDiscard?.addEventListener('click', () => {
+  setTimerFeedback('');
+  stopTimerTicker();
+  activeTimerState = createTimerState();
+  syncTimerUIWithState();
+  persistTimerState();
+  setTimerFeedback('Sessão descartada.', '');
+  setTimeout(() => setTimerFeedback(''), 3000);
+});
+
+btnTimerSave?.addEventListener('click', async () => {
+  setTimerFeedback('');
+  const duracao = getElapsedMs(activeTimerState);
+  if (duracao <= 0) {
+    setTimerFeedback('A duração precisa ser maior que zero.', 'error');
+    return;
+  }
+
+  btnTimerSave.disabled = true;
+  setTimerFeedback('Salvando atividade no AprovadoApp...', '');
+
+  try {
+    const options = {
+      tipoEstudo: timerSelectTipo?.value || 'Teoria',
+      exercicioQuantidade: timerInputQuestoes?.value ? Number(timerInputQuestoes.value) : null,
+      exercicioAcerto: timerInputAcertos?.value ? Number(timerInputAcertos.value) : null,
+      anotacoes: timerInputAnotacoes?.value || ''
+    };
+
+    const payload = buildActivityPayload(activeTimerState, options);
+    await AprovadoApi.createActivity(payload);
+
+    setTimerFeedback('Atividade salva com sucesso! Sincronizando...', 'success');
+    activeTimerState = createTimerState();
+    stopTimerTicker();
+    syncTimerUIWithState();
+    await persistTimerState();
+
+    if (timerInputQuestoes) timerInputQuestoes.value = '';
+    if (timerInputAcertos) timerInputAcertos.value = '';
+    if (timerInputAnotacoes) timerInputAnotacoes.value = '';
+
+    // Sincroniza snapshot para refletir a nova sessão nas métricas
+    await loadData(true);
+    setTimerFeedback('Atividade registrada com sucesso! ✓', 'success');
+    setTimeout(() => setTimerFeedback(''), 4000);
+  } catch (err) {
+    console.error('Erro ao salvar atividade:', err);
+    setTimerFeedback(`Erro ao salvar: ${err.message}`, 'error');
+  } finally {
+    btnTimerSave.disabled = false;
+  }
+});
+
+// Initialize timer display immediately on script load
+syncTimerUIWithState();
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => loadData(false));

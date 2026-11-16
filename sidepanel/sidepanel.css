@@ -421,6 +421,129 @@ button:focus-visible {
   border-color: rgba(255, 255, 255, 0.14);
 }
 
+.btn-success {
+  background-color: var(--accent);
+  color: #07080a;
+}
+
+.btn-success:hover {
+  background-color: var(--accent-hover);
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--danger);
+}
+
+/* Timer Section */
+.timer-card {
+  background: linear-gradient(180deg, var(--surface-bg) 0%, rgba(20, 20, 23, 0.8) 100%);
+  border: 1px solid var(--card-border);
+}
+
+.timer-display-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 0 6px;
+}
+
+.timer-digits {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: #ffffff;
+  text-shadow: 0 0 16px rgba(16, 185, 129, 0.2);
+}
+
+.timer-selectors {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.form-select, .form-input, .form-textarea {
+  width: 100%;
+  padding: 6px 8px;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.form-select:focus, .form-input:focus, .form-textarea:focus {
+  border-color: var(--accent);
+}
+
+.form-textarea {
+  resize: vertical;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.timer-extra-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--card-border);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.timer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.timer-actions .btn {
+  flex: 1 1 auto;
+}
+
+.timer-feedback {
+  margin-top: 6px;
+  font-size: 10px;
+  text-align: center;
+}
+
+.timer-feedback.error {
+  color: var(--danger);
+}
+
+.timer-feedback.success {
+  color: var(--accent);
+}
+
 .export-actions {
   display: flex;
   flex-direction: column;
